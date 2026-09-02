@@ -100,8 +100,25 @@ Copy `.env.example` to `.env` for local work, or set these in Vercel and Railway
 | `INSTAGRAM_APP_SECRET` | From the Meta app. |
 | `FACEBOOK_APP_SECRET` | From the Meta app. |
 | `WEBHOOK_VERIFY_TOKEN` | Any random string. You paste the same value into Meta's webhook config. |
+| `DM_MAGNET_LICENSE_URL` | Optional commercial license server URL. For DM Magnet use `https://dm-magnet-system-production.up.railway.app`. |
+| `DM_MAGNET_LICENSE_KEY` | Optional DM Magnet License Key. Set the same key on the web app and worker. When both DM Magnet variables are present, Instagram connection and DM sending are license-enforced. |
 
 `ENCRYPTION_KEY` must be exactly 64 hex characters or the app throws on boot.
+
+### DM Magnet license integration
+
+The DM Magnet fork can connect to the central License Server without changing the OpenReply database schema. Set both `DM_MAGNET_LICENSE_URL` and `DM_MAGNET_LICENSE_KEY` on **both** the web service and the worker.
+
+When both variables are configured:
+
+- Settings shows the current DM Magnet plan and Instagram slot usage;
+- `Connect Instagram` validates the license before starting Meta OAuth;
+- the OAuth callback binds Meta's Instagram professional Account ID to the License Key;
+- SOLO/CREATOR/AGENCY account limits are enforced centrally;
+- suspended, revoked and expired licenses cannot start new Instagram connections;
+- the DM worker re-validates the license with a short cache before send jobs, so a disabled license stops automation sends.
+
+When neither variable is present, the fork remains backwards-compatible and licensing is disabled. Setting only one of the two variables is treated as a configuration error.
 
 Optional, for tuning the polling reconciler (defaults are fine to start):
 
