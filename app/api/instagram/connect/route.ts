@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  licenseErrorToSettingsCode,
+  validateDmMagnetLicense,
+} from "@/lib/dm-magnet-license";
 import { canManageWorkspace, getCurrentWorkspaceContext } from "@/lib/workspace-access";
 import { getBaseUrl, getMissingInstagramOAuthEnv } from "@/lib/env";
 import { createOAuthState, getAuthorizationUrl } from "@/lib/meta/oauth";
@@ -9,7 +13,17 @@ export async function GET() {
     return NextResponse.redirect(`${getBaseUrl()}/login`);
   }
   if (!canManageWorkspace(context.role)) {
-    return NextResponse.redirect(`${getBaseUrl()}/settings?instagram=forbidden`);
+    return NextResponse.redirect(
+      `${getBaseUrl()}/settings?instagram=forbidden`
+    );
+  }
+
+  try {
+    await validateDmMagnetLicense();
+  } catch (error) {
+    return NextResponse.redirect(
+      `${getBaseUrl()}/settings?license=${licenseErrorToSettingsCode(error)}`
+    );
   }
 
   // getAuthorizationUrl and createOAuthState call requireEnv, which throws.
