@@ -49,7 +49,18 @@ export class DmMagnetLicenseError extends Error {
 }
 
 function normalizeBaseUrl(value: string) {
-  const parsed = new URL(value);
+  let parsed: URL;
+
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new DmMagnetLicenseError(
+      "DM Magnet License Server URL is invalid",
+      "LICENSE_SERVICE_MISCONFIGURED",
+      500
+    );
+  }
+
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     throw new DmMagnetLicenseError(
       "DM Magnet License Server URL must use HTTP or HTTPS",
