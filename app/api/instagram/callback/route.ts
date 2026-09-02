@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
+import {
+  bindDmMagnetInstagramAccount,
+  DmMagnetLicenseError,
+  licenseErrorToSettingsCode,
+} from "@/lib/dm-magnet-license";
 import { getBaseUrl } from "@/lib/env";
 import { canConnectInstagramAccount } from "@/lib/instagram-accounts";
-import { getLongLivedToken, getUserInfo, subscribeInstagramAccountToWebhooks } from "@/lib/meta/client";
+import {
+  getLongLivedToken,
+  getUserInfo,
+  subscribeInstagramAccountToWebhooks,
+} from "@/lib/meta/client";
 import {
   encryptToken,
   exchangeCodeForToken,
@@ -50,8 +59,9 @@ export async function GET(request: NextRequest) {
     const { accessToken: longLivedToken, expiresIn } =
       await getLongLivedToken(shortLivedToken);
     const userInfo = await getUserInfo(longLivedToken);
+
     // Webhooks and the messaging API key off the professional account ID
-    // (user_id), not the app-scoped `id`. Store user_id so comment webhooks
+    // (user_id), not the app-scoped id. Store user_id so comment webhooks
     // can be matched back to this account. Fall back to id if user_id is
     // ever absent.
     const instagramId = userInfo.user_id ?? userInfo.id;
@@ -64,6 +74,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         `${baseUrl}/settings?instagram=already_connected`
       );
+    }
+
+    try {
+      await bindDmMagnetInstagramAccount({
+        instagramAccountId: instagramId,
+        instagramUsername: userInfo.username,
+        instanceId: `${baseUrl}#workspace:${state.workspaceId}`,
+      });
+    } catch (licenseError) {
+      if (licenseError instanceof DmMagnetLicenseError) {
+        return NextResponse.redirect(
+          `${baseUrl}/settings?license=${licenseErrorToSettingsCode(
+            licenseError
+          )}`
+        );
+      }
+      throw licenseError;
     }
 
     const encryptedToken = encryptToken(longLivedToken);
@@ -108,9 +135,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[Instagram Callback] Error:", err);
-    // The message is the only diagnostic a self-hoster gets for a failed
-    // connect, so persist it alongside the other operational events rather
-    // than leaving it in server logs they may not be able to reach.
+
     await prisma.operationalEvent
       .create({
         data: {
