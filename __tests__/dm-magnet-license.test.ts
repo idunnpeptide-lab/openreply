@@ -27,18 +27,23 @@ describe("DM Magnet license client", () => {
     vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
 
     expect(() => getDmMagnetLicenseConfig()).toThrowError(
-      expect.objectContaining({
-        code: "LICENSE_SERVICE_MISCONFIGURED",
-      })
+      DmMagnetLicenseError
     );
+
+    try {
+      getDmMagnetLicenseConfig();
+      throw new Error("expected partial config to fail");
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: "LICENSE_SERVICE_MISCONFIGURED",
+      });
+    }
 
     vi.stubEnv("DM_MAGNET_LICENSE_KEY", "DMM-SOLO-TEST");
     vi.stubEnv("DM_MAGNET_LICENSE_URL", "not-a-url");
 
     expect(() => getDmMagnetLicenseConfig()).toThrowError(
-      expect.objectContaining({
-        code: "LICENSE_SERVICE_MISCONFIGURED",
-      })
+      DmMagnetLicenseError
     );
   });
 
