@@ -24,6 +24,18 @@ interface SettingsData {
   >;
 }
 
+interface LicenseStatusData {
+  enabled: boolean;
+  valid: boolean | null;
+  plan?: "SOLO" | "CREATOR" | "AGENCY" | null;
+  status?: string | null;
+  maxAccounts?: number | null;
+  usedAccounts?: number | null;
+  availableAccounts?: number | null;
+  expiresAt?: string | null;
+  error?: string;
+}
+
 interface WorkspaceMembersData {
   currentUserRole: "OWNER" | "ADMIN" | "MEMBER";
   members: Array<{
@@ -50,6 +62,7 @@ export default function SettingsPage() {
   const [membersData, setMembersData] = useState<WorkspaceMembersData | null>(
     null
   );
+  const [licenseData, setLicenseData] = useState<LicenseStatusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -60,10 +73,12 @@ export default function SettingsPage() {
     Promise.all([
       fetch("/api/dashboard/stats").then((res) => res.json()),
       fetch("/api/workspace/members").then((res) => res.json()),
+      fetch("/api/license/status").then((res) => res.json()),
     ])
-      .then(([statsPayload, membersPayload]) => {
+      .then(([statsPayload, membersPayload, licensePayload]) => {
         if (statsPayload.success) setData(statsPayload.data);
         if (membersPayload.success) setMembersData(membersPayload.data);
+        if (licensePayload.success) setLicenseData(licensePayload.data);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -135,6 +150,67 @@ export default function SettingsPage() {
       <Suspense fallback={null}>
         <InstagramConnectNotice />
       </Suspense>
+
+      <section className="panel rounded p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold">DM Magnet License</h2>
+            <p className="mt-1 text-xs text-muted">
+              Controls Instagram account slots and automation access for this instance.
+            </p>
+          </div>
+
+          <span
+            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+              licenseData?.enabled && licenseData.valid
+                ? "bg-success/10 text-success"
+                : licenseData?.enabled
+                  ? "bg-error/10 text-error"
+                  : "bg-warning/10 text-warning"
+            }`}
+          >
+            {licenseData?.enabled
+              ? licenseData.valid
+                ? "Active"
+                : "Needs attention"
+              : "Not configured"}
+          </span>
+        </div>
+
+        {licenseData?.enabled && licenseData.valid ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded border border-border bg-surface/70 p-3">
+              <p className="text-xs text-muted">Plan</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {licenseData.plan}
+              </p>
+            </div>
+            <div className="rounded border border-border bg-surface/70 p-3">
+              <p className="text-xs text-muted">Instagram slots</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {licenseData.usedAccounts}/{licenseData.maxAccounts}
+              </p>
+            </div>
+            <div className="rounded border border-border bg-surface/70 p-3">
+              <p className="text-xs text-muted">Expires</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {licenseData.expiresAt
+                  ? new Date(licenseData.expiresAt).toLocaleDateString()
+                  : "No limit"}
+              </p>
+            </div>
+          </div>
+        ) : licenseData?.enabled ? (
+          <p className="mt-4 text-sm text-error">
+            License validation failed: {licenseData.error ?? "UNKNOWN"}
+          </p>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            Add DM_MAGNET_LICENSE_URL and DM_MAGNET_LICENSE_KEY to enable
+            license enforcement.
+          </p>
+        )}
+      </section>
 
       <section className="panel rounded p-4 sm:p-6">
         <h2 className="text-base font-semibold mb-6">Instagram Connection</h2>

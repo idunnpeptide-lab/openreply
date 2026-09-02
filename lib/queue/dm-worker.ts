@@ -12,6 +12,7 @@ import {
   type ProcessFollowUpJob,
 } from "./client";
 import { prisma } from "@/lib/db/client";
+import { validateDmMagnetLicense } from "@/lib/dm-magnet-license";
 import {
   MetaApiError,
   RateLimitError,
@@ -1179,6 +1180,11 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
 }
 
 async function processJob(job: Job<DmQueueJob>): Promise<void> {
+  // When DM Magnet licensing is configured, every send path is fail-closed:
+  // suspended, revoked or expired licenses stop worker jobs before any Meta
+  // message is sent. Validation is cached briefly by the license client.
+  await validateDmMagnetLicense();
+
   if (job.name === POSTBACK_JOB_NAME) {
     return processPostback(job as Job<ProcessPostbackJob>);
   }
