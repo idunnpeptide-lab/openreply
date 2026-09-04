@@ -75,6 +75,11 @@ model Workspace {
   usagePeriodStart  DateTime @default(now())
   dmsSentThisPeriod Int      @default(0)
 
+  dmMagnetLicenseKeyEncrypted String?
+  dmMagnetLicenseKeyHash      String?   @unique
+  dmMagnetLicenseKeyPrefix    String?
+  dmMagnetLicenseConfiguredAt DateTime?
+
   members           WorkspaceMember[]
   invitations       WorkspaceInvitation[]
   instagramAccounts InstagramAccount[]
