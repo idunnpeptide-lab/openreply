@@ -48,7 +48,19 @@ const LICENSE_MESSAGES: Record<
     tone: "error",
     title: "DM Magnet license not found",
     detail:
-      "The configured License Key is not recognized. Check the DM_MAGNET_LICENSE_KEY value and try again.",
+      "The License Key saved for this workspace is not recognized. Open Settings and enter the correct customer License Key.",
+  },
+  not_configured: {
+    tone: "warning",
+    title: "DM Magnet License Key required",
+    detail:
+      "This workspace does not have a License Key yet. Open Settings, activate the customer license, then connect Instagram.",
+  },
+  already_assigned: {
+    tone: "warning",
+    title: "License Key already assigned",
+    detail:
+      "That License Key belongs to another workspace in this DM Magnet SaaS. Use the key issued for this workspace.",
   },
   suspended: {
     tone: "warning",
@@ -76,9 +88,9 @@ const LICENSE_MESSAGES: Record<
   },
   misconfigured: {
     tone: "error",
-    title: "DM Magnet license integration is incomplete",
+    title: "DM Magnet license service is not configured",
     detail:
-      "Set both DM_MAGNET_LICENSE_URL and DM_MAGNET_LICENSE_KEY on the web app and worker, then restart the services.",
+      "The shared SaaS deployment is missing DM_MAGNET_LICENSE_URL. Contact the service administrator.",
   },
   unavailable: {
     tone: "warning",
