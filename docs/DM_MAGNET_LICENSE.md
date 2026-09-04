@@ -60,11 +60,15 @@ OpenReply stores a unique SHA-256 fingerprint of each configured License Key. Th
 
 This local uniqueness is an additional SaaS isolation guard. DM Magnet License Server remains the entitlement source of truth.
 
-## Account replacement
+## License and account replacement
+
+A Workspace must activate its License Key before connecting social accounts.
+
+Once a Workspace has connected social accounts, OpenReply locks License Key changes. This prevents an already-connected Instagram account from continuing under a different valid License Key without consuming that replacement license's central account slot.
+
+For a legitimate license/account migration, remove or migrate the connected accounts in a controlled support flow, reset the relevant central activation when needed, then configure the replacement License Key and reconnect.
 
 Disconnecting an Instagram account inside OpenReply does not automatically free its central DM Magnet activation. This prevents customers from rotating a limited license freely between accounts.
-
-Use DM Magnet Admin License Control to reset activations when a legitimate account replacement is needed.
 
 ## Backwards compatibility
 
