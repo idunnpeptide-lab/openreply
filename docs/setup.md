@@ -100,25 +100,37 @@ Copy `.env.example` to `.env` for local work, or set these in Vercel and Railway
 | `INSTAGRAM_APP_SECRET` | From the Meta app. |
 | `FACEBOOK_APP_SECRET` | From the Meta app. |
 | `WEBHOOK_VERIFY_TOKEN` | Any random string. You paste the same value into Meta's webhook config. |
-| `DM_MAGNET_LICENSE_URL` | Optional commercial license server URL. For DM Magnet use `https://dm-magnet-system-production.up.railway.app`. |
-| `DM_MAGNET_LICENSE_KEY` | Optional DM Magnet License Key. Set the same key on the web app and worker. When both DM Magnet variables are present, Instagram connection and DM sending are license-enforced. |
+| `DM_MAGNET_LICENSE_URL` | Optional central DM Magnet License Server URL. In the shared SaaS deployment, set the same non-secret URL on web and worker. Customer License Keys are entered per Workspace in Settings and are not stored in deployment variables. |
 
 `ENCRYPTION_KEY` must be exactly 64 hex characters or the app throws on boot.
 
-### DM Magnet license integration
+### DM Magnet shared SaaS license integration
 
-The DM Magnet fork can connect to the central License Server without changing the OpenReply database schema. Set both `DM_MAGNET_LICENSE_URL` and `DM_MAGNET_LICENSE_KEY` on **both** the web service and the worker.
+DM Magnet uses one shared OpenReply deployment for many customer Workspaces. The deployment has only the central service URL:
 
-When both variables are configured:
+```env
+DM_MAGNET_LICENSE_URL=https://dm-magnet-system-production.up.railway.app
+```
 
-- Settings shows the current DM Magnet plan and Instagram slot usage;
-- `Connect Instagram` validates the license before starting Meta OAuth;
-- the OAuth callback binds Meta's Instagram professional Account ID to the License Key;
-- SOLO/CREATOR/AGENCY account limits are enforced centrally;
-- suspended, revoked and expired licenses cannot start new Instagram connections;
-- the DM worker re-validates the license with a short cache before send jobs, so a disabled license stops automation sends.
+Set that same non-secret URL on the web service and worker. Do **not** create a deployment-wide `DM_MAGNET_LICENSE_KEY`.
 
-When neither variable is present, the fork remains backwards-compatible and licensing is disabled. Setting only one of the two variables is treated as a configuration error.
+Each customer Workspace activates its own License Key from **Settings → DM Magnet License**. Before saving it, OpenReply validates it against the central License Server. The Workspace stores an AES-256-GCM encrypted copy protected by the existing `ENCRYPTION_KEY`, plus a SHA-256 fingerprint for uniqueness and a masked prefix for display. The plaintext License Key is not stored in PostgreSQL or deployment variables.
+
+When `DM_MAGNET_LICENSE_URL` is configured:
+
+- each Workspace must activate its own valid License Key before connecting Instagram;
+- Settings shows that Workspace's plan, social-account slot usage and expiration;
+- `Connect Instagram` validates the current Workspace's license before starting Meta OAuth;
+- the OAuth callback binds Meta's Instagram professional Account ID to that same Workspace's license;
+- SOLO/CREATOR/AGENCY account limits are enforced centrally per customer license;
+- the worker resolves each queued Instagram account to its Workspace and validates that Workspace's license before sending;
+- a suspended, revoked, expired or missing license blocks only that Workspace's licensed send path rather than controlling the entire deployment.
+
+The web app and worker must share the same `ENCRYPTION_KEY`, because the worker must decrypt Instagram tokens and workspace License Keys written by the web app.
+
+If `DM_MAGNET_LICENSE_URL` is absent, OpenReply keeps its original self-hosted behavior and DM Magnet licensing is not enforced.
+
+The workspace license data lives in the additive `DmMagnetWorkspaceLicense` table. Apply Prisma migrations before enabling `DM_MAGNET_LICENSE_URL` on a shared SaaS deployment.
 
 Optional, for tuning the polling reconciler (defaults are fine to start):
 
