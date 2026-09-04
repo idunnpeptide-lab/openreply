@@ -62,6 +62,12 @@ const LICENSE_MESSAGES: Record<
     detail:
       "That License Key belongs to another workspace in this DM Magnet SaaS. Use the key issued for this workspace.",
   },
+  account_migration_required: {
+    tone: "warning",
+    title: "Connected accounts must be migrated first",
+    detail:
+      "A workspace License Key cannot be changed while social accounts are connected. Contact support for a controlled account migration or reset.",
+  },
   suspended: {
     tone: "warning",
     title: "DM Magnet license suspended",
