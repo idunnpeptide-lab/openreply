@@ -178,23 +178,15 @@ async function validateLicenseKey(
 async function getWorkspaceLicenseCredential(
   workspaceId: string
 ): Promise<WorkspaceLicenseCredential> {
-  const workspace = await prisma.workspace.findUnique({
-    where: { id: workspaceId },
+  const workspaceLicense = await prisma.dmMagnetWorkspaceLicense.findUnique({
+    where: { workspaceId },
     select: {
-      dmMagnetLicenseKeyEncrypted: true,
-      dmMagnetLicenseKeyPrefix: true,
+      licenseKeyEncrypted: true,
+      licenseKeyPrefix: true,
     },
   });
 
-  if (!workspace) {
-    throw new DmMagnetLicenseError(
-      "Workspace not found",
-      "WORKSPACE_NOT_FOUND",
-      404
-    );
-  }
-
-  if (!workspace.dmMagnetLicenseKeyEncrypted) {
+  if (!workspaceLicense) {
     throw new DmMagnetLicenseError(
       "This workspace does not have a DM Magnet License Key",
       "LICENSE_NOT_CONFIGURED",
@@ -204,8 +196,8 @@ async function getWorkspaceLicenseCredential(
 
   try {
     return {
-      licenseKey: decryptSecret(workspace.dmMagnetLicenseKeyEncrypted),
-      keyPrefix: workspace.dmMagnetLicenseKeyPrefix,
+      licenseKey: decryptSecret(workspaceLicense.licenseKeyEncrypted),
+      keyPrefix: workspaceLicense.licenseKeyPrefix,
     };
   } catch {
     throw new DmMagnetLicenseError(
@@ -219,27 +211,18 @@ async function getWorkspaceLicenseCredential(
 export async function getDmMagnetWorkspaceLicenseMetadata(
   workspaceId: string
 ) {
-  const workspace = await prisma.workspace.findUnique({
-    where: { id: workspaceId },
+  const workspaceLicense = await prisma.dmMagnetWorkspaceLicense.findUnique({
+    where: { workspaceId },
     select: {
-      dmMagnetLicenseKeyEncrypted: true,
-      dmMagnetLicenseKeyPrefix: true,
-      dmMagnetLicenseConfiguredAt: true,
+      licenseKeyPrefix: true,
+      configuredAt: true,
     },
   });
 
-  if (!workspace) {
-    throw new DmMagnetLicenseError(
-      "Workspace not found",
-      "WORKSPACE_NOT_FOUND",
-      404
-    );
-  }
-
   return {
-    configured: Boolean(workspace.dmMagnetLicenseKeyEncrypted),
-    keyPrefix: workspace.dmMagnetLicenseKeyPrefix,
-    configuredAt: workspace.dmMagnetLicenseConfiguredAt,
+    configured: Boolean(workspaceLicense),
+    keyPrefix: workspaceLicense?.licenseKeyPrefix ?? null,
+    configuredAt: workspaceLicense?.configuredAt ?? null,
   };
 }
 
@@ -270,13 +253,23 @@ export async function configureDmMagnetWorkspaceLicense(
   const license = await validateLicenseKey(licenseKey);
 
   try {
-    await prisma.workspace.update({
-      where: { id: workspaceId },
-      data: {
-        dmMagnetLicenseKeyEncrypted: encryptSecret(licenseKey),
-        dmMagnetLicenseKeyHash: hashLicenseKey(licenseKey),
-        dmMagnetLicenseKeyPrefix: formatLicenseKeyPrefix(licenseKey),
-        dmMagnetLicenseConfiguredAt: new Date(),
+    const encryptedKey = encryptSecret(licenseKey);
+    const licenseKeyHash = hashLicenseKey(licenseKey);
+    const licenseKeyPrefix = formatLicenseKeyPrefix(licenseKey);
+
+    await prisma.dmMagnetWorkspaceLicense.upsert({
+      where: { workspaceId },
+      create: {
+        workspaceId,
+        licenseKeyEncrypted: encryptedKey,
+        licenseKeyHash,
+        licenseKeyPrefix,
+      },
+      update: {
+        licenseKeyEncrypted: encryptedKey,
+        licenseKeyHash,
+        licenseKeyPrefix,
+        configuredAt: new Date(),
       },
     });
   } catch (error) {
