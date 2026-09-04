@@ -12,7 +12,10 @@ import {
   type ProcessFollowUpJob,
 } from "./client";
 import { prisma } from "@/lib/db/client";
-import { validateDmMagnetLicense } from "@/lib/dm-magnet-license";
+import {
+  getDmMagnetLicenseServerConfig,
+  validateDmMagnetWorkspaceLicense,
+} from "@/lib/dm-magnet-license";
 import {
   MetaApiError,
   RateLimitError,
@@ -1180,10 +1183,22 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
 }
 
 async function processJob(job: Job<DmQueueJob>): Promise<void> {
-  // When DM Magnet licensing is configured, every send path is fail-closed:
-  // suspended, revoked or expired licenses stop worker jobs before any Meta
-  // message is sent. Validation is cached briefly by the license client.
-  await validateDmMagnetLicense();
+  // Shared DM Magnet SaaS uses one License Key per workspace, never one key
+  // for the whole deployment. When the central service is enabled, resolve
+  // the job's Instagram account to its workspace and validate that workspace's
+  // license before any Meta send path can run.
+  if (getDmMagnetLicenseServerConfig()) {
+    const account = await prisma.instagramAccount.findUnique({
+      where: { instagramId: job.data.instagramAccountId },
+      select: { workspaceId: true },
+    });
+
+    // A queued job for an account that no longer exists has nothing safe to
+    // send. Drop it rather than bypassing license enforcement.
+    if (!account) return;
+
+    await validateDmMagnetWorkspaceLicense(account.workspaceId);
+  }
 
   if (job.name === POSTBACK_JOB_NAME) {
     return processPostback(job as Job<ProcessPostbackJob>);

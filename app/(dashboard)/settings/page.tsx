@@ -26,6 +26,8 @@ interface SettingsData {
 
 interface LicenseStatusData {
   enabled: boolean;
+  configured: boolean;
+  keyPrefix?: string | null;
   valid: boolean | null;
   plan?: "SOLO" | "CREATOR" | "AGENCY" | null;
   status?: string | null;
@@ -68,6 +70,8 @@ export default function SettingsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [licenseKeyInput, setLicenseKeyInput] = useState("");
+  const [licenseError, setLicenseError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -87,6 +91,30 @@ export default function SettingsPage() {
     const res = await fetch("/api/workspace/members");
     const payload = await res.json();
     if (payload.success) setMembersData(payload.data);
+  }
+
+  async function configureLicense(event: React.FormEvent) {
+    event.preventDefault();
+    setLicenseError(null);
+    setBusy("license");
+
+    const res = await fetch("/api/license/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ licenseKey: licenseKeyInput }),
+    });
+    const payload = await res.json();
+
+    if (payload.success) {
+      setLicenseData(payload.data);
+      setLicenseKeyInput("");
+    } else {
+      setLicenseError(
+        payload.message ?? payload.error ?? "Could not configure License Key"
+      );
+    }
+
+    setBusy(null);
   }
 
   async function disconnectInstagram(instagramAccountId: string) {
@@ -156,60 +184,127 @@ export default function SettingsPage() {
           <div>
             <h2 className="text-base font-semibold">DM Magnet License</h2>
             <p className="mt-1 text-xs text-muted">
-              Controls Instagram account slots and automation access for this instance.
+              Controls social-account slots and automation access for this workspace.
             </p>
           </div>
 
           <span
             className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-              licenseData?.enabled && licenseData.valid
+              licenseData?.enabled &&
+              licenseData.configured &&
+              licenseData.valid
                 ? "bg-success/10 text-success"
                 : licenseData?.enabled
-                  ? "bg-error/10 text-error"
-                  : "bg-warning/10 text-warning"
+                  ? licenseData.configured
+                    ? "bg-error/10 text-error"
+                    : "bg-warning/10 text-warning"
+                  : "bg-zinc-500/10 text-muted"
             }`}
           >
-            {licenseData?.enabled
-              ? licenseData.valid
-                ? "Active"
-                : "Needs attention"
-              : "Not configured"}
+            {!licenseData?.enabled
+              ? "Self-hosted"
+              : !licenseData.configured
+                ? "License required"
+                : licenseData.valid
+                  ? "Active"
+                  : "Needs attention"}
           </span>
         </div>
 
-        {licenseData?.enabled && licenseData.valid ? (
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded border border-border bg-surface/70 p-3">
-              <p className="text-xs text-muted">Plan</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {licenseData.plan}
-              </p>
+        {!licenseData?.enabled ? (
+          <p className="mt-4 text-sm text-muted">
+            This deployment is not connected to the DM Magnet License Server.
+            Existing self-hosted behavior remains unchanged.
+          </p>
+        ) : licenseData.configured && licenseData.valid ? (
+          <>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="rounded border border-border bg-surface/70 p-3">
+                <p className="text-xs text-muted">Plan</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {licenseData.plan}
+                </p>
+              </div>
+              <div className="rounded border border-border bg-surface/70 p-3">
+                <p className="text-xs text-muted">Social account slots</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {licenseData.usedAccounts}/{licenseData.maxAccounts}
+                </p>
+              </div>
+              <div className="rounded border border-border bg-surface/70 p-3">
+                <p className="text-xs text-muted">Expires</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {licenseData.expiresAt
+                    ? new Date(licenseData.expiresAt).toLocaleDateString()
+                    : "No limit"}
+                </p>
+              </div>
             </div>
-            <div className="rounded border border-border bg-surface/70 p-3">
-              <p className="text-xs text-muted">Instagram slots</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {licenseData.usedAccounts}/{licenseData.maxAccounts}
+            {licenseData.keyPrefix && (
+              <p className="mt-3 text-xs text-muted">
+                Workspace key: {licenseData.keyPrefix}
               </p>
-            </div>
-            <div className="rounded border border-border bg-surface/70 p-3">
-              <p className="text-xs text-muted">Expires</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {licenseData.expiresAt
-                  ? new Date(licenseData.expiresAt).toLocaleDateString()
-                  : "No limit"}
-              </p>
-            </div>
-          </div>
-        ) : licenseData?.enabled ? (
+            )}
+          </>
+        ) : licenseData.configured ? (
           <p className="mt-4 text-sm text-error">
             License validation failed: {licenseData.error ?? "UNKNOWN"}
           </p>
         ) : (
           <p className="mt-4 text-sm text-muted">
-            Add DM_MAGNET_LICENSE_URL and DM_MAGNET_LICENSE_KEY to enable
-            license enforcement.
+            Enter the License Key issued to this customer workspace before
+            connecting Instagram.
           </p>
         )}
+
+        {licenseData?.enabled &&
+          canManageMembers &&
+          (!licenseData.configured || accounts.length === 0) && (
+            <form
+              onSubmit={configureLicense}
+              className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row"
+            >
+              <input
+                type="password"
+                value={licenseKeyInput}
+                onChange={(event) => setLicenseKeyInput(event.target.value)}
+                placeholder={
+                  licenseData.configured
+                    ? "Re-enter or replace the License Key"
+                    : "DMM-SOLO-..."
+                }
+                className="min-w-0 flex-1 rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
+                autoComplete="off"
+                required
+              />
+              <button
+                type="submit"
+                disabled={busy === "license"}
+                className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {busy === "license"
+                  ? "Validating..."
+                  : licenseData.configured
+                    ? "Update key"
+                    : "Activate license"}
+              </button>
+              {licenseError && (
+                <p className="sm:basis-full text-sm text-error">
+                  {licenseError}
+                </p>
+              )}
+            </form>
+          )}
+
+        {licenseData?.enabled &&
+          licenseData.configured &&
+          accounts.length > 0 &&
+          canManageMembers && (
+            <p className="mt-4 border-t border-border pt-4 text-xs text-muted">
+              The License Key is locked while social accounts are connected.
+              Contact support for a controlled license/account migration.
+            </p>
+          )}
       </section>
 
       <section className="panel rounded p-4 sm:p-6">

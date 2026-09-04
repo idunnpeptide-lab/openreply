@@ -15,6 +15,8 @@ const {
   mockQueueAdd,
   mockReserveWorkspaceDMSend,
   mockReleaseWorkspaceDMReservation,
+  mockGetDmMagnetLicenseServerConfig,
+  mockValidateDmMagnetWorkspaceLicense,
 } = vi.hoisted(() => ({
   mockPrisma: {
     automation: {
@@ -48,10 +50,17 @@ const {
   mockQueueAdd: vi.fn(),
   mockReserveWorkspaceDMSend: vi.fn(),
   mockReleaseWorkspaceDMReservation: vi.fn(),
+  mockGetDmMagnetLicenseServerConfig: vi.fn(),
+  mockValidateDmMagnetWorkspaceLicense: vi.fn(),
 }));
 
 vi.mock("@/lib/db/client", () => ({
   prisma: mockPrisma,
+}));
+
+vi.mock("@/lib/dm-magnet-license", () => ({
+  getDmMagnetLicenseServerConfig: mockGetDmMagnetLicenseServerConfig,
+  validateDmMagnetWorkspaceLicense: mockValidateDmMagnetWorkspaceLicense,
 }));
 
 vi.mock("@/lib/meta/client", () => ({
@@ -229,6 +238,17 @@ beforeEach(() => {
     workspaceId: "workspace_123",
   });
   mockPrisma.operationalEvent.create.mockResolvedValue({});
+  mockGetDmMagnetLicenseServerConfig.mockReturnValue(null);
+  mockValidateDmMagnetWorkspaceLicense.mockResolvedValue({
+    valid: true,
+    id: "lic_1",
+    status: "ACTIVE",
+    plan: "SOLO",
+    maxAccounts: 1,
+    usedAccounts: 1,
+    availableAccounts: 0,
+    expiresAt: null,
+  });
   mockDecryptToken.mockReturnValue("decrypted_token");
   mockMatchKeywords.mockReturnValue({ matched: true, matchedKeyword: "LINK" });
   mockReserveWorkspaceDMSend.mockResolvedValue({
@@ -276,6 +296,24 @@ beforeEach(() => {
 });
 
 describe("DM Worker — Full Pipeline", () => {
+  it("validates the License Key for the job's workspace when shared SaaS licensing is enabled", async () => {
+    mockGetDmMagnetLicenseServerConfig.mockReturnValue({
+      baseUrl: "https://license.example.com",
+    });
+
+    const processor = getProcessor();
+    await processor(createMockJob());
+
+    expect(mockPrisma.instagramAccount.findUnique).toHaveBeenCalledWith({
+      where: { instagramId: "ig_456" },
+      select: { workspaceId: true },
+    });
+    expect(mockValidateDmMagnetWorkspaceLicense).toHaveBeenCalledWith(
+      "workspace_123"
+    );
+    expect(mockSendPrivateReply).toHaveBeenCalled();
+  });
+
   it("should send a private reply for a matching comment", async () => {
     const processor = getProcessor();
 

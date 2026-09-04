@@ -4,6 +4,9 @@ set -euo pipefail
 echo "==> Installing dependencies"
 npm ci
 
+echo "==> Validating Prisma schema"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/instrareply" npx prisma validate
+
 echo "==> Generating Prisma client"
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/instrareply" npm run db:generate
 
