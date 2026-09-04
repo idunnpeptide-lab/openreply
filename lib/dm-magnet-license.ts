@@ -248,13 +248,39 @@ export async function configureDmMagnetWorkspaceLicense(
     );
   }
 
+  const licenseKeyHash = hashLicenseKey(licenseKey);
+  const existingCredential = await prisma.dmMagnetWorkspaceLicense.findUnique({
+    where: { workspaceId },
+    select: { licenseKeyHash: true },
+  });
+
+  // A workspace must establish its commercial license before social accounts
+  // are connected. Changing the credential underneath already-connected
+  // accounts would let those accounts keep sending without being bound to the
+  // replacement license's central account slots.
+  if (
+    !existingCredential ||
+    existingCredential.licenseKeyHash !== licenseKeyHash
+  ) {
+    const connectedAccounts = await prisma.instagramAccount.count({
+      where: { workspaceId },
+    });
+
+    if (connectedAccounts > 0) {
+      throw new DmMagnetLicenseError(
+        "Remove or migrate connected social accounts before changing this workspace License Key",
+        "LICENSE_ACCOUNT_MIGRATION_REQUIRED",
+        409
+      );
+    }
+  }
+
   // Validate before storing anything so invalid/revoked/expired keys never
   // become workspace credentials.
   const license = await validateLicenseKey(licenseKey);
 
   try {
     const encryptedKey = encryptSecret(licenseKey);
-    const licenseKeyHash = hashLicenseKey(licenseKey);
     const licenseKeyPrefix = formatLicenseKeyPrefix(licenseKey);
 
     await prisma.dmMagnetWorkspaceLicense.upsert({
@@ -365,6 +391,8 @@ export function licenseErrorToSettingsCode(error: unknown) {
       return "not_configured";
     case "LICENSE_ALREADY_ASSIGNED":
       return "already_assigned";
+    case "LICENSE_ACCOUNT_MIGRATION_REQUIRED":
+      return "account_migration_required";
     case "LICENSE_SUSPENDED":
       return "suspended";
     case "LICENSE_REVOKED":
