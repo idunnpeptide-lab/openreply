@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   licenseErrorToSettingsCode,
-  validateDmMagnetLicense,
+  validateDmMagnetWorkspaceLicense,
 } from "@/lib/dm-magnet-license";
 import { canManageWorkspace, getCurrentWorkspaceContext } from "@/lib/workspace-access";
 import { getBaseUrl, getMissingInstagramOAuthEnv } from "@/lib/env";
@@ -19,7 +19,7 @@ export async function GET() {
   }
 
   try {
-    await validateDmMagnetLicense();
+    await validateDmMagnetWorkspaceLicense(context.workspaceId);
   } catch (error) {
     return NextResponse.redirect(
       `${getBaseUrl()}/settings?license=${licenseErrorToSettingsCode(error)}`
