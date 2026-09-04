@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dbMocks = vi.hoisted(() => ({
-  workspaceFindUnique: vi.fn(),
-  workspaceUpdate: vi.fn(),
+  licenseFindUnique: vi.fn(),
+  licenseUpsert: vi.fn(),
 }));
 
 vi.mock("@/lib/db/client", () => ({
   prisma: {
-    workspace: {
-      findUnique: dbMocks.workspaceFindUnique,
-      update: dbMocks.workspaceUpdate,
+    dmMagnetWorkspaceLicense: {
+      findUnique: dbMocks.licenseFindUnique,
+      upsert: dbMocks.licenseUpsert,
     },
   },
 }));
@@ -63,7 +63,7 @@ describe("DM Magnet workspace license client", () => {
       validateDmMagnetWorkspaceLicense("workspace_disabled", { force: true })
     ).resolves.toBeNull();
 
-    expect(dbMocks.workspaceFindUnique).not.toHaveBeenCalled();
+    expect(dbMocks.licenseFindUnique).not.toHaveBeenCalled();
   });
 
   it("rejects an invalid License Server URL", () => {
@@ -80,7 +80,7 @@ describe("DM Magnet workspace license client", () => {
 
     const fetchMock = vi.fn().mockResolvedValue(activeLicenseResponse());
     vi.stubGlobal("fetch", fetchMock);
-    dbMocks.workspaceUpdate.mockResolvedValue({});
+    dbMocks.licenseUpsert.mockResolvedValue({});
 
     const plaintextKey = "DMM-SOLO-VALID-KEY";
     const result = await configureDmMagnetWorkspaceLicense(
@@ -98,15 +98,15 @@ describe("DM Magnet workspace license client", () => {
       "https://license.example.com/api/licenses/validate"
     );
 
-    const updateArgs = dbMocks.workspaceUpdate.mock.calls[0]?.[0];
-    expect(updateArgs.where).toEqual({ id: "workspace_configure" });
-    expect(updateArgs.data.dmMagnetLicenseKeyEncrypted).not.toBe(plaintextKey);
-    expect(updateArgs.data.dmMagnetLicenseKeyEncrypted).not.toContain(
-      plaintextKey
-    );
-    expect(updateArgs.data.dmMagnetLicenseKeyHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(updateArgs.data.dmMagnetLicenseKeyPrefix).toContain("DMM-SOLO");
-    expect(updateArgs.data.dmMagnetLicenseConfiguredAt).toBeInstanceOf(Date);
+    const upsertArgs = dbMocks.licenseUpsert.mock.calls[0]?.[0];
+    expect(upsertArgs.where).toEqual({ workspaceId: "workspace_configure" });
+    expect(upsertArgs.create.workspaceId).toBe("workspace_configure");
+    expect(upsertArgs.create.licenseKeyEncrypted).not.toBe(plaintextKey);
+    expect(upsertArgs.create.licenseKeyEncrypted).not.toContain(plaintextKey);
+    expect(upsertArgs.create.licenseKeyHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(upsertArgs.create.licenseKeyPrefix).toContain("DMM-SOLO");
+    expect(upsertArgs.update.licenseKeyEncrypted).not.toBe(plaintextKey);
+    expect(upsertArgs.update.configuredAt).toBeInstanceOf(Date);
   });
 
   it("validates the License Key belonging to the requested workspace", async () => {
@@ -114,9 +114,9 @@ describe("DM Magnet workspace license client", () => {
     vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
 
     const plaintextKey = "DMM-CREATOR-WORKSPACE-KEY";
-    dbMocks.workspaceFindUnique.mockResolvedValue({
-      dmMagnetLicenseKeyEncrypted: encryptSecret(plaintextKey),
-      dmMagnetLicenseKeyPrefix: "DMM-CREATOR-…-KEY",
+    dbMocks.licenseFindUnique.mockResolvedValue({
+      licenseKeyEncrypted: encryptSecret(plaintextKey),
+      licenseKeyPrefix: "DMM-CREATOR-…-KEY",
     });
 
     const fetchMock = vi.fn().mockResolvedValue(activeLicenseResponse());
@@ -131,11 +131,11 @@ describe("DM Magnet workspace license client", () => {
       valid: true,
       status: "ACTIVE",
     });
-    expect(dbMocks.workspaceFindUnique).toHaveBeenCalledWith({
-      where: { id: "workspace_validate" },
+    expect(dbMocks.licenseFindUnique).toHaveBeenCalledWith({
+      where: { workspaceId: "workspace_validate" },
       select: {
-        dmMagnetLicenseKeyEncrypted: true,
-        dmMagnetLicenseKeyPrefix: true,
+        licenseKeyEncrypted: true,
+        licenseKeyPrefix: true,
       },
     });
     expect(String(fetchMock.mock.calls[0]?.[1]?.body)).toContain(plaintextKey);
@@ -145,9 +145,9 @@ describe("DM Magnet workspace license client", () => {
     vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
     vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
 
-    dbMocks.workspaceFindUnique.mockResolvedValue({
-      dmMagnetLicenseKeyEncrypted: encryptSecret("DMM-SOLO-LIMITED-KEY"),
-      dmMagnetLicenseKeyPrefix: "DMM-SOLO-…-KEY",
+    dbMocks.licenseFindUnique.mockResolvedValue({
+      licenseKeyEncrypted: encryptSecret("DMM-SOLO-LIMITED-KEY"),
+      licenseKeyPrefix: "DMM-SOLO-…-KEY",
     });
 
     vi.stubGlobal(
@@ -184,10 +184,7 @@ describe("DM Magnet workspace license client", () => {
     vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
     vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
 
-    dbMocks.workspaceFindUnique.mockResolvedValue({
-      dmMagnetLicenseKeyEncrypted: null,
-      dmMagnetLicenseKeyPrefix: null,
-    });
+    dbMocks.licenseFindUnique.mockResolvedValue(null);
 
     await expect(
       validateDmMagnetWorkspaceLicense("workspace_missing", { force: true })
