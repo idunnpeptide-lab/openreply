@@ -35,7 +35,7 @@ const TEST_ENCRYPTION_KEY =
 beforeEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   dbMocks.instagramAccountCount.mockResolvedValue(0);
 });
 
