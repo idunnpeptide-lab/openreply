@@ -75,10 +75,7 @@ model Workspace {
   usagePeriodStart  DateTime @default(now())
   dmsSentThisPeriod Int      @default(0)
 
-  dmMagnetLicenseKeyEncrypted String?
-  dmMagnetLicenseKeyHash      String?   @unique
-  dmMagnetLicenseKeyPrefix    String?
-  dmMagnetLicenseConfiguredAt DateTime?
+  dmMagnetLicense   DmMagnetWorkspaceLicense?
 
   members           WorkspaceMember[]
   invitations       WorkspaceInvitation[]
@@ -91,6 +88,20 @@ model Workspace {
   operationalEvents OperationalEvent[]
 
   @@index([ownerId])
+}
+
+model DmMagnetWorkspaceLicense {
+  id                  String   @id @default(cuid())
+  workspaceId         String   @unique
+  licenseKeyEncrypted String
+  licenseKeyHash      String   @unique
+  licenseKeyPrefix    String
+  configuredAt        DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 model WorkspaceMember {
