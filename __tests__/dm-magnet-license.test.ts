@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dbMocks = vi.hoisted(() => ({
@@ -145,9 +146,9 @@ describe("DM Magnet workspace license client", () => {
     vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
 
     const plaintextKey = "DMM-SOLO-SAME-KEY";
-    const expectedHash = await import("crypto").then(({ createHash }) =>
-      createHash("sha256").update(plaintextKey).digest("hex")
-    );
+    const expectedHash = createHash("sha256")
+      .update(plaintextKey)
+      .digest("hex");
     dbMocks.licenseFindUnique.mockResolvedValue({
       licenseKeyHash: expectedHash,
     });
