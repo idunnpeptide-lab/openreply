@@ -1,6 +1,6 @@
 # DM Magnet License Integration
 
-This fork can use the central DM Magnet License Server to control how many Instagram professional accounts an installation may connect.
+This fork can use the central DM Magnet License Server to control social-account slots. Instagram is the implemented provider today; the license API is platform-aware so TikTok can be added without another licensing redesign.
 
 ## Environment
 
@@ -36,9 +36,9 @@ If the central license is suspended, revoked, expired or unavailable, the worker
 
 The License Server currently defaults to:
 
-- SOLO — 1 Instagram account
-- CREATOR — 3 Instagram accounts
-- AGENCY — 10 Instagram accounts
+- SOLO — 1 social account
+- CREATOR — 3 social accounts
+- AGENCY — 10 social accounts
 
 The actual server-side `maxAccounts` value remains authoritative.
 
@@ -53,3 +53,10 @@ Use DM Magnet Admin License Control to reset activations when an account legitim
 If neither DM Magnet environment variable is present, licensing is disabled and the fork behaves like the previous OpenReply build.
 
 If only one variable is present, the integration reports a configuration error.
+
+
+## Multi-platform preparation
+
+The OpenReply Instagram module now binds through DM Magnet's generic `/api/licenses/bind-account` endpoint with `platform: "INSTAGRAM"`.
+
+Shared social-platform types live in `lib/social/platform.ts`. TikTok functionality is not enabled yet; these types only reserve the provider boundary so the working Instagram implementation does not need to be redesigned later.

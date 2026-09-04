@@ -196,7 +196,12 @@ export async function bindDmMagnetInstagramAccount(input: {
     alreadyBound: boolean;
     usedAccounts: number;
     maxAccounts: number;
-  }>("/api/licenses/bind-instagram", input);
+  }>("/api/licenses/bind-account", {
+    platform: "INSTAGRAM",
+    accountId: input.instagramAccountId,
+    username: input.instagramUsername,
+    instanceId: input.instanceId,
+  });
 
   // Binding changes account usage, so the cached license summary is stale.
   cachedValidation = undefined;
