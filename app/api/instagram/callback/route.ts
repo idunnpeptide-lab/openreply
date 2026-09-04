@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
 
     try {
       await bindDmMagnetInstagramAccount({
+        workspaceId: state.workspaceId,
         instagramAccountId: instagramId,
         instagramUsername: userInfo.username,
         instanceId: `${baseUrl}#workspace:${state.workspaceId}`,
