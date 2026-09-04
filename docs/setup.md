@@ -116,6 +116,8 @@ Set that same non-secret URL on the web service and worker. Do **not** create a 
 
 Each customer Workspace activates its own License Key from **Settings → DM Magnet License**. Before saving it, OpenReply validates it against the central License Server. The Workspace stores an AES-256-GCM encrypted copy protected by the existing `ENCRYPTION_KEY`, plus a SHA-256 fingerprint for uniqueness and a masked prefix for display. The plaintext License Key is not stored in PostgreSQL or deployment variables.
 
+The onboarding order is intentionally strict: **License Key → Instagram OAuth → central account bind → campaigns/automation**. A first-time or replacement License Key cannot be saved while that Workspace already has connected social accounts. This prevents an existing account from moving underneath a different valid license without consuming that replacement license's central account slot. Legitimate license/account replacements use a controlled migration/reset flow.
+
 When `DM_MAGNET_LICENSE_URL` is configured:
 
 - each Workspace must activate its own valid License Key before connecting Instagram;
