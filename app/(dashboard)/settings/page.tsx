@@ -257,40 +257,54 @@ export default function SettingsPage() {
           </p>
         )}
 
-        {licenseData?.enabled && canManageMembers && (
-          <form
-            onSubmit={configureLicense}
-            className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row"
-          >
-            <input
-              type="password"
-              value={licenseKeyInput}
-              onChange={(event) => setLicenseKeyInput(event.target.value)}
-              placeholder={
-                licenseData.configured
-                  ? "Enter a replacement License Key"
-                  : "DMM-SOLO-..."
-              }
-              className="min-w-0 flex-1 rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
-              autoComplete="off"
-              required
-            />
-            <button
-              type="submit"
-              disabled={busy === "license"}
-              className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+        {licenseData?.enabled &&
+          canManageMembers &&
+          (!licenseData.configured || accounts.length === 0) && (
+            <form
+              onSubmit={configureLicense}
+              className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row"
             >
-              {busy === "license"
-                ? "Validating..."
-                : licenseData.configured
-                  ? "Replace key"
-                  : "Activate license"}
-            </button>
-            {licenseError && (
-              <p className="sm:basis-full text-sm text-error">{licenseError}</p>
-            )}
-          </form>
-        )}
+              <input
+                type="password"
+                value={licenseKeyInput}
+                onChange={(event) => setLicenseKeyInput(event.target.value)}
+                placeholder={
+                  licenseData.configured
+                    ? "Re-enter or replace the License Key"
+                    : "DMM-SOLO-..."
+                }
+                className="min-w-0 flex-1 rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
+                autoComplete="off"
+                required
+              />
+              <button
+                type="submit"
+                disabled={busy === "license"}
+                className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {busy === "license"
+                  ? "Validating..."
+                  : licenseData.configured
+                    ? "Update key"
+                    : "Activate license"}
+              </button>
+              {licenseError && (
+                <p className="sm:basis-full text-sm text-error">
+                  {licenseError}
+                </p>
+              )}
+            </form>
+          )}
+
+        {licenseData?.enabled &&
+          licenseData.configured &&
+          accounts.length > 0 &&
+          canManageMembers && (
+            <p className="mt-4 border-t border-border pt-4 text-xs text-muted">
+              The License Key is locked while social accounts are connected.
+              Contact support for a controlled license/account migration.
+            </p>
+          )}
       </section>
 
       <section className="panel rounded p-4 sm:p-6">
