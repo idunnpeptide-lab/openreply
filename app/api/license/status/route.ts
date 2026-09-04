@@ -21,22 +21,26 @@ export async function GET() {
     );
   }
 
-  const metadata = await getDmMagnetWorkspaceLicenseMetadata(
-    context.workspaceId
-  );
   const serverConfig = getDmMagnetLicenseServerConfig();
 
+  // Preserve legacy/self-hosted OpenReply even before the additive license-table
+  // migration exists: when the central service URL is absent, do not touch the
+  // DM Magnet workspace-license table at all.
   if (!serverConfig) {
     return NextResponse.json({
       success: true,
       data: {
         enabled: false,
-        configured: metadata.configured,
-        keyPrefix: metadata.keyPrefix,
+        configured: false,
+        keyPrefix: null,
         valid: null,
       },
     });
   }
+
+  const metadata = await getDmMagnetWorkspaceLicenseMetadata(
+    context.workspaceId
+  );
 
   if (!metadata.configured) {
     return NextResponse.json({
