@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const dbMocks = vi.hoisted(() => ({
   licenseFindUnique: vi.fn(),
   licenseUpsert: vi.fn(),
+  instagramAccountCount: vi.fn(),
 }));
 
 vi.mock("@/lib/db/client", () => ({
@@ -10,6 +11,9 @@ vi.mock("@/lib/db/client", () => ({
     dmMagnetWorkspaceLicense: {
       findUnique: dbMocks.licenseFindUnique,
       upsert: dbMocks.licenseUpsert,
+    },
+    instagramAccount: {
+      count: dbMocks.instagramAccountCount,
     },
   },
 }));
@@ -31,6 +35,7 @@ beforeEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+  dbMocks.instagramAccountCount.mockResolvedValue(0);
 });
 
 function activeLicenseResponse() {
@@ -107,6 +112,55 @@ describe("DM Magnet workspace license client", () => {
     expect(upsertArgs.create.licenseKeyPrefix).toContain("DMM-SOLO");
     expect(upsertArgs.update.licenseKeyEncrypted).not.toBe(plaintextKey);
     expect(upsertArgs.update.configuredAt).toBeInstanceOf(Date);
+  });
+
+  it("blocks first-time or replacement License Keys while social accounts are already connected", async () => {
+    vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
+    vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
+
+    dbMocks.licenseFindUnique.mockResolvedValue(null);
+    dbMocks.instagramAccountCount.mockResolvedValue(1);
+    const fetchMock = vi.fn().mockResolvedValue(activeLicenseResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      configureDmMagnetWorkspaceLicense(
+        "workspace_with_account",
+        "DMM-SOLO-NEW-KEY"
+      )
+    ).rejects.toMatchObject({
+      code: "LICENSE_ACCOUNT_MIGRATION_REQUIRED",
+      status: 409,
+    });
+
+    expect(dbMocks.instagramAccountCount).toHaveBeenCalledWith({
+      where: { workspaceId: "workspace_with_account" },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(dbMocks.licenseUpsert).not.toHaveBeenCalled();
+  });
+
+  it("allows re-validating the same workspace License Key even when accounts are connected", async () => {
+    vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
+    vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
+
+    const plaintextKey = "DMM-SOLO-SAME-KEY";
+    const expectedHash = await import("crypto").then(({ createHash }) =>
+      createHash("sha256").update(plaintextKey).digest("hex")
+    );
+    dbMocks.licenseFindUnique.mockResolvedValue({
+      licenseKeyHash: expectedHash,
+    });
+    dbMocks.instagramAccountCount.mockResolvedValue(1);
+    dbMocks.licenseUpsert.mockResolvedValue({});
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(activeLicenseResponse()));
+
+    await expect(
+      configureDmMagnetWorkspaceLicense("workspace_same_key", plaintextKey)
+    ).resolves.toMatchObject({ valid: true });
+
+    expect(dbMocks.instagramAccountCount).not.toHaveBeenCalled();
+    expect(dbMocks.licenseUpsert).toHaveBeenCalled();
   });
 
   it("validates the License Key belonging to the requested workspace", async () => {
