@@ -1,5 +1,10 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import {
+  readRequestTextWithLimit,
+  RequestBodyTooLargeError,
+} from "@/lib/http/read-limited-body";
 import { getDMQueue } from "@/lib/queue/client";
 import {
   parseCommentEvents,
@@ -12,6 +17,7 @@ import { MESSAGE_JOB_NAME, POSTBACK_JOB_NAME } from "@/lib/queue/client";
 import { Prisma } from "@/app/generated/prisma/client";
 
 const OPENING_DM_READ_FALLBACK_DELAY_MS = 5 * 60 * 1000;
+const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024;
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -30,7 +36,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const rawBody = await request.text();
+  let rawBody: string;
+
+  try {
+    rawBody = await readRequestTextWithLimit(request, MAX_WEBHOOK_BODY_BYTES);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return NextResponse.json(
+        { success: false, error: "Payload too large" },
+        { status: 413 }
+      );
+    }
+    throw error;
+  }
+
   const signature = request.headers.get("x-hub-signature-256");
 
   if (!verifyWebhookSignature(rawBody, signature)) {
@@ -45,8 +64,10 @@ export async function POST(request: NextRequest) {
           message: "Webhook signature verification failed",
           payload: {
             hadSignatureHeader: Boolean(signature),
-            bodyLength: rawBody.length,
-            bodyPreview: rawBody.slice(0, 200),
+            bodyLength: Buffer.byteLength(rawBody, "utf8"),
+            payloadSha256: createHash("sha256")
+              .update(rawBody, "utf8")
+              .digest("hex"),
           },
         },
       })
