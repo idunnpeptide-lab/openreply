@@ -31,6 +31,10 @@ async function getMemberPayload(
   workspaceId: string,
   currentUserRole?: "OWNER" | "ADMIN" | "MEMBER"
 ) {
+  const includeInvitationSecrets = Boolean(
+    currentUserRole && canManageWorkspace(currentUserRole)
+  );
+
   const [members, invitations] = await Promise.all([
     prisma.workspaceMember.findMany({
       where: { workspaceId },
@@ -48,18 +52,20 @@ async function getMemberPayload(
         },
       },
     }),
-    prisma.workspaceInvitation.findMany({
-      where: { workspaceId, status: "PENDING" },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        token: true,
-        expiresAt: true,
-        createdAt: true,
-      },
-    }),
+    includeInvitationSecrets
+      ? prisma.workspaceInvitation.findMany({
+          where: { workspaceId, status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            token: true,
+            expiresAt: true,
+            createdAt: true,
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   return {
