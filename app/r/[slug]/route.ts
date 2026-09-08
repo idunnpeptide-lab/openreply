@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getRequestIp, hashClickIp } from "@/lib/tracking/server";
+import { isAllowedTrackedDestinationUrl } from "@/lib/security/tracked-url";
 
 type RedirectRouteProps = {
   params: Promise<{ slug: string }>;
@@ -23,7 +24,10 @@ export async function GET(request: NextRequest, { params }: RedirectRouteProps) 
     },
   });
 
-  if (!trackedLink) {
+  if (
+    !trackedLink ||
+    !isAllowedTrackedDestinationUrl(trackedLink.destinationUrl)
+  ) {
     return NextResponse.redirect(new URL("/", request.url), { status: 302 });
   }
 
