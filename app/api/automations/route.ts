@@ -6,6 +6,7 @@ import { calculateCtr, normalizeTopKeywords } from "@/lib/tracking/analytics";
 import { buildTrackedUrl } from "@/lib/tracking/message";
 import { generateTrackedLinkSlug } from "@/lib/tracking/server";
 import { buildReportUrl, generateReportShareSlug } from "@/lib/reports/share";
+import { isAllowedTrackedDestinationUrl } from "@/lib/security/tracked-url";
 import {
   canManageWorkspace,
   getCurrentWorkspaceContext,
@@ -14,6 +15,13 @@ import {
 // This list is read-your-writes (created/imported campaigns must show up
 // immediately), so never cache it at the route or CDN layer.
 export const dynamic = "force-dynamic";
+
+const trackedDestinationSchema = z
+  .string()
+  .url()
+  .refine(isAllowedTrackedDestinationUrl, {
+    message: "Tracked links must use a public HTTPS destination",
+  });
 
 const createAutomationSchema = z
   .object({
@@ -49,12 +57,12 @@ const createAutomationSchema = z
       .default([]),
     // Empty string means "no tracked link"; a URL sets one.
     trackedDestinationUrl: z
-      .union([z.string().url(), z.literal("")])
+      .union([trackedDestinationSchema, z.literal("")])
       .optional()
       .nullable(),
     // Optional second tracked link, rendered as a second DM button.
     secondaryDestinationUrl: z
-      .union([z.string().url(), z.literal("")])
+      .union([trackedDestinationSchema, z.literal("")])
       .optional()
       .nullable(),
     secondaryButtonLabel: z.string().max(20).optional().nullable(),
@@ -110,12 +118,12 @@ const updateAutomationSchema = z.object({
   // Empty string clears the tracked link; a URL updates/creates it; undefined
   // leaves it unchanged.
   trackedDestinationUrl: z
-    .union([z.string().url(), z.literal("")])
+    .union([trackedDestinationSchema, z.literal("")])
     .optional()
     .nullable(),
   // Same semantics for the optional second tracked link / DM button.
   secondaryDestinationUrl: z
-    .union([z.string().url(), z.literal("")])
+    .union([trackedDestinationSchema, z.literal("")])
     .optional()
     .nullable(),
   secondaryButtonLabel: z.string().max(20).optional().nullable(),
