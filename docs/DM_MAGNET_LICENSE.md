@@ -12,6 +12,25 @@ DM_MAGNET_LICENSE_URL=https://dm-magnet-system-production.up.railway.app
 
 There is intentionally no deployment-wide `DM_MAGNET_LICENSE_KEY`.
 
+For hardened service-to-service authentication, also configure the same private
+`DM_MAGNET_SERVICE_SECRET` on the ReplyHalo web/worker services and on the
+central License Server. Requests are HMAC-SHA256 signed over the HTTP method,
+path, timestamp, nonce and SHA-256 body hash.
+
+The rollout is deliberately backwards-compatible: clients start signing when
+the secret is present; the License Server starts enforcing signatures when its
+copy of the secret is present. Safe rollout order:
+
+1. deploy the signing-capable ReplyHalo code;
+2. add `DM_MAGNET_SERVICE_SECRET` to ReplyHalo web;
+3. add the same secret to ReplyHalo worker;
+4. verify both remain healthy;
+5. add the same secret to the DM Magnet License Server;
+6. verify License status and binding calls still succeed.
+
+Do not paste the secret into chat, screenshots, source code, logs or support
+tickets.
+
 Each customer workspace enters its own License Key in **Settings → DM Magnet License**. The key is validated against the central server before it is stored. OpenReply stores only:
 
 - an AES-256-GCM encrypted copy of the License Key, protected by `ENCRYPTION_KEY`;
