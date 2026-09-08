@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { Prisma } from "@/app/generated/prisma/client";
+import { buildDmMagnetServiceAuthHeaders } from "@/lib/dm-magnet-service-auth";
 import { prisma } from "@/lib/db/client";
 import { decryptSecret, encryptSecret } from "@/lib/secret-crypto";
 
@@ -29,6 +30,7 @@ type DmMagnetApiErrorBody = {
 
 type DmMagnetLicenseServerConfig = {
   baseUrl: string;
+  serviceSecret: string | null;
 };
 
 type WorkspaceLicenseCredential = {
@@ -105,6 +107,11 @@ export function getDmMagnetLicenseServerConfig(): DmMagnetLicenseServerConfig | 
 
   return {
     baseUrl: normalizeBaseUrl(rawUrl),
+    // Transitional rollout: clients start signing as soon as this secret is
+    // configured. The central server can then enable verification without a
+    // flag day or exposing a plaintext customer License Key as the only proof
+    // that a request came from the ReplyHalo backend.
+    serviceSecret: process.env.DM_MAGNET_SERVICE_SECRET?.trim() || null,
   };
 }
 
@@ -123,19 +130,34 @@ async function requestLicenseServer<T>(
     );
   }
 
+  const requestBody = JSON.stringify({
+    licenseKey,
+    ...body,
+  });
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
+
+  if (config.serviceSecret) {
+    Object.assign(
+      headers,
+      buildDmMagnetServiceAuthHeaders({
+        secret: config.serviceSecret,
+        method: "POST",
+        path,
+        body: requestBody,
+      })
+    );
+  }
+
   let response: Response;
 
   try {
     response = await fetch(`${config.baseUrl}${path}`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify({
-        licenseKey,
-        ...body,
-      }),
+      headers,
+      body: requestBody,
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
