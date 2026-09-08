@@ -115,6 +115,27 @@ describe("DM Magnet workspace license client", () => {
     expect(upsertArgs.update.configuredAt).toBeInstanceOf(Date);
   });
 
+  it("adds service-authentication headers when the shared secret is configured", async () => {
+    vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
+    vi.stubEnv("DM_MAGNET_SERVICE_SECRET", "shared-service-secret");
+    vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
+
+    const fetchMock = vi.fn().mockResolvedValue(activeLicenseResponse());
+    vi.stubGlobal("fetch", fetchMock);
+    dbMocks.licenseUpsert.mockResolvedValue({});
+
+    await configureDmMagnetWorkspaceLicense(
+      "workspace_signed",
+      "DMM-SOLO-SIGNED-KEY"
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = requestInit.headers as Record<string, string>;
+    expect(headers["x-dm-magnet-timestamp"]).toMatch(/^\d+$/);
+    expect(headers["x-dm-magnet-nonce"]).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(headers["x-dm-magnet-signature"]).toMatch(/^v1=[a-f0-9]{64}$/);
+  });
+
   it("blocks first-time or replacement License Keys while social accounts are already connected", async () => {
     vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
     vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);

@@ -16,7 +16,9 @@ function getEncryptionKey(): Buffer {
 export function encryptSecret(plaintext: string): string {
   const key = getEncryptionKey();
   const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const cipher = createCipheriv(ALGORITHM, key, iv, {
+    authTagLength: AUTH_TAG_LENGTH,
+  });
 
   const encrypted = Buffer.concat([
     cipher.update(plaintext, "utf8"),
@@ -42,7 +44,9 @@ export function decryptSecret(encryptedBase64: string): string {
   );
   const ciphertext = combined.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
 
-  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  const decipher = createDecipheriv(ALGORITHM, key, iv, {
+    authTagLength: AUTH_TAG_LENGTH,
+  });
   decipher.setAuthTag(authTag);
 
   return Buffer.concat([

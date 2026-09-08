@@ -1,0 +1,8 @@
+# Known deterministic test/example encryption key fingerprints.
+# These are not production secrets. Keep this list exact so new leaks still fail CI.
+751c5a25c76521a65c0e633f65c1c21f8ffcad47:__tests__/dm-magnet-license.test.ts:generic-api-key:32
+eedaa8766dd2214b79d2c0deeaccf931a2aee5ab:__tests__/dm-magnet-license.test.ts:generic-api-key:27
+af3480e7ff71d81525cbea8bd6b2889be65eed4d:scripts/verify-dm-magnet-integration.sh:generic-api-key:25
+1174dbfba2c1223d35475e85cc65e3c49834fed3:scripts/verify-dm-magnet-integration.sh:generic-api-key:25
+bb930c28d34aa8e565fd5d023125904008e65705:.env.example:generic-api-key:5
+bb930c28d34aa8e565fd5d023125904008e65705:.github/workflows/ci.yml:generic-api-key:49
