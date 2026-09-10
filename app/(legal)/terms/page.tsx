@@ -160,7 +160,7 @@ export default function TermsPage() {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">10. Disclaimers</h2>
         <p className="leading-7 text-muted">
-          ReplyHalo is provided on an "as available" basis to the extent permitted
+          ReplyHalo is provided on an &quot;as available&quot; basis to the extent permitted
           by law. Automation results depend on your configuration, Instagram account
           status, Meta platform behavior, recipient eligibility, permissions,
           messaging windows, and other factors. We do not guarantee delivery,
