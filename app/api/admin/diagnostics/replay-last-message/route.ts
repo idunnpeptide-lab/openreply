@@ -68,7 +68,7 @@ export async function POST() {
 
   for (const webhookEvent of webhookEvents) {
     const parsed = parseMessageEvents(
-      webhookEvent.payload as Parameters<typeof parseMessageEvents>[0]
+      webhookEvent.payload as unknown as Parameters<typeof parseMessageEvents>[0]
     );
     if (parsed.length > 0) {
       candidate = {
