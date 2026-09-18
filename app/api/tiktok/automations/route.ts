@@ -8,6 +8,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
+// Keep API validation aligned with the official comment reply client so a
+// campaign cannot be saved successfully and then fail later at execution time.
+const TIKTOK_PUBLIC_REPLY_MAX_LENGTH = 150;
+const TIKTOK_DM_REPLY_MAX_LENGTH = 6000;
+
 const keywordsSchema = z
   .array(z.string().trim().min(1).max(50))
   .max(10);
@@ -24,9 +29,13 @@ const fullConfigSchema = z
     matchAnyWord: z.boolean(),
     wholeWordMatch: z.boolean(),
     publicReplyEnabled: z.boolean(),
-    publicReplyMessage: z.string().trim().max(1000).nullable(),
+    publicReplyMessage: z
+      .string()
+      .trim()
+      .max(TIKTOK_PUBLIC_REPLY_MAX_LENGTH)
+      .nullable(),
     dmReplyEnabled: z.boolean(),
-    dmMessage: z.string().trim().max(6000).nullable(),
+    dmMessage: z.string().trim().max(TIKTOK_DM_REPLY_MAX_LENGTH).nullable(),
     isActive: z.boolean(),
   })
   .superRefine((value, ctx) => {
@@ -107,9 +116,19 @@ const createInputSchema = z.object({
   matchAnyWord: z.boolean().optional().default(false),
   wholeWordMatch: z.boolean().optional().default(true),
   publicReplyEnabled: z.boolean().optional().default(false),
-  publicReplyMessage: z.string().trim().max(1000).nullable().optional(),
+  publicReplyMessage: z
+    .string()
+    .trim()
+    .max(TIKTOK_PUBLIC_REPLY_MAX_LENGTH)
+    .nullable()
+    .optional(),
   dmReplyEnabled: z.boolean().optional().default(false),
-  dmMessage: z.string().trim().max(6000).nullable().optional(),
+  dmMessage: z
+    .string()
+    .trim()
+    .max(TIKTOK_DM_REPLY_MAX_LENGTH)
+    .nullable()
+    .optional(),
   isActive: z.boolean().optional().default(true),
 });
 
@@ -124,9 +143,19 @@ const updateInputSchema = z.object({
   matchAnyWord: z.boolean().optional(),
   wholeWordMatch: z.boolean().optional(),
   publicReplyEnabled: z.boolean().optional(),
-  publicReplyMessage: z.string().trim().max(1000).nullable().optional(),
+  publicReplyMessage: z
+    .string()
+    .trim()
+    .max(TIKTOK_PUBLIC_REPLY_MAX_LENGTH)
+    .nullable()
+    .optional(),
   dmReplyEnabled: z.boolean().optional(),
-  dmMessage: z.string().trim().max(6000).nullable().optional(),
+  dmMessage: z
+    .string()
+    .trim()
+    .max(TIKTOK_DM_REPLY_MAX_LENGTH)
+    .nullable()
+    .optional(),
   isActive: z.boolean().optional(),
 });
 
