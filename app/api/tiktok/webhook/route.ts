@@ -7,6 +7,10 @@ import {
   RequestBodyTooLargeError,
 } from "@/lib/http/read-limited-body";
 import {
+  getTikTokIngressQueue,
+  TIKTOK_COMMENT_INGRESS_JOB,
+} from "@/lib/queue/tiktok-ingress";
+import {
   buildTikTokWebhookDedupeKey,
   parseTikTokWebhookEnvelope,
   TikTokWebhookError,
@@ -103,7 +107,7 @@ export async function POST(request: NextRequest) {
   const account = openId
     ? await prisma.tikTokAccount.findUnique({
         where: { openId },
-        select: { workspaceId: true },
+        select: { id: true, openId: true, workspaceId: true },
       })
     : null;
 
@@ -111,6 +115,7 @@ export async function POST(request: NextRequest) {
     rawBody,
     signatureTimestamp: verification.timestamp,
   });
+  const webhookEventId = `tiktok_${dedupeKey}`;
 
   let payload: Prisma.InputJsonValue;
   try {
@@ -124,13 +129,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let duplicate = false;
   try {
     await prisma.webhookEvent.create({
       data: {
         // A deterministic primary key gives webhook receipt idempotency without
         // changing the existing Meta webhook schema. TikTok may retry the same
-        // signed delivery; duplicate retries should still receive 200 OK.
-        id: `tiktok_${dedupeKey}`,
+        // signed delivery; duplicate retries should still be safe.
+        id: webhookEventId,
         workspaceId: account?.workspaceId ?? null,
         object: `TIKTOK:${envelope.event}`,
         payload,
@@ -142,20 +148,37 @@ export async function POST(request: NextRequest) {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return NextResponse.json(
-        { success: true, duplicate: true },
-        { status: 200 }
-      );
+      duplicate = true;
+    } else {
+      throw error;
     }
-    throw error;
   }
 
-  // Intentionally stop at verified durable ingestion. Event-specific COMMENT
-  // and DIRECT_MESSAGE payload routing is enabled only after their exact TikTok
-  // schemas are validated against a real approved developer app. This prevents
-  // a malformed or misunderstood event from triggering customer automations.
+  // COMMENT inserts now have a verified, lossless processor. Keep the queue
+  // separate from Instagram's DM worker so TikTok failures cannot interfere
+  // with the proven Instagram automation path. If queueing fails we return 500;
+  // TikTok can retry, and the duplicate receipt will attempt the same idempotent
+  // queue job again instead of silently losing the event.
+  if (envelope.event === "comment.update" && account) {
+    await getTikTokIngressQueue().add(
+      TIKTOK_COMMENT_INGRESS_JOB,
+      {
+        webhookEventId,
+        workspaceId: account.workspaceId,
+        tiktokAccountId: account.id,
+        businessId: account.openId,
+        contentRaw: envelope.contentRaw,
+      },
+      {
+        jobId: `comment_${dedupeKey}`,
+      }
+    );
+  }
+
+  // Other TikTok event families remain durably stored as PENDING until their
+  // exact schemas and product semantics are wired independently.
   return NextResponse.json(
-    { success: true, accepted: true },
+    { success: true, accepted: true, duplicate },
     { status: 200 }
   );
 }
