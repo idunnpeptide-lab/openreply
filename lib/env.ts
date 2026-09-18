@@ -46,6 +46,34 @@ export function getMissingInstagramOAuthEnv(): string[] {
   });
 }
 
+// TikTok is additive and optional. Keep its variables out of serverEnvSchema so
+// existing Instagram-only deployments remain valid until the TikTok module is
+// explicitly configured.
+const TIKTOK_OAUTH_ENV = [
+  "TIKTOK_BUSINESS_APP_ID",
+  "TIKTOK_BUSINESS_APP_SECRET",
+  "TIKTOK_BUSINESS_REDIRECT_URI",
+  "ENCRYPTION_KEY",
+  "NEXTAUTH_SECRET",
+] as const;
+
+export function getMissingTikTokOAuthEnv(): string[] {
+  return TIKTOK_OAUTH_ENV.filter((name) => {
+    const value = process.env[name];
+    if (!value) return true;
+    if (name === "ENCRYPTION_KEY") return !HEX_32_BYTE.test(value);
+    if (name === "TIKTOK_BUSINESS_REDIRECT_URI") {
+      try {
+        new URL(value);
+        return false;
+      } catch {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
 export function getMetaGraphApiVersion(): string {
   return process.env.META_GRAPH_API_VERSION ?? "v25.0";
 }
