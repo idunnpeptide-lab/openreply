@@ -25,12 +25,62 @@ export async function POST(request: NextRequest) {
   const instagramAccountId =
     typeof body.instagramAccountId === "string" ? body.instagramAccountId : null;
 
-  await prisma.instagramAccount.deleteMany({
+  if (!instagramAccountId) {
+    return NextResponse.json(
+      { success: false, error: "Instagram account is required" },
+      { status: 400 }
+    );
+  }
+
+  const account = await prisma.instagramAccount.findFirst({
     where: {
+      id: instagramAccountId,
       workspaceId: context.workspaceId,
-      ...(instagramAccountId ? { id: instagramAccountId } : {}),
+    },
+    select: {
+      id: true,
+      username: true,
     },
   });
 
-  return NextResponse.json({ success: true });
+  if (!account) {
+    return NextResponse.json(
+      { success: false, error: "Instagram account not found" },
+      { status: 404 }
+    );
+  }
+
+  // Soft-disconnect instead of deleting the InstagramAccount row. Automations,
+  // DM logs, tracked-link analytics, and follower history all reference this
+  // row with cascading foreign keys, so deleting it would erase customer data.
+  // Keeping the row also lets OAuth reconnect the same Instagram account via
+  // the callback upsert without rebuilding campaigns or analytics history.
+  await prisma.instagramAccount.update({
+    where: { id: account.id },
+    data: {
+      accessToken: "",
+      tokenExpiresAt: null,
+      webhookSubscribed: false,
+    },
+  });
+
+  await prisma.operationalEvent
+    .create({
+      data: {
+        workspaceId: context.workspaceId,
+        source: "SYSTEM",
+        level: "INFO",
+        message: `Instagram account @${account.username} disconnected`,
+        payload: {
+          instagramAccountId: account.id,
+          preservedCampaignsAndHistory: true,
+        },
+      },
+    })
+    .catch(() => {});
+
+  return NextResponse.json({
+    success: true,
+    data: { preservedCampaignsAndHistory: true },
+  });
 }
