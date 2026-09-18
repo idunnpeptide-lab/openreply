@@ -1,15 +1,12 @@
 import type { MetadataRoute } from "next";
 
-// Lets a self-hosted instance be installed to the home screen: on iOS via
-// Share -> "Add to Home Screen", on Android through the install prompt. It then
-// opens standalone, without browser chrome, which makes checking campaigns from
-// a phone practical.
+// Installable customer dashboard for quick mobile campaign checks.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "OpenReply",
-    short_name: "OpenReply",
+    name: "ReplyHalo",
+    short_name: "ReplyHalo",
     description: "Instagram comment-to-DM automation",
-    start_url: "/overview",
+    start_url: "/dashboard",
     display: "standalone",
     orientation: "portrait",
     background_color: "#18181b",
