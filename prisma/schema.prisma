@@ -1,4 +1,4 @@
-// ManyChat Alternative — B2B Instagram Comment → DM SaaS schema
+// ReplyHalo — multi-provider social comment → message SaaS schema
 
 generator client {
   provider = "prisma-client"
@@ -80,6 +80,7 @@ model Workspace {
   members           WorkspaceMember[]
   invitations       WorkspaceInvitation[]
   instagramAccounts InstagramAccount[]
+  tiktokAccounts    TikTokAccount[]
   automations       Automation[]
   dmLogs            DmLog[]
   trackedLinks      TrackedLink[]
@@ -157,6 +158,33 @@ model InstagramAccount {
   dmLogs      DmLog[]
   linkClicks  LinkClick[]
   followerSnapshots FollowerSnapshot[]
+
+  @@index([workspaceId])
+}
+
+// TikTok stays additive until its own provider passes live staging QA. The
+// existing Instagram account/automation tables are intentionally not migrated
+// into a generic table as part of the first TikTok rollout.
+model TikTokAccount {
+  id                     String   @id @default(cuid())
+  workspaceId            String
+  openId                 String   @unique
+  username               String?
+  displayName            String?
+  accessTokenEncrypted   String
+  refreshTokenEncrypted  String
+  tokenExpiresAt         DateTime
+  refreshTokenExpiresAt  DateTime
+  grantedScopes          String[] @default([])
+  commentsEnabled        Boolean  @default(false)
+  publicReplyEnabled     Boolean  @default(false)
+  messagingEnabled       Boolean  @default(false)
+  commentToMessageEnabled Boolean @default(false)
+  webhookConfigured      Boolean  @default(false)
+  connectedAt            DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
 }
