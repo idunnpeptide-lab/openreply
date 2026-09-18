@@ -77,16 +77,17 @@ model Workspace {
 
   dmMagnetLicense   DmMagnetWorkspaceLicense?
 
-  members           WorkspaceMember[]
-  invitations       WorkspaceInvitation[]
-  instagramAccounts InstagramAccount[]
-  tiktokAccounts    TikTokAccount[]
-  automations       Automation[]
-  dmLogs            DmLog[]
-  trackedLinks      TrackedLink[]
-  linkClicks        LinkClick[]
-  webhookEvents     WebhookEvent[]
-  operationalEvents OperationalEvent[]
+  members             WorkspaceMember[]
+  invitations         WorkspaceInvitation[]
+  instagramAccounts   InstagramAccount[]
+  tiktokAccounts      TikTokAccount[]
+  automations         Automation[]
+  dmLogs              DmLog[]
+  trackedLinks        TrackedLink[]
+  linkClicks          LinkClick[]
+  webhookEvents       WebhookEvent[]
+  operationalEvents   OperationalEvent[]
+  socialEventReceipts SocialEventReceipt[]
 
   @@index([ownerId])
 }
@@ -369,6 +370,28 @@ model WebhookEvent {
 
   @@index([workspaceId])
   @@index([status])
+}
+
+// Durable provider-level idempotency. Webhook delivery IDs are not sufficient:
+// a provider can redeliver the same logical comment/message in a new signed
+// envelope. This receipt is keyed by the provider-native entity ID so future
+// automation sends can be exactly-once at the ReplyHalo boundary.
+model SocialEventReceipt {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  platform        String
+  providerAccountId String
+  eventType       String
+  providerEventId String
+  webhookEventId  String?
+  createdAt       DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, providerAccountId, eventType, providerEventId])
+  @@index([workspaceId])
+  @@index([providerAccountId])
+  @@index([createdAt])
 }
 
 model OperationalEvent {
