@@ -9,6 +9,7 @@ import {
 import {
   getTikTokIngressQueue,
   TIKTOK_COMMENT_INGRESS_JOB,
+  TIKTOK_MESSAGE_INGRESS_JOB,
 } from "@/lib/queue/tiktok-ingress";
 import {
   buildTikTokWebhookDedupeKey,
@@ -133,9 +134,6 @@ export async function POST(request: NextRequest) {
   try {
     await prisma.webhookEvent.create({
       data: {
-        // A deterministic primary key gives webhook receipt idempotency without
-        // changing the existing Meta webhook schema. TikTok may retry the same
-        // signed delivery; duplicate retries should still be safe.
         id: webhookEventId,
         workspaceId: account?.workspaceId ?? null,
         object: `TIKTOK:${envelope.event}`,
@@ -154,12 +152,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // COMMENT inserts now have a verified, lossless processor. Keep the queue
-  // separate from Instagram's DM worker so TikTok failures cannot interfere
-  // with the proven Instagram automation path. If queueing fails we return 500;
-  // TikTok can retry, and the duplicate receipt will attempt the same idempotent
-  // queue job again instead of silently losing the event.
-  if (envelope.event === "comment.update" && account) {
+  // Provider-specific work stays on the isolated TikTok queue. If queueing
+  // fails, return 500 so TikTok retries; duplicate receipt processing will try
+  // the same deterministic queue id again rather than losing the event.
+  if (account && envelope.event === "comment.update") {
     await getTikTokIngressQueue().add(
       TIKTOK_COMMENT_INGRESS_JOB,
       {
@@ -169,14 +165,28 @@ export async function POST(request: NextRequest) {
         businessId: account.openId,
         contentRaw: envelope.contentRaw,
       },
-      {
-        jobId: `comment_${dedupeKey}`,
-      }
+      { jobId: `comment_${dedupeKey}` }
     );
   }
 
-  // Other TikTok event families remain durably stored as PENDING until their
-  // exact schemas and product semantics are wired independently.
+  if (account && envelope.event === "im_receive_msg") {
+    await getTikTokIngressQueue().add(
+      TIKTOK_MESSAGE_INGRESS_JOB,
+      {
+        webhookEventId,
+        workspaceId: account.workspaceId,
+        tiktokAccountId: account.id,
+        businessId: account.openId,
+        contentRaw: envelope.contentRaw,
+      },
+      { jobId: `message_${dedupeKey}` }
+    );
+  }
+
+  // TikTok strips sender, conversation id and message body from
+  // `im_receive_msg_eu` for EEA/Switzerland/UK senders. Those events remain
+  // PENDING until the separate conversation-sync resolver is implemented; we
+  // deliberately do not invent keyword/text data from the stripped webhook.
   return NextResponse.json(
     { success: true, accepted: true, duplicate },
     { status: 200 }
