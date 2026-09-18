@@ -38,6 +38,8 @@ type WorkspaceLicenseCredential = {
   keyPrefix: string | null;
 };
 
+type DmMagnetSocialPlatform = "INSTAGRAM" | "TIKTOK";
+
 const VALIDATION_CACHE_MS = 60_000;
 
 const validationCache = new Map<
@@ -98,9 +100,9 @@ function formatLicenseKeyPrefix(licenseKey: string) {
 export function getDmMagnetLicenseServerConfig(): DmMagnetLicenseServerConfig | null {
   const rawUrl = process.env.DM_MAGNET_LICENSE_URL?.trim();
 
-  // A deployment without the central service URL keeps the original
-  // self-hosted OpenReply behavior. Shared DM Magnet SaaS deployments set this
-  // one non-secret URL globally; License Keys themselves live per workspace.
+  // A deployment without the central service URL keeps the original local
+  // behavior. Shared ReplyHalo SaaS deployments set this one non-secret URL
+  // globally; License Keys themselves live per workspace.
   if (!rawUrl) {
     return null;
   }
@@ -284,11 +286,12 @@ export async function configureDmMagnetWorkspaceLicense(
     !existingCredential ||
     existingCredential.licenseKeyHash !== licenseKeyHash
   ) {
-    const connectedAccounts = await prisma.instagramAccount.count({
-      where: { workspaceId },
-    });
+    const [instagramAccounts, tiktokAccounts] = await Promise.all([
+      prisma.instagramAccount.count({ where: { workspaceId } }),
+      prisma.tikTokAccount.count({ where: { workspaceId } }),
+    ]);
 
-    if (connectedAccounts > 0) {
+    if (instagramAccounts + tiktokAccounts > 0) {
       throw new DmMagnetLicenseError(
         "Remove or migrate connected social accounts before changing this workspace License Key",
         "LICENSE_ACCOUNT_MIGRATION_REQUIRED",
@@ -366,10 +369,11 @@ export async function validateDmMagnetWorkspaceLicense(
   return license;
 }
 
-export async function bindDmMagnetInstagramAccount(input: {
+export async function bindDmMagnetSocialAccount(input: {
   workspaceId: string;
-  instagramAccountId: string;
-  instagramUsername?: string | null;
+  platform: DmMagnetSocialPlatform;
+  accountId: string;
+  username?: string | null;
   instanceId?: string | null;
 }): Promise<DmMagnetBindResult | null> {
   if (!getDmMagnetLicenseServerConfig()) {
@@ -384,9 +388,9 @@ export async function bindDmMagnetInstagramAccount(input: {
     usedAccounts: number;
     maxAccounts: number;
   }>(credential.licenseKey, "/api/licenses/bind-account", {
-    platform: "INSTAGRAM",
-    accountId: input.instagramAccountId,
-    username: input.instagramUsername,
+    platform: input.platform,
+    accountId: input.accountId,
+    username: input.username,
     instanceId: input.instanceId,
   });
 
@@ -399,6 +403,36 @@ export async function bindDmMagnetInstagramAccount(input: {
     usedAccounts: payload.usedAccounts,
     maxAccounts: payload.maxAccounts,
   };
+}
+
+export async function bindDmMagnetInstagramAccount(input: {
+  workspaceId: string;
+  instagramAccountId: string;
+  instagramUsername?: string | null;
+  instanceId?: string | null;
+}): Promise<DmMagnetBindResult | null> {
+  return bindDmMagnetSocialAccount({
+    workspaceId: input.workspaceId,
+    platform: "INSTAGRAM",
+    accountId: input.instagramAccountId,
+    username: input.instagramUsername,
+    instanceId: input.instanceId,
+  });
+}
+
+export async function bindDmMagnetTikTokAccount(input: {
+  workspaceId: string;
+  tiktokAccountId: string;
+  tiktokUsername?: string | null;
+  instanceId?: string | null;
+}): Promise<DmMagnetBindResult | null> {
+  return bindDmMagnetSocialAccount({
+    workspaceId: input.workspaceId,
+    platform: "TIKTOK",
+    accountId: input.tiktokAccountId,
+    username: input.tiktokUsername,
+    instanceId: input.instanceId,
+  });
 }
 
 export function licenseErrorToSettingsCode(error: unknown) {
