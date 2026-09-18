@@ -15,15 +15,26 @@ import {
 
 const MAX_WEBHOOK_BODY_BYTES = 512 * 1024;
 
-function candidateBusinessId(content: unknown): string | null {
-  if (typeof content !== "object" || !content || Array.isArray(content)) {
-    return null;
-  }
-
-  const record = content as Record<string, unknown>;
+/**
+ * Some TikTok events repeat the business/open id inside the stringified
+ * content object. Extract only string-valued account identifiers directly from
+ * the raw content instead of JSON.parse-ing the object, because COMMENT
+ * content can also contain 64-bit numeric ids that JavaScript would round.
+ */
+function candidateBusinessId(contentRaw: string): string | null {
   for (const key of ["business_id", "open_id", "user_openid"]) {
-    const value = record[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
+    const pattern = new RegExp(
+      `(?:^|[,{]\\s*)"${key}"\\s*:\\s*("(?:\\\\.|[^"\\\\])*")`
+    );
+    const match = pattern.exec(contentRaw);
+    if (!match?.[1]) continue;
+    try {
+      const value = JSON.parse(match[1]);
+      if (typeof value === "string" && value.trim()) return value.trim();
+    } catch {
+      // Ignore malformed candidate strings; the raw event is still stored and
+      // event-specific validation decides whether it can be processed later.
+    }
   }
   return null;
 }
@@ -87,7 +98,8 @@ export async function POST(request: NextRequest) {
     throw error;
   }
 
-  const openId = envelope.userOpenId ?? candidateBusinessId(envelope.content);
+  const openId =
+    envelope.userOpenId ?? candidateBusinessId(envelope.contentRaw);
   const account = openId
     ? await prisma.tikTokAccount.findUnique({
         where: { openId },
@@ -102,10 +114,10 @@ export async function POST(request: NextRequest) {
 
   let payload: Prisma.InputJsonValue;
   try {
+    // The outer envelope is safe to decode: event-specific content remains a
+    // JSON string inside it, so large numeric COMMENT ids are not interpreted.
     payload = JSON.parse(rawBody) as Prisma.InputJsonValue;
   } catch {
-    // parseTikTokWebhookEnvelope already validates JSON. This is only a type-
-    // safe fallback in case the implementation changes later.
     return NextResponse.json(
       { success: false, error: "Invalid JSON" },
       { status: 400 }
