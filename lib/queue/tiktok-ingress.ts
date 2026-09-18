@@ -5,6 +5,7 @@ import {
   validateDmMagnetWorkspaceLicense,
 } from "@/lib/dm-magnet-license";
 import { getRedisConnection } from "@/lib/queue/client";
+import { persistSocialEventHandoff } from "@/lib/social-event-receipts";
 import { parseTikTokCommentUpdateContent } from "@/lib/tiktok/comment-webhook";
 import { getTikTokCommentById } from "@/lib/tiktok/comment-lookup";
 import { normalizeTikTokCommentEvent } from "@/lib/tiktok/client";
@@ -68,36 +69,6 @@ async function validateWorkspaceLicense(workspaceId: string) {
   }
 }
 
-async function persistNormalizedMessage(input: {
-  webhookEventId: string;
-  workspaceId: string;
-  message: Record<string, unknown>;
-  sourceLabel: string;
-}) {
-  await prisma.$transaction([
-    prisma.operationalEvent.create({
-      data: {
-        workspaceId: input.workspaceId,
-        source: "WORKER",
-        level: "INFO",
-        message: input.sourceLabel,
-        payload: {
-          webhookEventId: input.webhookEventId,
-          ...input.message,
-        },
-      },
-    }),
-    prisma.webhookEvent.update({
-      where: { id: input.webhookEventId },
-      data: {
-        status: "PROCESSED",
-        processedAt: new Date(),
-        errorMessage: null,
-      },
-    }),
-  ]);
-}
-
 export async function processTikTokCommentIngress(
   job: Job<TikTokCommentIngressJob>
 ) {
@@ -151,34 +122,28 @@ export async function processTikTokCommentIngress(
     );
   }
 
-  await prisma.$transaction([
-    prisma.operationalEvent.create({
-      data: {
-        workspaceId,
-        source: "WORKER",
-        level: "INFO",
-        message: "TikTok comment normalized and ready for automation routing",
-        payload: {
-          webhookEventId,
-          ...normalized,
-        },
-      },
-    }),
-    prisma.webhookEvent.update({
-      where: { id: webhookEventId },
-      data: {
-        status: "PROCESSED",
-        processedAt: new Date(),
-        errorMessage: null,
-      },
-    }),
-  ]);
+  await persistSocialEventHandoff({
+    workspaceId,
+    platform: "TIKTOK",
+    providerAccountId: tiktokAccountId,
+    eventType: "COMMENT_INSERT",
+    providerEventId: normalized.commentId,
+    webhookEventId,
+    operationalMessage: "TikTok comment normalized and ready for automation routing",
+    normalizedPayload: { ...normalized },
+  });
 }
 
 export async function processTikTokMessageIngress(
   job: Job<TikTokMessageIngressJob>
 ) {
-  const { webhookEventId, workspaceId, businessId, contentRaw } = job.data;
+  const {
+    webhookEventId,
+    workspaceId,
+    tiktokAccountId,
+    businessId,
+    contentRaw,
+  } = job.data;
 
   await validateWorkspaceLicense(workspaceId);
 
@@ -202,11 +167,16 @@ export async function processTikTokMessageIngress(
     return;
   }
 
-  await persistNormalizedMessage({
-    webhookEventId,
+  await persistSocialEventHandoff({
     workspaceId,
-    message: normalized,
-    sourceLabel: "TikTok inbound message normalized and ready for automation routing",
+    platform: "TIKTOK",
+    providerAccountId: tiktokAccountId,
+    eventType: "MESSAGE_INBOUND",
+    providerEventId: normalized.messageId,
+    webhookEventId,
+    operationalMessage:
+      "TikTok inbound message normalized and ready for automation routing",
+    normalizedPayload: { ...normalized },
   });
 }
 
@@ -230,12 +200,19 @@ export async function processTikTokEuMessageSync(
     timestamp: stripped.timestamp,
   });
 
-  await persistNormalizedMessage({
-    webhookEventId,
+  // Use the same provider event type as the full webhook path. If TikTok ever
+  // exposes the same message through both forms, the stable provider message id
+  // prevents a second automation handoff.
+  await persistSocialEventHandoff({
     workspaceId,
-    message: normalized,
-    sourceLabel:
+    platform: "TIKTOK",
+    providerAccountId: tiktokAccountId,
+    eventType: "MESSAGE_INBOUND",
+    providerEventId: normalized.messageId,
+    webhookEventId,
+    operationalMessage:
       "TikTok EU inbound message resolved and ready for automation routing",
+    normalizedPayload: { ...normalized },
   });
 }
 
