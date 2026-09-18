@@ -22,8 +22,13 @@ export type TikTokWebhookEnvelope = {
   event: string;
   createTime: number;
   userOpenId: string | null;
+  /**
+   * TikTok serializes event-specific `content` as a JSON string. Keep that
+   * string untouched here: COMMENT event ids such as comment_id and video_id
+   * are bare 64-bit integers that exceed JavaScript's safe integer range.
+   * Event-specific parsers must opt into lossless handling before JSON.parse.
+   */
   contentRaw: string;
-  content: unknown;
 };
 
 export type TikTokWebhookSignatureResult =
@@ -164,14 +169,6 @@ export function parseTikTokWebhookEnvelope(
     );
   }
 
-  let content: unknown = contentRaw;
-  try {
-    content = JSON.parse(contentRaw);
-  } catch {
-    // Keep the raw string. Event-specific schemas are intentionally not assumed
-    // here because TikTok evolves webhook event payloads independently.
-  }
-
   return {
     clientKey: clientKey.trim(),
     event: event.trim(),
@@ -181,7 +178,6 @@ export function parseTikTokWebhookEnvelope(
         ? userOpenId.trim()
         : null,
     contentRaw,
-    content,
   };
 }
 

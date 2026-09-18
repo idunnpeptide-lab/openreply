@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { parseTikTokCommentUpdateContent } from "../lib/tiktok/comment-webhook";
 import {
   buildTikTokWebhookDedupeKey,
   deleteTikTokWebhook,
@@ -11,15 +12,16 @@ import {
 
 const SECRET = "tiktok-test-secret";
 const NOW = 1_800_000_000;
+const RAW_CONTENT = JSON.stringify({
+  business_id: "open_123",
+  comment_id: "comment_1",
+});
 const RAW_BODY = JSON.stringify({
   client_key: "app_123",
   event: "comment.update",
   create_time: NOW,
   user_openid: "open_123",
-  content: JSON.stringify({
-    business_id: "open_123",
-    comment_id: "comment_1",
-  }),
+  content: RAW_CONTENT,
 });
 
 function signature(rawBody = RAW_BODY, timestamp = NOW) {
@@ -92,24 +94,17 @@ describe("TikTok webhook verification", () => {
     ).toEqual({ valid: false, reason: "malformed" });
   });
 
-  it("parses the generic envelope and JSON-decodes stringified content", () => {
+  it("parses the generic envelope while preserving event content verbatim", () => {
     expect(parseTikTokWebhookEnvelope(RAW_BODY)).toEqual({
       clientKey: "app_123",
       event: "comment.update",
       createTime: NOW,
       userOpenId: "open_123",
-      contentRaw: JSON.stringify({
-        business_id: "open_123",
-        comment_id: "comment_1",
-      }),
-      content: {
-        business_id: "open_123",
-        comment_id: "comment_1",
-      },
+      contentRaw: RAW_CONTENT,
     });
   });
 
-  it("keeps unknown non-JSON content as a raw string", () => {
+  it("keeps unknown content as the untouched raw string", () => {
     const raw = JSON.stringify({
       client_key: "app_123",
       event: "future.event",
@@ -117,7 +112,7 @@ describe("TikTok webhook verification", () => {
       content: "opaque-content",
     });
 
-    expect(parseTikTokWebhookEnvelope(raw).content).toBe("opaque-content");
+    expect(parseTikTokWebhookEnvelope(raw).contentRaw).toBe("opaque-content");
   });
 
   it("builds stable delivery dedupe keys without storing the signature itself", () => {
@@ -132,6 +127,54 @@ describe("TikTok webhook verification", () => {
 
     expect(first).toBe(second);
     expect(first).toMatch(/^[a-f0-9]{64}$/);
+  });
+});
+
+describe("TikTok comment webhook parsing", () => {
+  it("preserves 64-bit TikTok ids exactly instead of rounding them", () => {
+    const contentRaw =
+      '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"parent_comment_id":7247303576418566999,"comment_type":"reply","comment_action":"insert","unique_identifier":"user_global_1","timestamp":1800000000123}';
+
+    expect(parseTikTokCommentUpdateContent(contentRaw)).toEqual({
+      commentId: "7247303576418566913",
+      videoId: "7203946942097902849",
+      parentCommentId: "7247303576418566999",
+      commentType: "reply",
+      commentAction: "insert",
+      uniqueIdentifier: "user_global_1",
+      timestamp: 1800000000123,
+    });
+  });
+
+  it("accepts top-level comments without a parent id", () => {
+    expect(
+      parseTikTokCommentUpdateContent(
+        '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"insert","timestamp":1800000000123}'
+      )
+    ).toMatchObject({
+      commentId: "7247303576418566913",
+      videoId: "7203946942097902849",
+      parentCommentId: null,
+      commentType: "comment",
+      commentAction: "insert",
+    });
+  });
+
+  it("does not rewrite key-like text inside JSON string values", () => {
+    const parsed = parseTikTokCommentUpdateContent(
+      '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"insert","unique_identifier":"text-\\\"comment_id\\\":999"}'
+    );
+
+    expect(parsed.commentId).toBe("7247303576418566913");
+    expect(parsed.uniqueIdentifier).toBe('text-"comment_id":999');
+  });
+
+  it("fails closed on unknown comment actions", () => {
+    expect(() =>
+      parseTikTokCommentUpdateContent(
+        '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"future_action"}'
+      )
+    ).toThrowError(/comment_action is invalid/);
   });
 });
 
