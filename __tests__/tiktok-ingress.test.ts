@@ -192,8 +192,8 @@ describe("TikTok comment ingress", () => {
   it("reruns idempotent routing even when the provider receipt already exists", async () => {
     receiptMocks.persist.mockResolvedValue("DUPLICATE");
     lookupMocks.getComment.mockResolvedValue({
-      comment_id: "comment_retry",
-      video_id: "video_1",
+      comment_id: "7247303576418566999",
+      video_id: "7203946942097902999",
       unique_identifier: "user_1",
       username: "maya",
       text: "INFO",
@@ -202,7 +202,7 @@ describe("TikTok comment ingress", () => {
 
     await processTikTokCommentIngress(
       commentJob(
-        '{"comment_id":"comment_retry","video_id":"video_1","comment_type":"comment","comment_action":"insert"}'
+        '{"comment_id":"7247303576418566999","video_id":"7203946942097902999","comment_type":"comment","comment_action":"insert"}'
       )
     );
 
