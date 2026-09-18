@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const dbMocks = vi.hoisted(() => ({
-  webhookUpdate: vi.fn(),
-  operationalCreate: vi.fn(),
-  transaction: vi.fn(),
-}));
 const licenseMocks = vi.hoisted(() => ({
   getConfig: vi.fn(),
   validate: vi.fn(),
@@ -12,12 +7,13 @@ const licenseMocks = vi.hoisted(() => ({
 const resolverMocks = vi.hoisted(() => ({
   resolve: vi.fn(),
 }));
+const receiptMocks = vi.hoisted(() => ({
+  persist: vi.fn(),
+}));
 
 vi.mock("@/lib/db/client", () => ({
   prisma: {
-    webhookEvent: { update: dbMocks.webhookUpdate },
-    operationalEvent: { create: dbMocks.operationalCreate },
-    $transaction: dbMocks.transaction,
+    webhookEvent: { update: vi.fn() },
   },
 }));
 
@@ -30,18 +26,20 @@ vi.mock("@/lib/tiktok/eu-message-sync", () => ({
   resolveTikTokEuInboundMessage: resolverMocks.resolve,
 }));
 
+vi.mock("@/lib/social-event-receipts", () => ({
+  persistSocialEventHandoff: receiptMocks.persist,
+}));
+
 import { processTikTokEuMessageSync } from "../lib/queue/tiktok-ingress";
 
 beforeEach(() => {
   vi.resetAllMocks();
   licenseMocks.getConfig.mockReturnValue(null);
-  dbMocks.webhookUpdate.mockReturnValue(Promise.resolve({}));
-  dbMocks.operationalCreate.mockReturnValue(Promise.resolve({}));
-  dbMocks.transaction.mockResolvedValue([]);
+  receiptMocks.persist.mockResolvedValue("CREATED");
 });
 
 describe("TikTok EU message ingress", () => {
-  it("resolves stripped webhook data before creating a routing handoff", async () => {
+  it("resolves stripped webhook data before creating a durable routing handoff", async () => {
     resolverMocks.resolve.mockResolvedValue({
       platform: "TIKTOK",
       accountId: "open_123",
@@ -73,24 +71,24 @@ describe("TikTok EU message ingress", () => {
       businessId: "open_123",
       timestamp: 1_800_000_000_123,
     });
-    expect(dbMocks.operationalCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        workspaceId: "workspace_1",
-        source: "WORKER",
-        level: "INFO",
-        message: "TikTok EU inbound message resolved and ready for automation routing",
-        payload: expect.objectContaining({
-          webhookEventId: "event_eu_1",
-          platform: "TIKTOK",
-          messageId: "msg_1",
-          text: "GUIDE",
-        }),
+    expect(receiptMocks.persist).toHaveBeenCalledWith({
+      workspaceId: "workspace_1",
+      platform: "TIKTOK",
+      providerAccountId: "tt_db_1",
+      eventType: "MESSAGE_INBOUND",
+      providerEventId: "msg_1",
+      webhookEventId: "event_eu_1",
+      operationalMessage:
+        "TikTok EU inbound message resolved and ready for automation routing",
+      normalizedPayload: expect.objectContaining({
+        platform: "TIKTOK",
+        messageId: "msg_1",
+        text: "GUIDE",
       }),
     });
-    expect(dbMocks.transaction).toHaveBeenCalledTimes(1);
   });
 
-  it("does not mark a webhook processed when correlation is ambiguous", async () => {
+  it("does not create a receipt when correlation is ambiguous", async () => {
     resolverMocks.resolve.mockRejectedValue(
       new Error("multiple plausible TikTok messages")
     );
@@ -109,6 +107,6 @@ describe("TikTok EU message ingress", () => {
       } as unknown as Parameters<typeof processTikTokEuMessageSync>[0])
     ).rejects.toThrow(/multiple plausible/);
 
-    expect(dbMocks.transaction).not.toHaveBeenCalled();
+    expect(receiptMocks.persist).not.toHaveBeenCalled();
   });
 });
