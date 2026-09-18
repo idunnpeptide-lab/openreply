@@ -1,18 +1,21 @@
 import { createDMWorker } from "@/lib/queue/dm-worker";
+import { createTikTokIngressWorker } from "@/lib/queue/tiktok-ingress";
 import { recordWorkerHeartbeat } from "@/lib/ops/worker-health";
 import { reconcileComments } from "@/lib/polling/comment-reconciler";
 import os from "node:os";
 
-const worker = createDMWorker();
+const dmWorker = createDMWorker();
+const tiktokIngressWorker = createTikTokIngressWorker();
 const startedAt = new Date().toISOString();
 const HEARTBEAT_INTERVAL_MS = 30_000;
-// Polling safety net for comments that webhooks miss. Runs in the worker because
-// it must fire every few minutes and Vercel's free crons only run once a day.
+// Polling safety net for Instagram comments that webhooks miss. TikTok remains
+// webhook-only until its provider-specific polling semantics are validated.
 const POLL_INTERVAL_MS = Number(
   process.env.COMMENT_POLL_INTERVAL_MS ?? 5 * 60_000
 );
 
 console.log("[DM Worker] Started");
+console.log("[TikTok Ingress] Started");
 
 async function heartbeat() {
   try {
@@ -39,15 +42,16 @@ async function poll() {
   }
 }
 
-// Kick off one sweep shortly after boot, then on a fixed interval.
+// Kick off one Instagram reconciliation sweep shortly after boot, then on a
+// fixed interval.
 setTimeout(() => void poll(), 10_000);
 const pollTimer = setInterval(() => void poll(), POLL_INTERVAL_MS);
 
 async function shutdown(signal: string) {
-  console.log(`[DM Worker] ${signal} received, closing worker`);
+  console.log(`[Workers] ${signal} received, closing workers`);
   clearInterval(heartbeatTimer);
   clearInterval(pollTimer);
-  await worker.close();
+  await Promise.all([dmWorker.close(), tiktokIngressWorker.close()]);
   process.exit(0);
 }
 
