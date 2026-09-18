@@ -1,5 +1,3 @@
-import "server-only";
-
 export const TIKTOK_BUSINESS_API_BASE_URL =
   "https://business-api.tiktok.com/open_api";
 export const TIKTOK_BUSINESS_API_VERSION = "v1.3";
@@ -39,6 +37,10 @@ export type TikTokBusinessConfig = {
   scopes: string[];
 };
 
+/**
+ * Server-side configuration helper. Keep this module out of client components:
+ * it may read the TikTok developer app secret from process.env.
+ */
 export function getTikTokBusinessConfig(
   env: TikTokBusinessEnv = process.env
 ): TikTokBusinessConfig | null {
