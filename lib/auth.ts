@@ -7,10 +7,9 @@ import { ensureWorkspaceForUser, getPrimaryWorkspace } from "@/lib/workspace";
 
 type AdapterPrismaClient = Parameters<typeof PrismaAdapter>[0];
 
-const emailFrom = process.env.EMAIL_FROM ?? "OpenReply <login@example.com>";
-// Setting EMAIL_SERVER switches magic links to your own SMTP server, for
-// self-hosters who do not want a third-party mail service. Resend stays the
-// default, so an existing deployment is unaffected.
+const emailFrom = process.env.EMAIL_FROM ?? "ReplyHalo <login@example.com>";
+// Setting EMAIL_SERVER switches magic links to a configured SMTP server.
+// Resend stays the default when SMTP is not configured.
 const smtpServer = process.env.EMAIL_SERVER;
 
 /**

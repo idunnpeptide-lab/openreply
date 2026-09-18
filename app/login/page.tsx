@@ -2,8 +2,8 @@ import { EMAIL_PROVIDER_ID, signIn } from "@/lib/auth";
 import { getCampaignTemplate } from "@/lib/templates/campaign-templates";
 
 export const metadata = {
-  title: "Login - OpenReply",
-  description: "Sign in to manage Instagram comment-to-DM campaigns.",
+  title: "Login - ReplyHalo",
+  description: "Sign in to manage Instagram comment-to-DM campaigns in ReplyHalo.",
 };
 
 export default async function LoginPage({
@@ -36,12 +36,12 @@ export default async function LoginPage({
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold text-foreground">
-            OpenReply
+            ReplyHalo
           </h1>
           <p className="text-muted text-sm leading-relaxed mt-2">
             {selectedTemplate
               ? `Sign in to use the ${selectedTemplate.title} template.`
-              : "Sign in by email, then connect your Instagram professional account."}
+              : "Sign in by email to manage your Instagram automations."}
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export default async function LoginPage({
               <h2 className="text-lg font-semibold mb-2">Check your email</h2>
               <p className="text-sm text-muted">
                 We sent you a secure sign-in link. Open it on this device to
-                continue.
+                continue to ReplyHalo.
               </p>
             </div>
           ) : (
