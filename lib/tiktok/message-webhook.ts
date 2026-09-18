@@ -12,6 +12,12 @@ export type TikTokInboundMessageWebhook = {
   timestamp: number | null;
 };
 
+export type TikTokEuInboundMessageWebhook = {
+  receiverUsername: string | null;
+  receiverId: string | null;
+  timestamp: number;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -20,15 +26,13 @@ function optionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-export function parseTikTokInboundMessageContent(
-  contentRaw: string
-): TikTokInboundMessageWebhook {
+function parseContentObject(contentRaw: string, label: string) {
   let payload: unknown;
   try {
     payload = JSON.parse(contentRaw);
   } catch {
     throw new TikTokWebhookError(
-      "TikTok inbound message content is not valid JSON",
+      `TikTok ${label} content is not valid JSON`,
       "TIKTOK_MESSAGE_WEBHOOK_INVALID_JSON",
       400
     );
@@ -36,11 +40,18 @@ export function parseTikTokInboundMessageContent(
 
   if (!isRecord(payload)) {
     throw new TikTokWebhookError(
-      "TikTok inbound message content must be an object",
+      `TikTok ${label} content must be an object`,
       "TIKTOK_MESSAGE_WEBHOOK_INVALID_PAYLOAD",
       400
     );
   }
+  return payload;
+}
+
+export function parseTikTokInboundMessageContent(
+  contentRaw: string
+): TikTokInboundMessageWebhook {
+  const payload = parseContentObject(contentRaw, "inbound message");
 
   const conversationId = optionalString(payload.conversation_id);
   const messageId = optionalString(payload.message_id);
@@ -72,6 +83,34 @@ export function parseTikTokInboundMessageContent(
     timestamp: Number.isFinite(payload.timestamp)
       ? Number(payload.timestamp)
       : null,
+  };
+}
+
+/**
+ * TikTok intentionally strips sender, conversation id and message body from
+ * `im_receive_msg_eu` for EEA/Switzerland/UK senders. The timestamp is the only
+ * correlation key we can safely use when resolving the message via the normal
+ * conversation APIs.
+ */
+export function parseTikTokEuInboundMessageContent(
+  contentRaw: string
+): TikTokEuInboundMessageWebhook {
+  const payload = parseContentObject(contentRaw, "EU inbound message");
+  const toUser = isRecord(payload.to_user) ? payload.to_user : null;
+  const timestamp = Number(payload.timestamp);
+
+  if (!Number.isSafeInteger(timestamp) || timestamp <= 0) {
+    throw new TikTokWebhookError(
+      "TikTok EU inbound message webhook is missing a valid timestamp",
+      "TIKTOK_EU_MESSAGE_WEBHOOK_INVALID_PAYLOAD",
+      400
+    );
+  }
+
+  return {
+    receiverUsername: optionalString(payload.to),
+    receiverId: optionalString(toUser?.id),
+    timestamp,
   };
 }
 
