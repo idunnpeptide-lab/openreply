@@ -5,6 +5,7 @@ const dbMocks = vi.hoisted(() => ({
   licenseFindUnique: vi.fn(),
   licenseUpsert: vi.fn(),
   instagramAccountCount: vi.fn(),
+  tiktokAccountCount: vi.fn(),
 }));
 
 vi.mock("@/lib/db/client", () => ({
@@ -16,11 +17,15 @@ vi.mock("@/lib/db/client", () => ({
     instagramAccount: {
       count: dbMocks.instagramAccountCount,
     },
+    tikTokAccount: {
+      count: dbMocks.tiktokAccountCount,
+    },
   },
 }));
 
 import {
   bindDmMagnetInstagramAccount,
+  bindDmMagnetTikTokAccount,
   configureDmMagnetWorkspaceLicense,
   DmMagnetLicenseError,
   getDmMagnetLicenseServerConfig,
@@ -37,6 +42,7 @@ beforeEach(() => {
   vi.unstubAllGlobals();
   vi.resetAllMocks();
   dbMocks.instagramAccountCount.mockResolvedValue(0);
+  dbMocks.tiktokAccountCount.mockResolvedValue(0);
 });
 
 function activeLicenseResponse() {
@@ -104,7 +110,9 @@ describe("DM Magnet workspace license client", () => {
       "https://license.example.com/api/licenses/validate"
     );
 
-    const upsertArgs = dbMocks.licenseUpsert.mock.calls[0]?.[0];
+    const upsertArgs = fetchMock.mock.calls.length
+      ? dbMocks.licenseUpsert.mock.calls[0]?.[0]
+      : null;
     expect(upsertArgs.where).toEqual({ workspaceId: "workspace_configure" });
     expect(upsertArgs.create.workspaceId).toBe("workspace_configure");
     expect(upsertArgs.create.licenseKeyEncrypted).not.toBe(plaintextKey);
@@ -136,12 +144,13 @@ describe("DM Magnet workspace license client", () => {
     expect(headers["x-dm-magnet-signature"]).toMatch(/^v1=[a-f0-9]{64}$/);
   });
 
-  it("blocks first-time or replacement License Keys while social accounts are already connected", async () => {
+  it("blocks License Key replacement when either platform already has an account", async () => {
     vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
     vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
 
     dbMocks.licenseFindUnique.mockResolvedValue(null);
-    dbMocks.instagramAccountCount.mockResolvedValue(1);
+    dbMocks.instagramAccountCount.mockResolvedValue(0);
+    dbMocks.tiktokAccountCount.mockResolvedValue(1);
     const fetchMock = vi.fn().mockResolvedValue(activeLicenseResponse());
     vi.stubGlobal("fetch", fetchMock);
 
@@ -156,6 +165,9 @@ describe("DM Magnet workspace license client", () => {
     });
 
     expect(dbMocks.instagramAccountCount).toHaveBeenCalledWith({
+      where: { workspaceId: "workspace_with_account" },
+    });
+    expect(dbMocks.tiktokAccountCount).toHaveBeenCalledWith({
       where: { workspaceId: "workspace_with_account" },
     });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -174,6 +186,7 @@ describe("DM Magnet workspace license client", () => {
       licenseKeyHash: expectedHash,
     });
     dbMocks.instagramAccountCount.mockResolvedValue(1);
+    dbMocks.tiktokAccountCount.mockResolvedValue(1);
     dbMocks.licenseUpsert.mockResolvedValue({});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(activeLicenseResponse()));
 
@@ -182,6 +195,7 @@ describe("DM Magnet workspace license client", () => {
     ).resolves.toMatchObject({ valid: true });
 
     expect(dbMocks.instagramAccountCount).not.toHaveBeenCalled();
+    expect(dbMocks.tiktokAccountCount).not.toHaveBeenCalled();
     expect(dbMocks.licenseUpsert).toHaveBeenCalled();
   });
 
@@ -253,6 +267,49 @@ describe("DM Magnet workspace license client", () => {
     ).rejects.toMatchObject({
       code: "ACCOUNT_LIMIT_REACHED",
       status: 409,
+    });
+  });
+
+  it("binds TikTok through the same shared social-account slot endpoint", async () => {
+    vi.stubEnv("DM_MAGNET_LICENSE_URL", "https://license.example.com");
+    vi.stubEnv("ENCRYPTION_KEY", TEST_ENCRYPTION_KEY);
+
+    dbMocks.licenseFindUnique.mockResolvedValue({
+      licenseKeyEncrypted: encryptSecret("DMM-CREATOR-TIKTOK-KEY"),
+      licenseKeyPrefix: "DMM-CREATOR-…-KEY",
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          bound: true,
+          alreadyBound: false,
+          usedAccounts: 1,
+          maxAccounts: 5,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      bindDmMagnetTikTokAccount({
+        workspaceId: "workspace_tiktok",
+        tiktokAccountId: "open_tiktok_123",
+        tiktokUsername: "replyhalo.demo",
+        instanceId: "https://app.replyhalo.example#workspace:workspace_tiktok",
+      })
+    ).resolves.toMatchObject({ bound: true, usedAccounts: 1, maxAccounts: 5 });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://license.example.com/api/licenses/bind-account"
+    );
+    expect(body).toMatchObject({
+      platform: "TIKTOK",
+      accountId: "open_tiktok_123",
+      username: "replyhalo.demo",
     });
   });
 
