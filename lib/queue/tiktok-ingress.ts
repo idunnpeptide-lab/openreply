@@ -1,4 +1,4 @@
-import { Job, Queue, Worker } from "bullmq";
+import { Queue, Worker, type Job } from "bullmq";
 import { prisma } from "@/lib/db/client";
 import {
   getDmMagnetLicenseServerConfig,
@@ -29,7 +29,10 @@ export function getTikTokIngressQueue() {
         attempts: 3,
         backoff: { type: "exponential", delay: 5_000 },
         removeOnComplete: { count: 1000 },
-        removeOnFail: { age: 3600, count: 2000 },
+        // Failure detail is durable in WebhookEvent + OperationalEvent. Remove
+        // the terminal BullMQ job so a provider retry can enqueue the same
+        // deterministic delivery again after a transient outage is fixed.
+        removeOnFail: true,
       },
     });
   }
