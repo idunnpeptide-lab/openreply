@@ -34,9 +34,12 @@ vi.mock("@/lib/tiktok/comment-lookup", () => ({
   getTikTokCommentById: lookupMocks.getComment,
 }));
 
-import { processTikTokCommentIngress } from "../lib/queue/tiktok-ingress";
+import {
+  processTikTokCommentIngress,
+  processTikTokMessageIngress,
+} from "../lib/queue/tiktok-ingress";
 
-function job(contentRaw: string) {
+function commentJob(contentRaw: string) {
   return {
     data: {
       webhookEventId: "tiktok_event_1",
@@ -45,7 +48,19 @@ function job(contentRaw: string) {
       businessId: "open_123",
       contentRaw,
     },
-  } as Parameters<typeof processTikTokCommentIngress>[0];
+  } as unknown as Parameters<typeof processTikTokCommentIngress>[0];
+}
+
+function messageJob(contentRaw: string) {
+  return {
+    data: {
+      webhookEventId: "tiktok_message_event_1",
+      workspaceId: "workspace_1",
+      tiktokAccountId: "tt_db_1",
+      businessId: "open_123",
+      contentRaw,
+    },
+  } as unknown as Parameters<typeof processTikTokMessageIngress>[0];
 }
 
 beforeEach(() => {
@@ -59,7 +74,7 @@ beforeEach(() => {
 describe("TikTok comment ingress", () => {
   it("consumes non-insert updates without triggering comment lookup", async () => {
     await processTikTokCommentIngress(
-      job(
+      commentJob(
         '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"delete","timestamp":1800000000123}'
       )
     );
@@ -85,7 +100,7 @@ describe("TikTok comment ingress", () => {
     });
 
     await processTikTokCommentIngress(
-      job(
+      commentJob(
         '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"insert","unique_identifier":"global_user_1","timestamp":1800000000123}'
       )
     );
@@ -121,7 +136,7 @@ describe("TikTok comment ingress", () => {
 
     await expect(
       processTikTokCommentIngress(
-        job(
+        commentJob(
           '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"insert"}'
         )
       )
@@ -139,12 +154,72 @@ describe("TikTok comment ingress", () => {
 
     await expect(
       processTikTokCommentIngress(
-        job(
+        commentJob(
           '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"insert"}'
         )
       )
     ).rejects.toThrow();
 
     expect(licenseMocks.validate).toHaveBeenCalledWith("workspace_1");
+  });
+});
+
+describe("TikTok message ingress", () => {
+  it("normalizes inbound text DMs and persists the routing handoff", async () => {
+    await processTikTokMessageIngress(
+      messageJob(
+        JSON.stringify({
+          from: "maya",
+          unique_identifier: "global_user_1",
+          conversation_id: "conv+abc==",
+          message_id: "msg_1",
+          timestamp: 1_800_000_000_123,
+          type: "text",
+          text: { body: " START " },
+          is_follower: false,
+        })
+      )
+    );
+
+    expect(dbMocks.operationalCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workspaceId: "workspace_1",
+        source: "WORKER",
+        level: "INFO",
+        message: "TikTok inbound message normalized and ready for automation routing",
+        payload: expect.objectContaining({
+          webhookEventId: "tiktok_message_event_1",
+          platform: "TIKTOK",
+          accountId: "open_123",
+          conversationId: "conv+abc==",
+          messageId: "msg_1",
+          senderId: "global_user_1",
+          senderUsername: "maya",
+          text: "START",
+          isFollower: false,
+        }),
+      }),
+    });
+    expect(dbMocks.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks non-text DMs processed without sending them into keyword routing", async () => {
+    await processTikTokMessageIngress(
+      messageJob(
+        JSON.stringify({
+          unique_identifier: "global_user_1",
+          conversation_id: "conv_1",
+          message_id: "msg_image",
+          type: "image",
+          image: { media_id: "media_1" },
+        })
+      )
+    );
+
+    expect(dbMocks.operationalCreate).not.toHaveBeenCalled();
+    expect(dbMocks.webhookUpdate).toHaveBeenCalledWith({
+      where: { id: "tiktok_message_event_1" },
+      data: expect.objectContaining({ status: "PROCESSED" }),
+    });
   });
 });

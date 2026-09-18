@@ -19,6 +19,22 @@ export type SocialCommentEvent = {
   createdAt?: string | null;
 };
 
+/**
+ * Provider-neutral inbound direct-message event. conversationId remains the
+ * provider-native conversation target required when replying.
+ */
+export type SocialMessageEvent = {
+  platform: SocialPlatform;
+  accountId: string;
+  conversationId: string;
+  messageId: string;
+  senderId: string;
+  senderUsername?: string | null;
+  text: string;
+  isFollower?: boolean | null;
+  createdAt?: string | null;
+};
+
 export type ProviderCapabilityAvailability =
   | "SUPPORTED"
   | "ACCOUNT_DEPENDENT"

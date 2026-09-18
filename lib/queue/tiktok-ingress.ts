@@ -8,8 +8,13 @@ import { getRedisConnection } from "@/lib/queue/client";
 import { parseTikTokCommentUpdateContent } from "@/lib/tiktok/comment-webhook";
 import { getTikTokCommentById } from "@/lib/tiktok/comment-lookup";
 import { normalizeTikTokCommentEvent } from "@/lib/tiktok/client";
+import {
+  normalizeTikTokInboundMessageEvent,
+  parseTikTokInboundMessageContent,
+} from "@/lib/tiktok/message-webhook";
 
 export const TIKTOK_COMMENT_INGRESS_JOB = "process-tiktok-comment-webhook";
+export const TIKTOK_MESSAGE_INGRESS_JOB = "process-tiktok-message-webhook";
 
 export type TikTokCommentIngressJob = {
   webhookEventId: string;
@@ -19,11 +24,23 @@ export type TikTokCommentIngressJob = {
   contentRaw: string;
 };
 
-let queue: Queue<TikTokCommentIngressJob> | null = null;
+export type TikTokMessageIngressJob = {
+  webhookEventId: string;
+  workspaceId: string;
+  tiktokAccountId: string;
+  businessId: string;
+  contentRaw: string;
+};
+
+export type TikTokIngressJob =
+  | TikTokCommentIngressJob
+  | TikTokMessageIngressJob;
+
+let queue: Queue<TikTokIngressJob> | null = null;
 
 export function getTikTokIngressQueue() {
   if (!queue) {
-    queue = new Queue<TikTokCommentIngressJob>("tiktok-ingress", {
+    queue = new Queue<TikTokIngressJob>("tiktok-ingress", {
       connection: getRedisConnection(),
       defaultJobOptions: {
         attempts: 3,
@@ -39,6 +56,12 @@ export function getTikTokIngressQueue() {
   return queue;
 }
 
+async function validateWorkspaceLicense(workspaceId: string) {
+  if (getDmMagnetLicenseServerConfig()) {
+    await validateDmMagnetWorkspaceLicense(workspaceId);
+  }
+}
+
 export async function processTikTokCommentIngress(
   job: Job<TikTokCommentIngressJob>
 ) {
@@ -50,9 +73,7 @@ export async function processTikTokCommentIngress(
     contentRaw,
   } = job.data;
 
-  if (getDmMagnetLicenseServerConfig()) {
-    await validateDmMagnetWorkspaceLicense(workspaceId);
-  }
+  await validateWorkspaceLicense(workspaceId);
 
   const update = parseTikTokCommentUpdateContent(contentRaw);
 
@@ -94,10 +115,6 @@ export async function processTikTokCommentIngress(
     );
   }
 
-  // This is the provider-neutral handoff point. Until TikTok campaign storage
-  // and live app approval are complete, persist the normalized event as an
-  // operational record rather than allowing it to enter Instagram automation
-  // code paths.
   await prisma.$transaction([
     prisma.operationalEvent.create({
       data: {
@@ -122,8 +139,59 @@ export async function processTikTokCommentIngress(
   ]);
 }
 
+export async function processTikTokMessageIngress(
+  job: Job<TikTokMessageIngressJob>
+) {
+  const { webhookEventId, workspaceId, businessId, contentRaw } = job.data;
+
+  await validateWorkspaceLicense(workspaceId);
+
+  const message = parseTikTokInboundMessageContent(contentRaw);
+  const normalized = normalizeTikTokInboundMessageEvent({
+    businessId,
+    message,
+  });
+
+  // Non-text payloads (images, reactions, stickers, templates, etc.) are valid
+  // inbound messages but cannot safely enter keyword matching.
+  if (!normalized) {
+    await prisma.webhookEvent.update({
+      where: { id: webhookEventId },
+      data: {
+        status: "PROCESSED",
+        processedAt: new Date(),
+        errorMessage: null,
+      },
+    });
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.operationalEvent.create({
+      data: {
+        workspaceId,
+        source: "WORKER",
+        level: "INFO",
+        message: "TikTok inbound message normalized and ready for automation routing",
+        payload: {
+          webhookEventId,
+          ...normalized,
+        },
+      },
+    }),
+    prisma.webhookEvent.update({
+      where: { id: webhookEventId },
+      data: {
+        status: "PROCESSED",
+        processedAt: new Date(),
+        errorMessage: null,
+      },
+    }),
+  ]);
+}
+
 async function recordTikTokIngressFailure(
-  job: Job<TikTokCommentIngressJob> | undefined,
+  job: Job<TikTokIngressJob> | undefined,
   error: Error
 ) {
   if (!job) return;
@@ -147,10 +215,11 @@ async function recordTikTokIngressFailure(
           workspaceId: job.data.workspaceId,
           source: "WORKER",
           level: "ERROR",
-          message: `TikTok comment ingress failed: ${error.message}`,
+          message: `TikTok ingress failed: ${error.message}`,
           payload: {
             webhookEventId: job.data.webhookEventId,
             tiktokAccountId: job.data.tiktokAccountId,
+            jobName: job.name,
             attemptsMade: job.attemptsMade,
           },
         },
@@ -160,11 +229,19 @@ async function recordTikTokIngressFailure(
 }
 
 export function createTikTokIngressWorker() {
-  const worker = new Worker<TikTokCommentIngressJob>(
+  const worker = new Worker<TikTokIngressJob>(
     "tiktok-ingress",
     async (job) => {
-      if (job.name !== TIKTOK_COMMENT_INGRESS_JOB) return;
-      await processTikTokCommentIngress(job);
+      if (job.name === TIKTOK_COMMENT_INGRESS_JOB) {
+        return processTikTokCommentIngress(
+          job as Job<TikTokCommentIngressJob>
+        );
+      }
+      if (job.name === TIKTOK_MESSAGE_INGRESS_JOB) {
+        return processTikTokMessageIngress(
+          job as Job<TikTokMessageIngressJob>
+        );
+      }
     },
     {
       connection: getRedisConnection(),
