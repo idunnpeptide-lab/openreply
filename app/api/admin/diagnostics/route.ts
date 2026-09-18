@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { getCurrentWorkspaceId } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
+import { getBaseUrl } from "@/lib/env";
 import { getDMQueue } from "@/lib/queue/client";
 import { getWorkerAlerts, getWorkerHealth } from "@/lib/ops/worker-health";
 
 export const runtime = "nodejs";
+
+function stagingReplayAvailable() {
+  try {
+    return new URL(getBaseUrl()).hostname.toLowerCase().includes("staging");
+  } catch {
+    return false;
+  }
+}
 
 export async function GET() {
   const workspaceId = await getCurrentWorkspaceId();
@@ -101,6 +110,7 @@ export async function GET() {
       dmFailures,
       tokenRefreshFailures,
       operationalEvents,
+      stagingReplayAvailable: stagingReplayAvailable(),
     },
   });
 }
