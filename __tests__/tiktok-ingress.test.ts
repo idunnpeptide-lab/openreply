@@ -16,6 +16,10 @@ const receiptMocks = vi.hoisted(() => ({
 const euMocks = vi.hoisted(() => ({
   resolve: vi.fn(),
 }));
+const routingMocks = vi.hoisted(() => ({
+  comment: vi.fn(),
+  message: vi.fn(),
+}));
 
 vi.mock("@/lib/db/client", () => ({
   prisma: {
@@ -40,6 +44,11 @@ vi.mock("@/lib/social-event-receipts", () => ({
 
 vi.mock("@/lib/tiktok/eu-message-sync", () => ({
   resolveTikTokEuInboundMessage: euMocks.resolve,
+}));
+
+vi.mock("@/lib/tiktok/automation-routing", () => ({
+  routeTikTokCommentAutomation: routingMocks.comment,
+  routeTikTokMessageAutomation: routingMocks.message,
 }));
 
 import {
@@ -89,10 +98,12 @@ beforeEach(() => {
   licenseMocks.getConfig.mockReturnValue(null);
   dbMocks.webhookUpdate.mockResolvedValue({});
   receiptMocks.persist.mockResolvedValue("CREATED");
+  routingMocks.comment.mockResolvedValue({ matched: 0, inserted: 0 });
+  routingMocks.message.mockResolvedValue({ matched: 0, inserted: 0 });
 });
 
 describe("TikTok comment ingress", () => {
-  it("consumes non-insert updates without triggering comment lookup", async () => {
+  it("consumes non-insert updates without triggering comment lookup or campaign routing", async () => {
     await processTikTokCommentIngress(
       commentJob(
         '{"comment_id":7247303576418566913,"video_id":7203946942097902849,"comment_type":"comment","comment_action":"delete","timestamp":1800000000123}'
@@ -101,6 +112,7 @@ describe("TikTok comment ingress", () => {
 
     expect(lookupMocks.getComment).not.toHaveBeenCalled();
     expect(receiptMocks.persist).not.toHaveBeenCalled();
+    expect(routingMocks.comment).not.toHaveBeenCalled();
     expect(dbMocks.webhookUpdate).toHaveBeenCalledWith({
       where: { id: "tiktok_event_1" },
       data: expect.objectContaining({
@@ -110,7 +122,7 @@ describe("TikTok comment ingress", () => {
     });
   });
 
-  it("resolves insert text and hands it to provider-level exactly-once persistence", async () => {
+  it("persists and routes a normalized comment using the same provider identity", async () => {
     lookupMocks.getComment.mockResolvedValue({
       comment_id: "7247303576418566913",
       video_id: "7203946942097902849",
@@ -126,26 +138,19 @@ describe("TikTok comment ingress", () => {
       )
     );
 
-    expect(lookupMocks.getComment).toHaveBeenCalledWith({
-      tiktokAccountId: "tt_db_1",
-      videoId: "7203946942097902849",
-      commentId: "7247303576418566913",
-    });
-    expect(receiptMocks.persist).toHaveBeenCalledWith({
+    expect(receiptMocks.persist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "COMMENT_INSERT",
+        providerEventId: "7247303576418566913",
+      })
+    );
+    expect(routingMocks.comment).toHaveBeenCalledWith({
       workspaceId: "workspace_1",
-      platform: "TIKTOK",
-      providerAccountId: "tt_db_1",
-      eventType: "COMMENT_INSERT",
-      providerEventId: "7247303576418566913",
-      webhookEventId: "tiktok_event_1",
-      operationalMessage: "TikTok comment normalized and ready for automation routing",
-      normalizedPayload: expect.objectContaining({
+      tiktokAccountId: "tt_db_1",
+      event: expect.objectContaining({
         platform: "TIKTOK",
-        accountId: "open_123",
         contentId: "7203946942097902849",
         commentId: "7247303576418566913",
-        authorId: "global_user_1",
-        authorUsername: "maya",
         text: "GUIDE",
       }),
     });
@@ -163,6 +168,7 @@ describe("TikTok comment ingress", () => {
     ).rejects.toThrow(/was not returned by the comment lookup API/);
 
     expect(receiptMocks.persist).not.toHaveBeenCalled();
+    expect(routingMocks.comment).not.toHaveBeenCalled();
   });
 
   it("validates the workspace license before provider API work when licensing is enabled", async () => {
@@ -182,10 +188,30 @@ describe("TikTok comment ingress", () => {
 
     expect(licenseMocks.validate).toHaveBeenCalledWith("workspace_1");
   });
+
+  it("reruns idempotent routing even when the provider receipt already exists", async () => {
+    receiptMocks.persist.mockResolvedValue("DUPLICATE");
+    lookupMocks.getComment.mockResolvedValue({
+      comment_id: "comment_retry",
+      video_id: "video_1",
+      unique_identifier: "user_1",
+      username: "maya",
+      text: "INFO",
+      create_time: 1_800_000_000,
+    });
+
+    await processTikTokCommentIngress(
+      commentJob(
+        '{"comment_id":"comment_retry","video_id":"video_1","comment_type":"comment","comment_action":"insert"}'
+      )
+    );
+
+    expect(routingMocks.comment).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("TikTok message ingress", () => {
-  it("normalizes inbound text DMs and dedupes by the provider message id", async () => {
+  it("persists and routes an inbound text DM by stable provider message id", async () => {
     await processTikTokMessageIngress(
       messageJob(
         JSON.stringify({
@@ -201,29 +227,24 @@ describe("TikTok message ingress", () => {
       )
     );
 
-    expect(receiptMocks.persist).toHaveBeenCalledWith({
+    expect(receiptMocks.persist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "MESSAGE_INBOUND",
+        providerEventId: "msg_1",
+      })
+    );
+    expect(routingMocks.message).toHaveBeenCalledWith({
       workspaceId: "workspace_1",
-      platform: "TIKTOK",
-      providerAccountId: "tt_db_1",
-      eventType: "MESSAGE_INBOUND",
-      providerEventId: "msg_1",
-      webhookEventId: "tiktok_message_event_1",
-      operationalMessage:
-        "TikTok inbound message normalized and ready for automation routing",
-      normalizedPayload: expect.objectContaining({
-        platform: "TIKTOK",
-        accountId: "open_123",
-        conversationId: "conv+abc==",
+      tiktokAccountId: "tt_db_1",
+      event: expect.objectContaining({
         messageId: "msg_1",
-        senderId: "global_user_1",
-        senderUsername: "maya",
+        conversationId: "conv+abc==",
         text: "START",
-        isFollower: false,
       }),
     });
   });
 
-  it("marks non-text DMs processed without sending them into keyword routing", async () => {
+  it("marks non-text DMs processed without keyword routing", async () => {
     await processTikTokMessageIngress(
       messageJob(
         JSON.stringify({
@@ -237,13 +258,14 @@ describe("TikTok message ingress", () => {
     );
 
     expect(receiptMocks.persist).not.toHaveBeenCalled();
+    expect(routingMocks.message).not.toHaveBeenCalled();
     expect(dbMocks.webhookUpdate).toHaveBeenCalledWith({
       where: { id: "tiktok_message_event_1" },
       data: expect.objectContaining({ status: "PROCESSED" }),
     });
   });
 
-  it("uses the same provider message id for EU-reconciled DMs", async () => {
+  it("routes EU-reconciled DMs through the same message automation path", async () => {
     euMocks.resolve.mockResolvedValue({
       platform: "TIKTOK",
       accountId: "open_123",
@@ -270,8 +292,12 @@ describe("TikTok message ingress", () => {
       expect.objectContaining({
         eventType: "MESSAGE_INBOUND",
         providerEventId: "msg_shared_1",
-        webhookEventId: "tiktok_eu_message_event_1",
       })
     );
+    expect(routingMocks.message).toHaveBeenCalledWith({
+      workspaceId: "workspace_1",
+      tiktokAccountId: "tt_db_1",
+      event: expect.objectContaining({ messageId: "msg_shared_1" }),
+    });
   });
 });
