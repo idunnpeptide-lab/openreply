@@ -22,13 +22,12 @@ export const REPLYHALO_TIKTOK_DESIRED_SCOPES = [
   "message.list.manage",
 ] as const;
 
-type TikTokBusinessEnv = Pick<
-  NodeJS.ProcessEnv,
-  | "TIKTOK_BUSINESS_APP_ID"
-  | "TIKTOK_BUSINESS_APP_SECRET"
-  | "TIKTOK_BUSINESS_REDIRECT_URI"
-  | "TIKTOK_BUSINESS_SCOPES"
->;
+type TikTokBusinessEnv = {
+  TIKTOK_BUSINESS_APP_ID?: string;
+  TIKTOK_BUSINESS_APP_SECRET?: string;
+  TIKTOK_BUSINESS_REDIRECT_URI?: string;
+  TIKTOK_BUSINESS_SCOPES?: string;
+};
 
 export type TikTokBusinessConfig = {
   appId: string;
