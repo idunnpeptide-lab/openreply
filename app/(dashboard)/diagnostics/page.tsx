@@ -50,6 +50,16 @@ interface DiagnosticsData {
     createdAt: string;
     resolvedAt: string | null;
   }>;
+  stagingReplayAvailable: boolean;
+}
+
+interface ReplayResult {
+  success: boolean;
+  deduped?: boolean;
+  safeToReplay?: boolean;
+  error?: string;
+  jobId?: string;
+  webhookEventId?: string;
 }
 
 function formatDate(value: string) {
@@ -78,6 +88,8 @@ function Section({
 export default function DiagnosticsPage() {
   const [data, setData] = useState<DiagnosticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [replayBusy, setReplayBusy] = useState(false);
+  const [replayResult, setReplayResult] = useState<ReplayResult | null>(null);
 
   async function refreshDiagnostics() {
     setLoading(true);
@@ -87,6 +99,26 @@ export default function DiagnosticsPage() {
       setData(payload.data);
     }
     setLoading(false);
+  }
+
+  async function replayLatestMessage() {
+    setReplayBusy(true);
+    setReplayResult(null);
+    try {
+      const response = await fetch(
+        "/api/admin/diagnostics/replay-last-message",
+        { method: "POST" }
+      );
+      const payload = (await response.json()) as ReplayResult;
+      setReplayResult(payload);
+    } catch {
+      setReplayResult({
+        success: false,
+        error: "Could not run the staging replay check",
+      });
+    } finally {
+      setReplayBusy(false);
+    }
   }
 
   useEffect(() => {
@@ -167,6 +199,44 @@ export default function DiagnosticsPage() {
           </div>
         ))}
       </div>
+
+      {data?.stagingReplayAvailable && (
+        <Section title="Staging Webhook Replay QA">
+          <p className="text-sm text-muted">
+            Replays the most recent inbound Instagram DM using the exact same
+            Meta message ID. The check refuses to run unless the original
+            completed queue job is still retained, so it cannot intentionally
+            create a second delivery.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => void replayLatestMessage()}
+              disabled={replayBusy}
+              className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              {replayBusy ? "Replaying…" : "Replay latest inbound DM"}
+            </button>
+            {replayResult && (
+              <span
+                className={`text-sm font-semibold ${
+                  replayResult.success && replayResult.deduped
+                    ? "text-success"
+                    : "text-error"
+                }`}
+              >
+                {replayResult.success && replayResult.deduped
+                  ? "PASS — duplicate event was deduped"
+                  : replayResult.error ?? "Replay check did not pass"}
+              </span>
+            )}
+          </div>
+          {replayResult?.jobId && (
+            <p className="mt-2 break-all text-xs text-muted">
+              Queue job: {replayResult.jobId}
+            </p>
+          )}
+        </Section>
+      )}
 
       <Section title="Recent Worker Alerts">
         {data?.workerAlerts.length ? (
@@ -264,14 +334,16 @@ export default function DiagnosticsPage() {
             <EmptyState label="No token refresh failures." />
           )}
         </Section>
-
       </div>
 
       <Section title="Operational Event Timeline">
         {data?.operationalEvents.length ? (
           <div className="space-y-3">
             {data.operationalEvents.map((event) => (
-              <div key={event.id} className="grid gap-2 border-b border-border pb-3 last:border-0 sm:grid-cols-[140px_1fr_auto]">
+              <div
+                key={event.id}
+                className="grid gap-2 border-b border-border pb-3 last:border-0 sm:grid-cols-[140px_1fr_auto]"
+              >
                 <p className="text-xs font-semibold text-muted">{event.source}</p>
                 <p className="text-sm text-foreground">{event.message}</p>
                 <p className="text-xs text-muted">{formatDate(event.createdAt)}</p>
