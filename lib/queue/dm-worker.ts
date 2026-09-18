@@ -11,6 +11,7 @@ import {
   type ProcessPostbackJob,
   type ProcessFollowUpJob,
 } from "./client";
+import { scheduleFollowUpIfEnabled } from "./follow-up";
 import { prisma } from "@/lib/db/client";
 import {
   getDmMagnetLicenseServerConfig,
@@ -638,6 +639,18 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           commentId,
           dmMessage
         );
+      }
+
+      // A confirmed follower (or a campaign without a follow gate/opening DM)
+      // receives the reveal directly in the comment private reply. That path
+      // previously skipped follow-up scheduling entirely; schedule it here only
+      // after the actual information/link has been delivered.
+      if (!useOpeningDm && !sendFollowPrompt) {
+        await scheduleFollowUpIfEnabled({
+          automation,
+          userId: commenterId,
+          commenterName: commenterName ?? null,
+        });
       }
 
       await prisma.dmLog.update({
@@ -1304,4 +1317,3 @@ export function createDMWorker(): Worker<DmQueueJob> {
 
   return worker;
 }
-
