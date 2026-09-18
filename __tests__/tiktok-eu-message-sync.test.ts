@@ -154,21 +154,21 @@ describe("TikTok EU message reconciliation", () => {
       .mockResolvedValueOnce(conversations(many))
       .mockResolvedValueOnce(conversations([]));
 
-    await expect(
-      resolveTikTokEuInboundMessage({
+    let caught: unknown;
+    try {
+      await resolveTikTokEuInboundMessage({
         tiktokAccountId: "tt_db_1",
         businessId: "open_123",
         timestamp: TS,
-      })
-    ).rejects.toBeInstanceOf(TikTokEuMessageSyncError);
-    await expect(
-      resolveTikTokEuInboundMessage({
-        tiktokAccountId: "tt_db_1",
-        businessId: "open_123",
-        timestamp: TS,
-      })
-    ).rejects.toMatchObject({
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(TikTokEuMessageSyncError);
+    expect(caught).toMatchObject({
       code: "TIKTOK_EU_MESSAGE_TOO_MANY_CONVERSATIONS",
     });
+    expect(messagingMocks.listMessages).not.toHaveBeenCalled();
   });
 });
