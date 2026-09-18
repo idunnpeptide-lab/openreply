@@ -17,7 +17,7 @@ type TikTokApiEnvelope<T> = {
 
 export type TikTokConversation = {
   conversation_id: string;
-  up_time?: number;
+  update_time?: number;
   referral?: Record<string, unknown>;
 };
 

@@ -8,13 +8,16 @@ import { getRedisConnection } from "@/lib/queue/client";
 import { parseTikTokCommentUpdateContent } from "@/lib/tiktok/comment-webhook";
 import { getTikTokCommentById } from "@/lib/tiktok/comment-lookup";
 import { normalizeTikTokCommentEvent } from "@/lib/tiktok/client";
+import { resolveTikTokEuInboundMessage } from "@/lib/tiktok/eu-message-sync";
 import {
   normalizeTikTokInboundMessageEvent,
+  parseTikTokEuInboundMessageContent,
   parseTikTokInboundMessageContent,
 } from "@/lib/tiktok/message-webhook";
 
 export const TIKTOK_COMMENT_INGRESS_JOB = "process-tiktok-comment-webhook";
 export const TIKTOK_MESSAGE_INGRESS_JOB = "process-tiktok-message-webhook";
+export const TIKTOK_EU_MESSAGE_SYNC_JOB = "sync-tiktok-eu-message-webhook";
 
 export type TikTokCommentIngressJob = {
   webhookEventId: string;
@@ -32,9 +35,12 @@ export type TikTokMessageIngressJob = {
   contentRaw: string;
 };
 
+export type TikTokEuMessageSyncJob = TikTokMessageIngressJob;
+
 export type TikTokIngressJob =
   | TikTokCommentIngressJob
-  | TikTokMessageIngressJob;
+  | TikTokMessageIngressJob
+  | TikTokEuMessageSyncJob;
 
 let queue: Queue<TikTokIngressJob> | null = null;
 
@@ -60,6 +66,36 @@ async function validateWorkspaceLicense(workspaceId: string) {
   if (getDmMagnetLicenseServerConfig()) {
     await validateDmMagnetWorkspaceLicense(workspaceId);
   }
+}
+
+async function persistNormalizedMessage(input: {
+  webhookEventId: string;
+  workspaceId: string;
+  message: Record<string, unknown>;
+  sourceLabel: string;
+}) {
+  await prisma.$transaction([
+    prisma.operationalEvent.create({
+      data: {
+        workspaceId: input.workspaceId,
+        source: "WORKER",
+        level: "INFO",
+        message: input.sourceLabel,
+        payload: {
+          webhookEventId: input.webhookEventId,
+          ...input.message,
+        },
+      },
+    }),
+    prisma.webhookEvent.update({
+      where: { id: input.webhookEventId },
+      data: {
+        status: "PROCESSED",
+        processedAt: new Date(),
+        errorMessage: null,
+      },
+    }),
+  ]);
 }
 
 export async function processTikTokCommentIngress(
@@ -166,28 +202,41 @@ export async function processTikTokMessageIngress(
     return;
   }
 
-  await prisma.$transaction([
-    prisma.operationalEvent.create({
-      data: {
-        workspaceId,
-        source: "WORKER",
-        level: "INFO",
-        message: "TikTok inbound message normalized and ready for automation routing",
-        payload: {
-          webhookEventId,
-          ...normalized,
-        },
-      },
-    }),
-    prisma.webhookEvent.update({
-      where: { id: webhookEventId },
-      data: {
-        status: "PROCESSED",
-        processedAt: new Date(),
-        errorMessage: null,
-      },
-    }),
-  ]);
+  await persistNormalizedMessage({
+    webhookEventId,
+    workspaceId,
+    message: normalized,
+    sourceLabel: "TikTok inbound message normalized and ready for automation routing",
+  });
+}
+
+export async function processTikTokEuMessageSync(
+  job: Job<TikTokEuMessageSyncJob>
+) {
+  const {
+    webhookEventId,
+    workspaceId,
+    tiktokAccountId,
+    businessId,
+    contentRaw,
+  } = job.data;
+
+  await validateWorkspaceLicense(workspaceId);
+
+  const stripped = parseTikTokEuInboundMessageContent(contentRaw);
+  const normalized = await resolveTikTokEuInboundMessage({
+    tiktokAccountId,
+    businessId,
+    timestamp: stripped.timestamp,
+  });
+
+  await persistNormalizedMessage({
+    webhookEventId,
+    workspaceId,
+    message: normalized,
+    sourceLabel:
+      "TikTok EU inbound message resolved and ready for automation routing",
+  });
 }
 
 async function recordTikTokIngressFailure(
@@ -240,6 +289,11 @@ export function createTikTokIngressWorker() {
       if (job.name === TIKTOK_MESSAGE_INGRESS_JOB) {
         return processTikTokMessageIngress(
           job as Job<TikTokMessageIngressJob>
+        );
+      }
+      if (job.name === TIKTOK_EU_MESSAGE_SYNC_JOB) {
+        return processTikTokEuMessageSync(
+          job as Job<TikTokEuMessageSyncJob>
         );
       }
     },

@@ -9,6 +9,7 @@ import {
 import {
   getTikTokIngressQueue,
   TIKTOK_COMMENT_INGRESS_JOB,
+  TIKTOK_EU_MESSAGE_SYNC_JOB,
   TIKTOK_MESSAGE_INGRESS_JOB,
 } from "@/lib/queue/tiktok-ingress";
 import {
@@ -183,10 +184,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // TikTok strips sender, conversation id and message body from
-  // `im_receive_msg_eu` for EEA/Switzerland/UK senders. Those events remain
-  // PENDING until the separate conversation-sync resolver is implemented; we
-  // deliberately do not invent keyword/text data from the stripped webhook.
+  // EEA/Switzerland/UK webhook payloads intentionally omit sender,
+  // conversation id and body. Reconcile them through the official conversation
+  // endpoints and fail closed if the timestamp maps to zero or multiple text
+  // messages rather than guessing the user or keyword.
+  if (account && envelope.event === "im_receive_msg_eu") {
+    await getTikTokIngressQueue().add(
+      TIKTOK_EU_MESSAGE_SYNC_JOB,
+      {
+        webhookEventId,
+        workspaceId: account.workspaceId,
+        tiktokAccountId: account.id,
+        businessId: account.openId,
+        contentRaw: envelope.contentRaw,
+      },
+      { jobId: `message_eu_${dedupeKey}` }
+    );
+  }
+
   return NextResponse.json(
     { success: true, accepted: true, duplicate },
     { status: 200 }
