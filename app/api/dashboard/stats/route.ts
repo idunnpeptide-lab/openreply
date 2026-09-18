@@ -32,6 +32,10 @@ export async function GET(request: NextRequest) {
   const accountFilter = selectedAccountId
     ? { instagramAccountId: selectedAccountId }
     : {};
+  const connectedAccountFilter = {
+    workspaceId,
+    accessToken: { not: "" },
+  };
 
   const [
     workspace,
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
       },
     }),
     prisma.instagramAccount.findFirst({
-      where: { workspaceId },
+      where: connectedAccountFilter,
       orderBy: { connectedAt: "desc" },
       select: {
         id: true,
@@ -70,7 +74,7 @@ export async function GET(request: NextRequest) {
       },
     }),
     prisma.instagramAccount.findMany({
-      where: { workspaceId },
+      where: connectedAccountFilter,
       orderBy: { connectedAt: "desc" },
       select: {
         id: true,
