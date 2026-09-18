@@ -99,6 +99,24 @@ describe("TikTok automation API", () => {
     expect(dbMocks.automationCreate).not.toHaveBeenCalled();
   });
 
+  it("rejects a public comment reply longer than TikTok's 150-character limit", async () => {
+    const response = await POST(
+      request("POST", {
+        tiktokAccountId: "tt_1",
+        name: "Too long reply",
+        videoId: "7203946942097902849",
+        commentTriggerEnabled: true,
+        keywords: ["INFO"],
+        publicReplyEnabled: true,
+        publicReplyMessage: "x".repeat(151),
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(dbMocks.accountFindFirst).not.toHaveBeenCalled();
+    expect(dbMocks.automationCreate).not.toHaveBeenCalled();
+  });
+
   it("creates a guarded inbound-DM campaign and clears irrelevant comment fields", async () => {
     dbMocks.accountFindFirst.mockResolvedValue({
       id: "tt_1",
