@@ -110,7 +110,7 @@ export default function SettingsPage() {
       setLicenseKeyInput("");
     } else {
       setLicenseError(
-        payload.message ?? payload.error ?? "Could not configure License Key"
+        payload.message ?? payload.error ?? "Could not activate the ReplyHalo plan"
       );
     }
 
@@ -118,7 +118,11 @@ export default function SettingsPage() {
   }
 
   async function disconnectInstagram(instagramAccountId: string) {
-    if (!confirm("Disconnect Instagram? Campaigns for this account will stop sending DMs.")) {
+    if (
+      !confirm(
+        "Disconnect Instagram? Campaigns will stop sending until you reconnect. Campaigns, logs, clicks, and history are preserved."
+      )
+    ) {
       return;
     }
 
@@ -182,9 +186,9 @@ export default function SettingsPage() {
       <section className="panel rounded p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold">DM Magnet License</h2>
+            <h2 className="text-base font-semibold">ReplyHalo Plan</h2>
             <p className="mt-1 text-xs text-muted">
-              Controls social-account slots and automation access for this workspace.
+              Controls connected social-account slots and automation access for this workspace.
             </p>
           </div>
 
@@ -202,9 +206,9 @@ export default function SettingsPage() {
             }`}
           >
             {!licenseData?.enabled
-              ? "Self-hosted"
+              ? "Local mode"
               : !licenseData.configured
-                ? "License required"
+                ? "Activation required"
                 : licenseData.valid
                   ? "Active"
                   : "Needs attention"}
@@ -213,8 +217,7 @@ export default function SettingsPage() {
 
         {!licenseData?.enabled ? (
           <p className="mt-4 text-sm text-muted">
-            This deployment is not connected to the DM Magnet License Server.
-            Existing self-hosted behavior remains unchanged.
+            Workspace plan enforcement is not enabled in this environment.
           </p>
         ) : licenseData.configured && licenseData.valid ? (
           <>
@@ -242,17 +245,17 @@ export default function SettingsPage() {
             </div>
             {licenseData.keyPrefix && (
               <p className="mt-3 text-xs text-muted">
-                Workspace key: {licenseData.keyPrefix}
+                License key: {licenseData.keyPrefix}
               </p>
             )}
           </>
         ) : licenseData.configured ? (
           <p className="mt-4 text-sm text-error">
-            License validation failed: {licenseData.error ?? "UNKNOWN"}
+            Plan validation failed: {licenseData.error ?? "UNKNOWN"}
           </p>
         ) : (
           <p className="mt-4 text-sm text-muted">
-            Enter the License Key issued to this customer workspace before
+            Enter the ReplyHalo License Key issued for this workspace before
             connecting Instagram.
           </p>
         )}
@@ -270,8 +273,8 @@ export default function SettingsPage() {
                 onChange={(event) => setLicenseKeyInput(event.target.value)}
                 placeholder={
                   licenseData.configured
-                    ? "Re-enter or replace the License Key"
-                    : "DMM-SOLO-..."
+                    ? "Re-enter or replace the ReplyHalo License Key"
+                    : "Paste your ReplyHalo License Key"
                 }
                 className="min-w-0 flex-1 rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
                 autoComplete="off"
@@ -286,7 +289,7 @@ export default function SettingsPage() {
                   ? "Validating..."
                   : licenseData.configured
                     ? "Update key"
-                    : "Activate license"}
+                    : "Activate plan"}
               </button>
               {licenseError && (
                 <p className="sm:basis-full text-sm text-error">
@@ -302,20 +305,20 @@ export default function SettingsPage() {
           canManageMembers && (
             <p className="mt-4 border-t border-border pt-4 text-xs text-muted">
               The License Key is locked while social accounts are connected.
-              Contact support for a controlled license/account migration.
+              Contact support for a controlled plan/account migration.
             </p>
           )}
       </section>
 
       <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">Instagram Connection</h2>
+        <h2 className="text-base font-semibold mb-6">Instagram</h2>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Status</p>
               <p className="text-xs text-muted mt-0.5">
-                Comment webhooks and private replies depend on this connection.
+                Comment automation and private replies depend on this connection.
               </p>
             </div>
             <span
@@ -358,11 +361,11 @@ export default function SettingsPage() {
                     @{account.username}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    Token expires{" "}
+                    Connection valid until{" "}
                     {account.tokenExpiresAt
                       ? new Date(account.tokenExpiresAt).toLocaleDateString()
                       : "not available"}{" "}
-                    · {account.webhookSubscribed ? "Webhook ready" : "Webhook pending"}
+                    · {account.webhookSubscribed ? "Automation ready" : "Finishing setup"}
                   </p>
                 </div>
                 <button
@@ -499,7 +502,7 @@ export default function SettingsPage() {
               DMs sent this month
             </p>
             <p className="text-xs text-muted mt-0.5">
-              Self-hosted — no plan limits.
+              Automated DMs recorded for this workspace.
             </p>
           </div>
           <span className="text-sm font-semibold text-foreground">
