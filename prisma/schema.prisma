@@ -77,17 +77,19 @@ model Workspace {
 
   dmMagnetLicense   DmMagnetWorkspaceLicense?
 
-  members             WorkspaceMember[]
-  invitations         WorkspaceInvitation[]
-  instagramAccounts   InstagramAccount[]
-  tiktokAccounts      TikTokAccount[]
-  automations         Automation[]
-  dmLogs              DmLog[]
-  trackedLinks        TrackedLink[]
-  linkClicks          LinkClick[]
-  webhookEvents       WebhookEvent[]
-  operationalEvents   OperationalEvent[]
-  socialEventReceipts SocialEventReceipt[]
+  members                 WorkspaceMember[]
+  invitations             WorkspaceInvitation[]
+  instagramAccounts       InstagramAccount[]
+  tiktokAccounts          TikTokAccount[]
+  tiktokAutomations       TikTokAutomation[]
+  tiktokAutomationMatches TikTokAutomationMatch[]
+  automations             Automation[]
+  dmLogs                  DmLog[]
+  trackedLinks            TrackedLink[]
+  linkClicks              LinkClick[]
+  webhookEvents           WebhookEvent[]
+  operationalEvents       OperationalEvent[]
+  socialEventReceipts     SocialEventReceipt[]
 
   @@index([ownerId])
 }
@@ -167,27 +169,108 @@ model InstagramAccount {
 // existing Instagram account/automation tables are intentionally not migrated
 // into a generic table as part of the first TikTok rollout.
 model TikTokAccount {
-  id                     String   @id @default(cuid())
-  workspaceId            String
-  openId                 String   @unique
-  username               String?
-  displayName            String?
-  accessTokenEncrypted   String
-  refreshTokenEncrypted  String
-  tokenExpiresAt         DateTime
-  refreshTokenExpiresAt  DateTime
-  grantedScopes          String[] @default([])
-  commentsEnabled        Boolean  @default(false)
-  publicReplyEnabled     Boolean  @default(false)
-  messagingEnabled       Boolean  @default(false)
-  commentToMessageEnabled Boolean @default(false)
-  webhookConfigured      Boolean  @default(false)
-  connectedAt            DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  workspaceId             String
+  openId                  String   @unique
+  username                String?
+  displayName             String?
+  accessTokenEncrypted    String
+  refreshTokenEncrypted   String
+  tokenExpiresAt          DateTime
+  refreshTokenExpiresAt   DateTime
+  grantedScopes           String[] @default([])
+  commentsEnabled         Boolean  @default(false)
+  publicReplyEnabled      Boolean  @default(false)
+  messagingEnabled        Boolean  @default(false)
+  commentToMessageEnabled Boolean  @default(false)
+  webhookConfigured       Boolean  @default(false)
+  connectedAt             DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace         Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  automations       TikTokAutomation[]
+  automationMatches TikTokAutomationMatch[]
 
   @@index([workspaceId])
+}
+
+// TikTok campaigns stay separate from the production-proven Instagram
+// Automation model until TikTok passes live staging QA. Both triggers are off
+// by default, so merely creating/importing a row cannot start routing events.
+model TikTokAutomation {
+  id              String @id @default(cuid())
+  workspaceId     String
+  tiktokAccountId String
+
+  name        String
+  goal        String?
+  videoId     String?
+  matchAnyVideo Boolean @default(false)
+
+  commentTriggerEnabled Boolean @default(false)
+  messageTriggerEnabled Boolean @default(false)
+  keywords              String[] @default([])
+  matchAnyWord          Boolean  @default(false)
+  wholeWordMatch        Boolean  @default(true)
+
+  // Comment events may plan only a public reply at this stage. ReplyHalo does
+  // not silently turn a comment into a cold DM. Comment-to-Message remains a
+  // separate account-dependent capability for a later explicitly gated phase.
+  publicReplyEnabled Boolean @default(false)
+  publicReplyMessage String?
+
+  // Inbound message events already have an existing conversation and can plan
+  // a normal Business Messaging reply once live sending is enabled.
+  dmReplyEnabled Boolean @default(false)
+  dmMessage      String?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace     Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tiktokAccount TikTokAccount            @relation(fields: [tiktokAccountId], references: [id], onDelete: Cascade)
+  matches       TikTokAutomationMatch[]
+
+  @@index([workspaceId])
+  @@index([tiktokAccountId])
+  @@index([videoId])
+  @@index([isActive])
+}
+
+// Durable, inert routing result. No TikTok API call is made when this row is
+// created. `plan` snapshots the safe actions that matched at event time so a
+// later execution worker does not silently change behavior if a campaign is
+// edited after the event arrived.
+model TikTokAutomationMatch {
+  id              String                       @id @default(cuid())
+  workspaceId     String
+  tiktokAccountId String
+  automationId    String
+  eventType       String
+  providerEventId String
+  matchedKeyword  String?
+  inputText       String
+  contentId       String?
+  conversationId  String?
+  actorId         String
+  actorUsername   String?
+  plan            Json
+  status          TikTokAutomationMatchStatus  @default(MATCHED)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  workspace     Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tiktokAccount TikTokAccount     @relation(fields: [tiktokAccountId], references: [id], onDelete: Cascade)
+  automation    TikTokAutomation  @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, eventType, providerEventId])
+  @@index([workspaceId])
+  @@index([tiktokAccountId])
+  @@index([automationId])
+  @@index([eventType, providerEventId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 /// Daily follower total for one account. Instagram only retains ~30 days of
@@ -377,14 +460,14 @@ model WebhookEvent {
 // envelope. This receipt is keyed by the provider-native entity ID so future
 // automation sends can be exactly-once at the ReplyHalo boundary.
 model SocialEventReceipt {
-  id              String   @id @default(cuid())
-  workspaceId     String
-  platform        String
+  id                String   @id @default(cuid())
+  workspaceId       String
+  platform          String
   providerAccountId String
-  eventType       String
-  providerEventId String
-  webhookEventId  String?
-  createdAt       DateTime @default(now())
+  eventType         String
+  providerEventId   String
+  webhookEventId    String?
+  createdAt         DateTime @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -433,6 +516,13 @@ enum DmStatus {
   SKIPPED_RATE_LIMIT
   SKIPPED_PLAN_LIMIT
   SKIPPED_NO_MATCH
+}
+
+enum TikTokAutomationMatchStatus {
+  MATCHED
+  EXECUTED
+  FAILED
+  SKIPPED
 }
 
 enum WebhookStatus {

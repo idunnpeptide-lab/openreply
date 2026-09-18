@@ -6,6 +6,10 @@ import {
 } from "@/lib/dm-magnet-license";
 import { getRedisConnection } from "@/lib/queue/client";
 import { persistSocialEventHandoff } from "@/lib/social-event-receipts";
+import {
+  routeTikTokCommentAutomation,
+  routeTikTokMessageAutomation,
+} from "@/lib/tiktok/automation-routing";
 import { parseTikTokCommentUpdateContent } from "@/lib/tiktok/comment-webhook";
 import { getTikTokCommentById } from "@/lib/tiktok/comment-lookup";
 import { normalizeTikTokCommentEvent } from "@/lib/tiktok/client";
@@ -132,6 +136,15 @@ export async function processTikTokCommentIngress(
     operationalMessage: "TikTok comment normalized and ready for automation routing",
     normalizedPayload: { ...normalized },
   });
+
+  // Route after the durable provider receipt exists. Routing is itself
+  // idempotent per automation + provider event, so an ingress retry after the
+  // receipt transaction committed can safely repair a failed routing attempt.
+  await routeTikTokCommentAutomation({
+    workspaceId,
+    tiktokAccountId,
+    event: normalized,
+  });
 }
 
 export async function processTikTokMessageIngress(
@@ -178,6 +191,12 @@ export async function processTikTokMessageIngress(
       "TikTok inbound message normalized and ready for automation routing",
     normalizedPayload: { ...normalized },
   });
+
+  await routeTikTokMessageAutomation({
+    workspaceId,
+    tiktokAccountId,
+    event: normalized,
+  });
 }
 
 export async function processTikTokEuMessageSync(
@@ -213,6 +232,12 @@ export async function processTikTokEuMessageSync(
     operationalMessage:
       "TikTok EU inbound message resolved and ready for automation routing",
     normalizedPayload: { ...normalized },
+  });
+
+  await routeTikTokMessageAutomation({
+    workspaceId,
+    tiktokAccountId,
+    event: normalized,
   });
 }
 

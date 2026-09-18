@@ -10,6 +10,9 @@ const resolverMocks = vi.hoisted(() => ({
 const receiptMocks = vi.hoisted(() => ({
   persist: vi.fn(),
 }));
+const routingMocks = vi.hoisted(() => ({
+  message: vi.fn(),
+}));
 
 vi.mock("@/lib/db/client", () => ({
   prisma: {
@@ -30,12 +33,18 @@ vi.mock("@/lib/social-event-receipts", () => ({
   persistSocialEventHandoff: receiptMocks.persist,
 }));
 
+vi.mock("@/lib/tiktok/automation-routing", () => ({
+  routeTikTokCommentAutomation: vi.fn(),
+  routeTikTokMessageAutomation: routingMocks.message,
+}));
+
 import { processTikTokEuMessageSync } from "../lib/queue/tiktok-ingress";
 
 beforeEach(() => {
   vi.resetAllMocks();
   licenseMocks.getConfig.mockReturnValue(null);
   receiptMocks.persist.mockResolvedValue("CREATED");
+  routingMocks.message.mockResolvedValue({ matched: 0, inserted: 0 });
 });
 
 describe("TikTok EU message ingress", () => {
@@ -71,24 +80,23 @@ describe("TikTok EU message ingress", () => {
       businessId: "open_123",
       timestamp: 1_800_000_000_123,
     });
-    expect(receiptMocks.persist).toHaveBeenCalledWith({
+    expect(receiptMocks.persist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerEventId: "msg_1",
+        eventType: "MESSAGE_INBOUND",
+      })
+    );
+    expect(routingMocks.message).toHaveBeenCalledWith({
       workspaceId: "workspace_1",
-      platform: "TIKTOK",
-      providerAccountId: "tt_db_1",
-      eventType: "MESSAGE_INBOUND",
-      providerEventId: "msg_1",
-      webhookEventId: "event_eu_1",
-      operationalMessage:
-        "TikTok EU inbound message resolved and ready for automation routing",
-      normalizedPayload: expect.objectContaining({
-        platform: "TIKTOK",
+      tiktokAccountId: "tt_db_1",
+      event: expect.objectContaining({
         messageId: "msg_1",
         text: "GUIDE",
       }),
     });
   });
 
-  it("does not create a receipt when correlation is ambiguous", async () => {
+  it("does not create a receipt or route when correlation is ambiguous", async () => {
     resolverMocks.resolve.mockRejectedValue(
       new Error("multiple plausible TikTok messages")
     );
@@ -108,5 +116,6 @@ describe("TikTok EU message ingress", () => {
     ).rejects.toThrow(/multiple plausible/);
 
     expect(receiptMocks.persist).not.toHaveBeenCalled();
+    expect(routingMocks.message).not.toHaveBeenCalled();
   });
 });
