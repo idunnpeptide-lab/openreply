@@ -121,7 +121,7 @@ PR #28, merge SHA `a43ff6c1fcc0dd3efcd8e9516c4e7c0544797eea`.
 - added a non-secret staging-status endpoint and client-safe readiness model;
 - kept `TIKTOK_LIVE_EXECUTION_ENABLED=false` and omitted Comment-to-Message as an executable action;
 - added regression tests and opened PR #29;
-- investigated a failed React lint run, chose to refactor the data flow rather than suppress the lint rule, then re-ran CI/Security to green;
+- investigated a failed React lint run, chose to refactor the data flow rather than suppressing the lint rule, then re-ran CI/Security to green;
 - merged the milestone only after CI and Security succeeded;
 - prepared the evidence checkpoint immediately after the significant stage, per Volodymyr's permanent rule.
 
@@ -286,3 +286,31 @@ PR #39, head SHA `8d077a3c4d803f615471ed02218add5086abead4`, merge SHA `ce91619f
 **Repository evidence**
 
 PR #41, head SHA `f5bd50842f18db776476657f4bff1e5bcab4c9f0`, merge SHA `85aec2d01047dfed5b410ec38dc5f9b0369ebe1d`, CI run `35437528458`, Security run `35437528438`.
+
+---
+
+## 2026-09-19 — Doubly locked TikTok controlled-send milestone
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to continue all code-only work until actual TikTok for Business/provider participation is required;
+- retained final authority over the live provider session and any later decision to enable controlled TikTok sends;
+- had already required that no live send gate be enabled before real provider validation and that milestone evidence remain truthful/no-secrets;
+- did not perform or claim a TikTok provider send or live provider validation for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- identified the remaining code-only handoff gap between inert durable `MATCHED` records and a future deliberately tiny controlled-send session;
+- chose not to expose a generic send endpoint or browser-supplied reply content;
+- added a staging-only owner/admin one-shot endpoint that accepts only a workspace-scoped durable match ID plus an exact confirmation phrase;
+- added a second source-controlled gate `TIKTOK_CONTROLLED_STAGING_SEND_ENABLED=false` alongside the already-disabled live execution gate;
+- made the route refuse terminal matches, disconnected accounts, and accounts without real signed-webhook runtime readiness before either gate can be passed;
+- added an inert `/tiktok` controlled-send panel that exposes no executable button while the gates are false;
+- strengthened the action executor so connection and signed-webhook readiness are rechecked inside the same row-locked execution transaction, preventing a future alternate caller from bypassing the staging route checks;
+- preserved single-attempt/no-auto-retry semantics and continued to exclude Comment-to-Message;
+- added focused regression tests and ran PR #43 through CI and Security before merge;
+- did not change either send gate from false and did not claim a real TikTok send.
+
+**Repository evidence**
+
+PR #43, head SHA `4a5c564fc560b1afd87cac788fe4299601e59f1d`, merge SHA `615266363e943ddb406406b86f4657b9cd441a3a`, CI run `35438125753`, Security run `35438125762`.
