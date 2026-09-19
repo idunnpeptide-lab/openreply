@@ -1,7 +1,9 @@
+import TikTokExecutionDiagnostics from "@/components/tiktok-execution-diagnostics";
 import TikTokStagingConsole from "@/components/tiktok-staging-console";
 import { prisma } from "@/lib/db/client";
 import { getMissingTikTokOAuthEnv } from "@/lib/env";
 import { listTikTokVideos, TikTokApiError } from "@/lib/tiktok/client";
+import { getTikTokExecutionDiagnostics } from "@/lib/tiktok/execution-diagnostics";
 import { TIKTOK_LIVE_EXECUTION_ENABLED } from "@/lib/tiktok/staging-readiness";
 import {
   canManageWorkspace,
@@ -112,19 +114,29 @@ export default async function TikTokStagingPage() {
     updatedAt: campaign.updatedAt.toISOString(),
   }));
 
+  const diagnostics = await getTikTokExecutionDiagnostics({
+    workspaceId: context.workspaceId,
+    limit: 20,
+  });
+
   return (
-    <TikTokStagingConsole
-      initialStatus={{
-        provider: "TIKTOK",
-        phase: "STAGING_FOUNDATION",
-        oauthConfigured: getMissingTikTokOAuthEnv().length === 0,
-        canManage: canManageWorkspace(context.role),
-        liveExecutionEnabled: TIKTOK_LIVE_EXECUTION_ENABLED,
-      }}
-      initialAccounts={accounts}
-      initialVideos={videos}
-      initialCampaigns={campaigns}
-      initialProviderError={providerError}
-    />
+    <div className="space-y-6">
+      <TikTokStagingConsole
+        initialStatus={{
+          provider: "TIKTOK",
+          phase: "STAGING_FOUNDATION",
+          oauthConfigured: getMissingTikTokOAuthEnv().length === 0,
+          canManage: canManageWorkspace(context.role),
+          liveExecutionEnabled: TIKTOK_LIVE_EXECUTION_ENABLED,
+        }}
+        initialAccounts={accounts}
+        initialVideos={videos}
+        initialCampaigns={campaigns}
+        initialProviderError={providerError}
+      />
+      <div className="max-w-6xl mx-auto">
+        <TikTokExecutionDiagnostics data={diagnostics} />
+      </div>
+    </div>
   );
 }
