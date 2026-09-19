@@ -108,8 +108,11 @@ export async function POST(request: NextRequest) {
   const openId =
     envelope.userOpenId ?? candidateBusinessId(envelope.contentRaw);
   const account = openId
-    ? await prisma.tikTokAccount.findUnique({
-        where: { openId },
+    ? await prisma.tikTokAccount.findFirst({
+        where: {
+          openId,
+          refreshTokenExpiresAt: { gt: new Date() },
+        },
         select: { id: true, openId: true, workspaceId: true },
       })
     : null;
@@ -203,11 +206,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // A known account should show webhook readiness only after TikTok has sent a
-  // correctly signed event that ReplyHalo supports and the corresponding
-  // ingress handoff completed successfully. Merely saving a callback URL is not
-  // treated as proof. Unsupported events and invalid signatures cannot flip the
-  // readiness flag.
+  // A known connected account should show webhook readiness only after TikTok
+  // has sent a correctly signed event that ReplyHalo supports and the
+  // corresponding ingress handoff completed successfully. Soft-disconnected or
+  // expired-token accounts are deliberately excluded by the lookup above.
   if (account) {
     await confirmTikTokWebhookReadiness({
       tiktokAccountId: account.id,
