@@ -94,11 +94,37 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Security: completed successfully before merge.
 - Evidence: API validation changed to reject public replies above the provider client's 150-character limit; regression coverage added for the 151-character boundary.
 
+## Evidence-system checkpoint — 2026-09-19
+
+### PR #28 — durable project progress and IP evidence history
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/28`
+- Merge SHA: `a43ff6c1fcc0dd3efcd8e9516c4e7c0544797eea`
+- CI run: `35404592051` — success.
+- Security run: `35404592036` — success.
+- Evidence: established `PROJECT_PROGRESS.md`, `R&D_LOG.md`, `AI_ASSISTANCE_LOG.md`, `IP_EVIDENCE.md`, and repository-agent guidance for automatic milestone evidence capture.
+- Authorship model recorded truthfully: Volodymyr Rudyi is project owner / requirement setter / decision maker / tester / approver; ChatGPT (OpenAI) is AI development assistance.
+
+## TikTok staging UI evidence — 2026-09-19
+
+### PR #29 — additive TikTok staging UI with execution lock
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/29`
+- Head SHA: `af92401ce4ce107e228ad32f8b989e3bd228cf2f`
+- Merge SHA: `48a3e38143d65f240b38658e16d606e0d8a5e629`
+- CI run: `35431525663` — success.
+- Security run: `35431525669` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, unit/regression tests, and production build all passed in CI.
+- Implementation evidence: `/tiktok` dashboard page, provider readiness/status endpoint, capability/scopes/token-expiry display, official owned-video loading, isolated TikTok campaign CRUD UI, and readiness regression tests.
+- Safety evidence: `TIKTOK_LIVE_EXECUTION_ENABLED=false`; Comment-to-Message is displayed as capability state only and is not an executable campaign action.
+- Development-history evidence: an earlier PR #29 CI attempt failed the React `set-state-in-effect` lint rule; the UI data flow was refactored to server-load initial state and use explicit user-action refreshes rather than suppressing the lint rule. The final head above is the green revision.
+- Human validation: **not yet performed for TikTok live provider behavior**. No live TikTok send, deployment, OAuth approval, webhook delivery, or provider E2E is claimed by this evidence entry.
+
 ## Documentation checkpoint evidence
 
-- `docs/TIKTOK_INTEGRATION.md` updated on branch `docs/tiktok-foundation-checkpoint`.
-- `docs/TIKTOK_FOUNDATION_CHECKPOINT_2026-09-18.md` created on the same branch.
-- Branch checkpoint before the evidence-log bootstrap: commit `8c29acfbe89c0374e9b800f10edca70a19a83b7c`.
+- `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
+- `docs/TIKTOK_FOUNDATION_CHECKPOINT_2026-09-18.md` records the provider foundation through PR #27.
+- Earlier branch checkpoint commit: `8c29acfbe89c0374e9b800f10edca70a19a83b7c`.
 
 ## Human evidence handling
 
@@ -106,4 +132,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-The evidence-history bootstrap is being prepared on branch `docs/tiktok-foundation-checkpoint`. Its final PR number, CI result, merge SHA, and resulting main SHA must be appended after the checkpoint is actually merged; they are intentionally not guessed here.
+PR #29 is the latest completed product milestone recorded here. This documentation branch records that milestone after the fact using already-existing, verifiable PR/CI/Security/merge evidence; it does not create or invent provider-test evidence that did not occur.
