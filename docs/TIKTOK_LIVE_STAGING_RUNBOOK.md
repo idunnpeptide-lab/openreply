@@ -13,19 +13,22 @@ It is intentionally written so provider setup can be completed without putting p
 
 The working Instagram provider must remain untouched during TikTok staging.
 
-## Current hard safety gate
+## Current hard safety gates
 
 At this checkpoint:
 
 ```text
 TIKTOK_LIVE_EXECUTION_ENABLED = false
+TIKTOK_CONTROLLED_STAGING_SEND_ENABLED = false
 ```
 
-The TikTok executor is not connected to a queue, cron, or customer-facing execution action.
+Both are source-controlled constants. They are not environment variables and cannot be changed by the browser, database state, provider callback, or Railway configuration.
 
-Do **not** change that gate during developer-app setup, OAuth setup, webhook setup, account connection, or inert routing QA.
+ReplyHalo now has a prepared one-shot staging execution endpoint/UI, but it returns/appears locked while either constant is false. Therefore the current build cannot send a TikTok public reply or DM through that path.
 
-The first live public reply / DM test is a later, explicitly approved staging step.
+Do **not** change either gate during developer-app setup, OAuth setup, webhook setup, account connection, inert routing QA, duplicate-event QA, or disconnect/reconnect QA.
+
+The first live public reply / DM test requires a later, explicitly approved and separately reviewed source-code change.
 
 ## Staging URLs
 
@@ -123,7 +126,7 @@ Before clicking **Connect TikTok Business Account** in ReplyHalo:
 5. `TIKTOK_BUSINESS_REDIRECT_URI` is present and matches the provider callback exactly.
 6. ReplyHalo staging has been redeployed/restarted after the environment change.
 7. `/tiktok` shows **Developer app OAuth: Configured**.
-8. `TIKTOK_LIVE_EXECUTION_ENABLED` still shows execution locked.
+8. `/tiktok` shows both TikTok send gates locked.
 
 ReplyHalo OAuth state is workspace-bound and signed. The callback accepts TikTok's `auth_code` + `state`, exchanges the authorization code server-side, encrypts access/refresh tokens, binds the social-account license slot, stores the actual granted scopes, and derives account capability flags.
 
@@ -204,7 +207,7 @@ Do not mark an account's webhook state as confirmed merely because provider conf
 
 ## Inert comment-flow QA — live provider event, no live ReplyHalo send
 
-Keep live execution locked.
+Keep both send gates locked.
 
 1. Connect the dedicated TikTok Business Account.
 2. Confirm comment + public-reply capabilities shown by `/tiktok` reflect the actual connected account.
@@ -217,14 +220,14 @@ Keep live execution locked.
 9. Confirm the separate runtime webhook-readiness indicator becomes confirmed after the supported signed delivery is successfully handed to ingress.
 10. Confirm one provider-native event receipt exists.
 11. Confirm exactly one `TikTokAutomationMatch` appears in the sanitized `/tiktok` diagnostics panel.
-12. Confirm status remains `MATCHED` and no public reply is sent while the execution gate is locked.
+12. Confirm status remains `MATCHED` and the **Controlled TikTok send** panel remains locked with no execute action.
 13. Redeliver/replay the same logical event where safely possible and verify no second logical match is created.
 
 Passing this stage proves provider ingress/routing, **not** TikTok send execution.
 
 ## Inert inbound-DM QA — live provider event, no live ReplyHalo send
 
-Keep live execution locked.
+Keep both send gates locked.
 
 1. Confirm the `DIRECT_MESSAGE` provider webhook shows verified readback in the `/tiktok` webhook setup panel.
 2. Create/enable an inbound-DM TikTok staging campaign with a unique QA keyword.
@@ -232,13 +235,13 @@ Keep live execution locked.
 4. Confirm the provider delivers `im_receive_msg` or the applicable `im_receive_msg_eu` event.
 5. Confirm ReplyHalo normalizes/reconciles it without guessing missing EU sender/conversation data.
 6. Confirm exactly one durable `TikTokAutomationMatch` appears.
-7. Confirm its planned action is `DM_REPLY` but no outgoing DM is sent while execution is locked.
+7. Confirm its planned action is `DM_REPLY`, remains `MATCHED`, and no outgoing DM is sent while the controlled-send panel is locked.
 
 Passing this stage proves provider ingress/routing for an existing conversation, **not** live send execution.
 
 ## Safe disconnect/reconnect QA
 
-Keep live execution locked.
+Keep both send gates locked.
 
 After at least one inert campaign/match exists:
 
@@ -250,6 +253,7 @@ After at least one inert campaign/match exists:
 6. Confirm fresh scopes/capabilities are derived from the new token set.
 7. Confirm webhook readiness is reset and must be re-proven by a new supported signed delivery.
 8. Use **Read provider config** to verify the app-level webhook callback still points to the expected staging URL; local account disconnect does not release the shared provider-app webhook configuration.
+9. Confirm the controlled-send panel remains locked throughout this lifecycle test.
 
 Passing this stage proves non-destructive account lifecycle behavior, not send execution.
 
@@ -271,12 +275,33 @@ Before any gate change:
 - diagnostics contain no secrets/message content;
 - no Instagram regression was introduced.
 
-The first live execution should be deliberately tiny:
+After those prerequisites pass, Volodymyr Rudyi must explicitly approve a **separate reviewed source-code change** that considers setting both:
+
+```text
+TIKTOK_LIVE_EXECUTION_ENABLED = true
+TIKTOK_CONTROLLED_STAGING_SEND_ENABLED = true
+```
+
+Do not use an environment-variable shortcut or database switch.
+
+When both gates are later enabled for the controlled test, ReplyHalo's prepared staging boundary still requires:
+
+- authenticated owner/admin access;
+- staging hostname;
+- an existing workspace-scoped `MATCHED` durable plan;
+- active TikTok connection;
+- real signed-webhook runtime readiness;
+- exact confirmation phrase `EXECUTE_TIKTOK_STAGING_MATCH`;
+- action text/targets loaded from the persisted match only, never from browser input;
+- executor recheck of connection/readiness/capability inside the row-locked transaction;
+- no automatic provider retry.
+
+The first live execution should remain deliberately tiny:
 
 1. one public reply to one controlled test comment;
 2. one text reply in one existing controlled Business Messaging conversation;
-3. no automatic retry after an ambiguous provider/network failure;
-4. inspect the TikTok diagnostics and provider-side result immediately after each action.
+3. inspect ReplyHalo diagnostics and the provider-side result immediately after each action;
+4. if a provider/network result is ambiguous, stop rather than retrying automatically.
 
 Comment-to-Message stays disabled during this first send QA.
 
@@ -298,6 +323,7 @@ Useful non-secret evidence includes:
 - screenshot showing **Read provider config** / **Configure + verify** provider readback state;
 - screenshot showing runtime webhook readiness after a real signed supported delivery;
 - ReplyHalo diagnostics showing one real `MATCHED` event;
+- screenshot showing the controlled-send panel still locked during inert QA;
 - Railway deployment status for the exact tested build;
 - human report from Volodymyr Rudyi describing which test action was performed and whether the expected result occurred;
 - exact PR/commit/deployment SHA corresponding to the test.
@@ -326,4 +352,4 @@ Provider documentation and approval labels can change. At live setup time, use t
 
 ## Stop point
 
-The remaining meaningful TikTok work now requires the real TikTok for Business developer app/test Business Account and human provider authorization. Code-only preparation includes OAuth/token handling, webhook configuration/readback, signed-delivery readiness confirmation, inert routing/dedupe diagnostics, safe disconnect/reconnect, and a hard-disabled live executor. The next step is therefore the real provider session with Volodymyr Rudyi; live execution must stay locked until that staging evidence passes.
+All useful code-only preparation for the first TikTok provider staging session is complete: OAuth/token handling, provider webhook configuration/readback, signed-delivery readiness confirmation, inert routing/dedupe diagnostics, safe disconnect/reconnect, and a doubly source-locked one-shot execution boundary. The next meaningful step requires the real TikTok for Business developer app/test Business Account and human provider authorization. Both send gates must stay false until that evidence passes and Volodymyr Rudyi explicitly approves a separate gate-enabling code change.
