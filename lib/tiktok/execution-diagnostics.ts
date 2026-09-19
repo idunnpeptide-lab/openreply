@@ -3,6 +3,11 @@ import { prisma } from "@/lib/db/client";
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
+type DiagnosticActionType = "PUBLIC_REPLY" | "DM_REPLY";
+type DiagnosticBlockedReason =
+  | "ACCOUNT_CAPABILITY_DISABLED"
+  | "MESSAGE_MISSING";
+
 function boundedLimit(value?: number) {
   if (!Number.isFinite(value)) return DEFAULT_LIMIT;
   return Math.max(1, Math.min(MAX_LIMIT, Math.floor(value as number)));
@@ -18,13 +23,20 @@ function planSummary(value: unknown) {
   const actionsRaw = Array.isArray(plan?.actions) ? plan.actions : [];
   const blockedRaw = Array.isArray(plan?.blocked) ? plan.blocked : [];
 
-  const actionTypes = actionsRaw.flatMap((entry) => {
+  const actionTypes: DiagnosticActionType[] = [];
+  for (const entry of actionsRaw) {
     const item = asObject(entry);
     const type = item?.type;
-    return type === "PUBLIC_REPLY" || type === "DM_REPLY" ? [type] : [];
-  });
+    if (type === "PUBLIC_REPLY" || type === "DM_REPLY") {
+      actionTypes.push(type);
+    }
+  }
 
-  const blocked = blockedRaw.flatMap((entry) => {
+  const blocked: Array<{
+    type: DiagnosticActionType;
+    reason: DiagnosticBlockedReason;
+  }> = [];
+  for (const entry of blockedRaw) {
     const item = asObject(entry);
     const type = item?.type;
     const reason = item?.reason;
@@ -32,10 +44,9 @@ function planSummary(value: unknown) {
       (type === "PUBLIC_REPLY" || type === "DM_REPLY") &&
       (reason === "ACCOUNT_CAPABILITY_DISABLED" || reason === "MESSAGE_MISSING")
     ) {
-      return [{ type, reason }];
+      blocked.push({ type, reason });
     }
-    return [];
-  });
+  }
 
   let trigger: "COMMENT" | "MESSAGE" | null = null;
   if (plan?.trigger === "COMMENT" || plan?.trigger === "MESSAGE") {
