@@ -42,8 +42,9 @@ Merged TikTok milestones:
 - PR #29 — additive TikTok staging UI with provider capability display, official owned-video loading, campaign list/create/edit/delete controls, and explicit live-execution lock; merge SHA `48a3e38143d65f240b38658e16d606e0d8a5e629`.
 - PR #31 — hard-gated TikTok action executor foundation for persisted `PUBLIC_REPLY` and existing-conversation `DM_REPLY` plans; merge SHA `346f1cc998dc28b99dbff9902411fcb1266ad1e5`.
 - PR #33 — sanitized workspace-scoped TikTok routing/execution diagnostics in `/tiktok`; merge SHA `5572c398b56e214a3bea33c318c8c99b23da1c16`.
+- PR #35 — live-staging handoff runbook with exact non-secret staging URLs, environment-variable names, permissions, provider-event sequence, inert QA matrix, and controlled-send safety gate; merge SHA `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`.
 
-PR #33 final CI run `35432848811` passed and Security run `35432848785` passed before merge. No live TikTok provider send was claimed or performed.
+PR #35 CI run `35433279605` passed and Security run `35433279575` passed before merge. No live TikTok provider send, OAuth approval, webhook delivery, or provider E2E is claimed by that documentation milestone.
 
 ## Current TikTok staging state
 
@@ -70,6 +71,15 @@ The action-execution foundation also exists behind the hard source-controlled ga
 
 The diagnostics layer deliberately excludes comment/DM text, action-message text, actor identifiers, conversation IDs, provider tokens/credentials, and arbitrary raw OperationalEvent payload fields.
 
+The live-staging handoff is now documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`, including:
+
+- staging OAuth callback: `https://replyhalo-web-staging.up.railway.app/api/tiktok/callback`;
+- staging webhook callback: `https://replyhalo-web-staging.up.railway.app/api/tiktok/webhook`;
+- deployment environment-variable names only, never secret values;
+- desired scopes and provider products;
+- OAuth, token/capability, webhook, inert comment, inert DM, duplicate-event, and controlled-send validation order;
+- evidence-handling rules for the human staging session.
+
 `TIKTOK_LIVE_EXECUTION_ENABLED` remains `false`, and the executor is not wired into a queue/cron/UI action.
 
 ## Current safety boundaries
@@ -87,15 +97,15 @@ The diagnostics layer deliberately excludes comment/DM text, action-message text
 
 ## Exact continuation point
 
-The safe code-only TikTok foundation is now complete through staging diagnostics. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
+The safe code-only TikTok foundation and the live-staging runbook are complete. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
 
-1. create/configure the ReplyHalo TikTok for Business developer app;
-2. obtain/approve the required Organic API and Business Messaging permissions available to the test Business Account;
-3. configure staging OAuth redirect and webhook URLs plus required secrets in the deployment environment without committing them to GitHub;
+1. create/open the dedicated ReplyHalo TikTok for Business developer app;
+2. request/verify the Organic API and Business Messaging products/permissions available to the test Business Account;
+3. configure the exact staging OAuth callback and deployment environment values directly in TikTok/Railway, without posting secret values in GitHub or chat;
 4. connect a real test TikTok Business Account through ReplyHalo OAuth;
-5. verify account capabilities/scopes/token refresh and owned-video reads in `/tiktok`;
-6. configure TikTok webhooks and confirm signed comment/DM event delivery into the staging ingress pipeline;
-7. create an inert TikTok campaign and confirm a real provider event produces one durable sanitized `MATCHED` record;
+5. verify actual scopes/capabilities/token refresh and owned-video reads in `/tiktok`;
+6. configure the `COMMENT` and `DIRECT_MESSAGE` webhook families for the ReplyHalo staging webhook URL and confirm a real signed provider event reaches the isolated ingress pipeline;
+7. create an inert campaign and confirm one real provider event produces exactly one sanitized `MATCHED` record;
 8. only after those checks pass, explicitly approve a controlled live-execution staging test for one public reply and one existing-conversation DM reply;
 9. keep Comment-to-Message disabled until account eligibility is proven separately.
 
