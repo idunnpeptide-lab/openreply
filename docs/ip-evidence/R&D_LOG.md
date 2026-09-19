@@ -246,3 +246,39 @@ Focused executor tests cover hard-lock behavior, future approved public-reply ex
 
 **Result**
 PR #31 merged at `346f1cc998dc28b99dbff9902411fcb1266ad1e5`. No live TikTok provider send occurred; human live provider validation is still pending.
+
+---
+
+## 2026-09-19 — Sanitized TikTok staging execution diagnostics
+
+**Task**
+Make TikTok routing/execution state inspectable in staging without exposing customer message content, provider credentials, or arbitrary worker payloads, and without enabling any provider send.
+
+**Problem**
+The hard-gated executor and durable `TikTokAutomationMatch` rows existed, but staging had no safe consolidated view of recent matches and worker diagnostics. Returning raw match or OperationalEvent records would expose comment/DM text, planned reply text, actor/conversation identifiers, or unrelated/raw payload fields.
+
+**Options considered**
+- Show raw database records directly in the dashboard.
+- Reuse general operational diagnostics and expose full payloads.
+- Add a dedicated workspace-scoped sanitization layer that allowlists only execution metadata needed for QA.
+
+**Volodymyr's decision**
+Continue autonomously, preserve privacy/security boundaries, and do not enable live TikTok execution until a real provider staging phase can be tested and approved by him.
+
+**Implementation**
+PR #33 added:
+
+- `getTikTokExecutionDiagnostics()` with workspace-scoped reads;
+- sanitized durable-match summaries: campaign name, event type, provider event ID, matched keyword, terminal/current status, trigger, action types, blocked reasons, timestamps;
+- sanitized TikTok worker OperationalEvents with an explicit allowlist of diagnostic fields;
+- an authenticated `/api/tiktok/diagnostics` endpoint with bounded result size and `Cache-Control: no-store`;
+- a read-only `/tiktok` diagnostics panel;
+- regression tests proving workspace isolation and exclusion of comment/DM text, reply text, actor IDs/usernames, conversation IDs, arbitrary payload fields, and token-like values.
+
+During CI, two TypeScript inference issues were surfaced in the diagnostic summary (`trigger`, then `actionTypes`). Both were fixed with explicit narrow union typing rather than casts that would hide unsafe shapes.
+
+**Test**
+Final PR #33 head `bcf67ee27cee10b153dee6f8e82467e85e183e38` passed CI run `35432848811` (Prisma validate/generate, TypeScript, lint, tests, production build) and Security run `35432848785`.
+
+**Result**
+PR #33 merged at `5572c398b56e214a3bea33c318c8c99b23da1c16`. TikTok routing/execution diagnostics are code-complete and sanitized. No live TikTok provider validation or send occurred; the next meaningful phase requires real TikTok for Business app/account participation.
