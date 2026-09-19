@@ -257,3 +257,32 @@ PR #37, head SHA `13a0bcb50c06f46add4ec201d241e3b1aecd9b04`, merge SHA `7ee47300
 **Repository evidence**
 
 PR #39, head SHA `8d077a3c4d803f615471ed02218add5086abead4`, merge SHA `ce91619f4ada085e039114e1e11ab606c6c1f831`, CI run `35435285708`, Security run `35435285684`.
+
+---
+
+## 2026-09-19 — TikTok webhook staging-control milestone
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to continue autonomous development until actual TikTok for Business/provider participation is necessary;
+- retained final authority over the later live provider session and any controlled send approval;
+- required the no-secrets evidence model and the distinction between configuration state and real runtime proof;
+- did not perform or claim a real TikTok provider configuration or webhook delivery for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- rechecked current TikTok API for Business documentation for TikTok-account and Business Messaging webhook configuration APIs;
+- identified that the official webhook update/list helpers existed but were not exposed in a safe staging workflow;
+- designed a staging-only owner/admin API instead of a generic customer-facing webhook editor;
+- made the server derive the expected callback from ReplyHalo's staging base URL so the browser cannot redirect provider webhooks to an arbitrary target;
+- required a currently connected TikTok staging account before mutating the globally configured provider app;
+- configured only the `COMMENT` and `DIRECT_MESSAGE` families and verified them with provider readback;
+- sanitized browser output to event state/callback/error code instead of returning raw provider payloads or credentials;
+- added the `/tiktok` **Read provider config** and **Configure + verify** controls;
+- preserved the separate signed-delivery rule for `webhookConfigured=true` and left `TIKTOK_LIVE_EXECUTION_ENABLED=false`;
+- added focused regression tests, ran PR #41 through CI and Security, and merged only after both succeeded;
+- prepared the required evidence checkpoint after merge.
+
+**Repository evidence**
+
+PR #41, head SHA `f5bd50842f18db776476657f4bff1e5bcab4c9f0`, merge SHA `85aec2d01047dfed5b410ec38dc5f9b0369ebe1d`, CI run `35437528458`, Security run `35437528438`.
