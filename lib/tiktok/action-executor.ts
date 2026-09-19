@@ -55,6 +55,8 @@ type MatchForExecution = {
   plan: Prisma.JsonValue;
   status: string;
   tiktokAccount: {
+    refreshTokenExpiresAt: Date;
+    webhookConfigured: boolean;
     commentsEnabled: boolean;
     publicReplyEnabled: boolean;
     messagingEnabled: boolean;
@@ -147,6 +149,16 @@ function executionBlocker(
   match: MatchForExecution,
   action: z.infer<typeof plannedActionSchema>
 ): string | null {
+  // Re-check connection + real signed-delivery readiness inside the same locked
+  // execution transaction. The staging HTTP guard is intentionally duplicated
+  // here so a future caller cannot bypass lifecycle/readiness requirements.
+  if (match.tiktokAccount.refreshTokenExpiresAt.getTime() <= Date.now()) {
+    return "ACCOUNT_DISCONNECTED";
+  }
+  if (!match.tiktokAccount.webhookConfigured) {
+    return "WEBHOOK_DELIVERY_NOT_CONFIRMED";
+  }
+
   if (action.type === "PUBLIC_REPLY") {
     if (!match.tiktokAccount.commentsEnabled) {
       return "COMMENT_ACCESS_DISABLED";
@@ -183,6 +195,8 @@ async function loadMatch(
       status: true,
       tiktokAccount: {
         select: {
+          refreshTokenExpiresAt: true,
+          webhookConfigured: true,
           commentsEnabled: true,
           publicReplyEnabled: true,
           messagingEnabled: true,
@@ -304,7 +318,7 @@ export function createTikTokActionExecutor(runtime: ExecutorRuntime) {
           });
           await writeOperationalEvent(tx, match, {
             level: "WARNING",
-            message: "TikTok action was blocked by the current account capability snapshot",
+            message: "TikTok action was blocked by the current account capability/readiness snapshot",
             payload: { actionType: action.type, blocker },
           });
           return { state: "SKIPPED", matchId, reason: blocker };

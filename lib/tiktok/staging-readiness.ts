@@ -1,5 +1,12 @@
 export const TIKTOK_LIVE_EXECUTION_ENABLED = false;
 
+// A second source-controlled approval gate for the one-shot staging execution
+// surface. Keep this false until the real TikTok provider ingress/readback,
+// inert routing/dedupe, and safe reconnect QA have passed and Volodymyr Rudyi
+// explicitly approves the controlled send test. Do not convert either gate to
+// a browser- or environment-controlled switch.
+export const TIKTOK_CONTROLLED_STAGING_SEND_ENABLED = false;
+
 export type TikTokCapabilitySnapshot = {
   commentsEnabled: boolean;
   publicReplyEnabled: boolean;
@@ -49,6 +56,9 @@ export function getTikTokStagingReadiness(
   }
   if (!TIKTOK_LIVE_EXECUTION_ENABLED) {
     blockers.push("ReplyHalo live TikTok execution is still locked for staging QA");
+  }
+  if (!TIKTOK_CONTROLLED_STAGING_SEND_ENABLED) {
+    blockers.push("Controlled TikTok staging send approval is still locked");
   }
 
   return {

@@ -1,3 +1,4 @@
+import TikTokControlledSendControl from "@/components/tiktok-controlled-send-control";
 import TikTokDisconnectControl from "@/components/tiktok-disconnect-control";
 import TikTokExecutionDiagnostics from "@/components/tiktok-execution-diagnostics";
 import TikTokStagingConsole from "@/components/tiktok-staging-console";
@@ -6,7 +7,10 @@ import { prisma } from "@/lib/db/client";
 import { getBaseUrl, getMissingTikTokOAuthEnv } from "@/lib/env";
 import { listTikTokVideos, TikTokApiError } from "@/lib/tiktok/client";
 import { getTikTokExecutionDiagnostics } from "@/lib/tiktok/execution-diagnostics";
-import { TIKTOK_LIVE_EXECUTION_ENABLED } from "@/lib/tiktok/staging-readiness";
+import {
+  TIKTOK_CONTROLLED_STAGING_SEND_ENABLED,
+  TIKTOK_LIVE_EXECUTION_ENABLED,
+} from "@/lib/tiktok/staging-readiness";
 import {
   canManageWorkspace,
   getCurrentWorkspaceContext,
@@ -165,6 +169,23 @@ export default async function TikTokStagingPage() {
         }))}
         canManage={canManage}
       />
+      {webhookCallbackUrl && (
+        <TikTokControlledSendControl
+          canManage={canManage}
+          liveExecutionEnabled={TIKTOK_LIVE_EXECUTION_ENABLED}
+          controlledStagingSendEnabled={TIKTOK_CONTROLLED_STAGING_SEND_ENABLED}
+          matches={diagnostics.matches.map((match) => ({
+            id: match.id,
+            automationName: match.automationName,
+            status: match.status,
+            eventType: match.eventType,
+            plan: {
+              trigger: match.plan.trigger,
+              actionTypes: match.plan.actionTypes,
+            },
+          }))}
+        />
+      )}
       <div className="max-w-6xl mx-auto">
         <TikTokExecutionDiagnostics data={diagnostics} />
       </div>
