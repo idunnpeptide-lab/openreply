@@ -320,3 +320,36 @@ The documented URLs were verified against the actual ReplyHalo routes (`/api/tik
 
 **Result**
 PR #35 merged at `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`. The remaining blocker is now external/human: create/configure the real TikTok for Business developer app, supply secrets directly to staging deployment, authorize a dedicated test Business Account, and perform real provider E2E without changing the live-execution gate beforehand.
+
+---
+
+## 2026-09-19 — Evidence-based TikTok webhook readiness confirmation
+
+**Task**
+Ensure the TikTok staging readiness indicator becomes true only after ReplyHalo has evidence that a supported signed TikTok webhook was actually accepted into the provider-specific ingress pipeline.
+
+**Problem**
+`TikTokAccount.webhookConfigured` was exposed in the staging UI but had no trustworthy runtime transition after a real delivery. Leaving the flag false forever would make real provider QA misleading, while setting it merely because a callback URL was configured would overstate readiness without delivery evidence.
+
+**Options considered**
+- Mark webhook readiness during OAuth connection or when a callback URL is saved.
+- Leave the flag manual and require a human/database update.
+- Confirm readiness only after signature verification succeeds and a supported event is successfully handed to the isolated TikTok queue.
+
+**Volodymyr's decision**
+Continue safe autonomous preparation while preserving truthful evidence semantics and keeping live TikTok execution disabled until real provider staging is performed and approved.
+
+**Implementation**
+PR #37 added a narrow readiness-confirmation helper and wired it after successful queue handoff for supported events only:
+
+- `comment.update`;
+- `im_receive_msg`;
+- `im_receive_msg_eu`.
+
+The confirmation uses an idempotent `updateMany` constrained to `webhookConfigured=false`, so later supported events do not churn the account's `updatedAt`. Unsupported event names do not confirm readiness. Because the call runs only after the existing signature-verification boundary and after queue handoff, invalid signatures and failed queue adds cannot flip the flag.
+
+**Test**
+Focused tests cover supported events, unsupported events, and the already-confirmed no-op case. PR #37 head `13a0bcb50c06f46add4ec201d241e3b1aecd9b04` passed CI run `35433666350` (Prisma validate/generate, TypeScript, lint, tests, production build) and Security run `35433666428`.
+
+**Result**
+PR #37 merged at `7ee473003d132aad79b35e2612e5d5371bc2d481`. The code can now truthfully reflect future signed webhook delivery in staging, but no real TikTok webhook delivery has yet been claimed or human-validated.

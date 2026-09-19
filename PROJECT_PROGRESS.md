@@ -43,8 +43,9 @@ Merged TikTok milestones:
 - PR #31 — hard-gated TikTok action executor foundation for persisted `PUBLIC_REPLY` and existing-conversation `DM_REPLY` plans; merge SHA `346f1cc998dc28b99dbff9902411fcb1266ad1e5`.
 - PR #33 — sanitized workspace-scoped TikTok routing/execution diagnostics in `/tiktok`; merge SHA `5572c398b56e214a3bea33c318c8c99b23da1c16`.
 - PR #35 — live-staging handoff runbook with exact non-secret staging URLs, environment-variable names, permissions, provider-event sequence, inert QA matrix, and controlled-send safety gate; merge SHA `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`.
+- PR #37 — evidence-based TikTok webhook readiness confirmation after a supported signed webhook is successfully handed to the isolated TikTok ingress queue; merge SHA `7ee473003d132aad79b35e2612e5d5371bc2d481`.
 
-PR #35 CI run `35433279605` passed and Security run `35433279575` passed before merge. No live TikTok provider send, OAuth approval, webhook delivery, or provider E2E is claimed by that documentation milestone.
+PR #37 CI run `35433666350` passed and Security run `35433666428` passed before merge. No live TikTok provider delivery or send is claimed by that code milestone.
 
 ## Current TikTok staging state
 
@@ -71,7 +72,9 @@ The action-execution foundation also exists behind the hard source-controlled ga
 
 The diagnostics layer deliberately excludes comment/DM text, action-message text, actor identifiers, conversation IDs, provider tokens/credentials, and arbitrary raw OperationalEvent payload fields.
 
-The live-staging handoff is now documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`, including:
+Webhook readiness is now evidence-based rather than configuration-based. A connected TikTok account is marked `webhookConfigured=true` only after a supported event (`comment.update`, `im_receive_msg`, or `im_receive_msg_eu`) passes the existing signature-verification boundary and its provider-specific queue handoff succeeds. Invalid signatures, unsupported event names, and failed queue handoffs do not confirm readiness; repeat valid events do not churn the account timestamp once readiness is already confirmed.
+
+The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`, including:
 
 - staging OAuth callback: `https://replyhalo-web-staging.up.railway.app/api/tiktok/callback`;
 - staging webhook callback: `https://replyhalo-web-staging.up.railway.app/api/tiktok/webhook`;
@@ -88,6 +91,7 @@ The live-staging handoff is now documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.
 - TikTok webhook events are normalized before automation matching.
 - TikTok logical events use stable provider IDs for ingress/routing dedupe.
 - EU stripped-message reconciliation fails closed on ambiguity.
+- TikTok webhook readiness is confirmed only by a valid supported signed delivery whose queue handoff succeeds.
 - TikTok action plans can be persisted and validated, but live public-reply/DM execution remains gated until live provider staging QA.
 - Current TikTok provider clients do not expose a persisted provider idempotency key in ReplyHalo. Therefore automatic send retries are intentionally prohibited; the future live executor uses row serialization + terminal match state, while hard-crash ambiguity after provider acceptance remains a staging/rollout consideration to validate before production enablement.
 - Comment-to-Message is displayed as capability state only; it is not exposed as an active campaign action.
@@ -97,14 +101,14 @@ The live-staging handoff is now documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.
 
 ## Exact continuation point
 
-The safe code-only TikTok foundation and the live-staging runbook are complete. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
+The safe code-only TikTok foundation, live-staging runbook, and truthful webhook-readiness transition are complete. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
 
 1. create/open the dedicated ReplyHalo TikTok for Business developer app;
 2. request/verify the Organic API and Business Messaging products/permissions available to the test Business Account;
 3. configure the exact staging OAuth callback and deployment environment values directly in TikTok/Railway, without posting secret values in GitHub or chat;
 4. connect a real test TikTok Business Account through ReplyHalo OAuth;
 5. verify actual scopes/capabilities/token refresh and owned-video reads in `/tiktok`;
-6. configure the `COMMENT` and `DIRECT_MESSAGE` webhook families for the ReplyHalo staging webhook URL and confirm a real signed provider event reaches the isolated ingress pipeline;
+6. configure the `COMMENT` and `DIRECT_MESSAGE` webhook families for the ReplyHalo staging webhook URL and confirm a real signed supported provider event reaches the isolated ingress pipeline; successful accepted delivery should then be reflected by the account's webhook-readiness indicator;
 7. create an inert campaign and confirm one real provider event produces exactly one sanitized `MATCHED` record;
 8. only after those checks pass, explicitly approve a controlled live-execution staging test for one public reply and one existing-conversation DM reply;
 9. keep Comment-to-Message disabled until account eligibility is proven separately.
