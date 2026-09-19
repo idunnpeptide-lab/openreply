@@ -14,7 +14,10 @@ export async function GET() {
   }
 
   const accounts = await prisma.tikTokAccount.findMany({
-    where: { workspaceId: context.workspaceId },
+    where: {
+      workspaceId: context.workspaceId,
+      refreshTokenExpiresAt: { gt: new Date() },
+    },
     select: {
       id: true,
       openId: true,
