@@ -123,8 +123,34 @@ PR #28, merge SHA `a43ff6c1fcc0dd3efcd8e9516c4e7c0544797eea`.
 - added regression tests and opened PR #29;
 - investigated a failed React lint run, chose to refactor the data flow rather than suppress the lint rule, then re-ran CI/Security to green;
 - merged the milestone only after CI and Security succeeded;
-- prepared this evidence checkpoint immediately after the significant stage, per Volodymyr's permanent rule.
+- prepared the evidence checkpoint immediately after the significant stage, per Volodymyr's permanent rule.
 
 **Repository evidence**
 
 PR #29, head SHA `af92401ce4ce107e228ad32f8b989e3bd228cf2f`, merge SHA `48a3e38143d65f240b38658e16d606e0d8a5e629`, CI run `35431525663`, Security run `35431525669`.
+
+---
+
+## 2026-09-19 — Hard-gated TikTok action executor milestone
+
+**Human role — Volodymyr Rudyi**
+
+- told ChatGPT to continue the development without his participation until a genuinely human/provider step is reached;
+- had already approved the additive TikTok architecture and protection of the working Instagram path;
+- retained final authority over when live TikTok execution may be enabled;
+- did not perform a live TikTok provider send test for this milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- inspected persisted TikTok routing plan shape, current match statuses, official-client reply functions, and Business Messaging send functions;
+- designed a separate execution boundary instead of wiring routing directly to provider sends;
+- implemented plan validation, current-capability re-check, database row serialization, terminal-status replay suppression, and structured diagnostics;
+- explicitly kept `TIKTOK_LIVE_EXECUTION_ENABLED=false` in the production wrapper;
+- deliberately did not wire the executor into a queue/cron/UI action and did not enable Comment-to-Message;
+- recognized that the current provider clients do not expose a persisted provider idempotency key, and therefore avoided automatic provider-send retries rather than pretending exactly-once delivery could be guaranteed across a hard crash;
+- added focused tests and ran PR #31 through CI and Security before merge;
+- prepared the required evidence checkpoint after merge.
+
+**Repository evidence**
+
+PR #31, head SHA `a40f274ba8cc2aa0ce73638eac2326c6dda89a92`, merge SHA `346f1cc998dc28b99dbff9902411fcb1266ad1e5`, CI run `35431963722`, Security run `35431963663`.

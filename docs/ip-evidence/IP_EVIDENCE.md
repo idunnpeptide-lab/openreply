@@ -105,6 +105,15 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Evidence: established `PROJECT_PROGRESS.md`, `R&D_LOG.md`, `AI_ASSISTANCE_LOG.md`, `IP_EVIDENCE.md`, and repository-agent guidance for automatic milestone evidence capture.
 - Authorship model recorded truthfully: Volodymyr Rudyi is project owner / requirement setter / decision maker / tester / approver; ChatGPT (OpenAI) is AI development assistance.
 
+### PR #30 — TikTok staging UI evidence checkpoint
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/30`
+- Head SHA: `ac4caded71beb1652ab3457ceaea6a59a336a9aa`.
+- Merge SHA: `e7cb96379dfb5f5fef90731364e2ccca64658782`.
+- CI run: `35431698775` — success.
+- Security run: `35431698783` — success.
+- Evidence: recorded PR #29 progress, R&D decision history, AI-assistance role split, and exact repository/CI evidence without claiming live TikTok validation.
+
 ## TikTok staging UI evidence — 2026-09-19
 
 ### PR #29 — additive TikTok staging UI with execution lock
@@ -120,6 +129,21 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Development-history evidence: an earlier PR #29 CI attempt failed the React `set-state-in-effect` lint rule; the UI data flow was refactored to server-load initial state and use explicit user-action refreshes rather than suppressing the lint rule. The final head above is the green revision.
 - Human validation: **not yet performed for TikTok live provider behavior**. No live TikTok send, deployment, OAuth approval, webhook delivery, or provider E2E is claimed by this evidence entry.
 
+## TikTok action-executor evidence — 2026-09-19
+
+### PR #31 — hard-gated TikTok action executor foundation
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/31`
+- Head SHA: `a40f274ba8cc2aa0ce73638eac2326c6dda89a92`.
+- Merge SHA: `346f1cc998dc28b99dbff9902411fcb1266ad1e5`.
+- CI run: `35431963722` — success.
+- Security run: `35431963663` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, executor regression tests, existing full test suite, and production build passed.
+- Implementation evidence: hard-gated action executor for persisted `PUBLIC_REPLY` and existing-conversation `DM_REPLY` plans; plan/event validation; capability re-check; same-match row serialization; terminal-status replay suppression; structured OperationalEvent diagnostics.
+- Safety evidence: production/staging wrapper still uses `TIKTOK_LIVE_EXECUTION_ENABLED=false`; executor is not wired into queue/cron/UI execution; Comment-to-Message is not executed; provider-send auto-retry was deliberately not added.
+- Idempotency limitation recorded truthfully: ReplyHalo's current TikTok send clients do not expose a persisted provider idempotency key. A hard process crash after provider acceptance but before DB commit can remain ambiguous. No exactly-once claim is made across that failure boundary.
+- Human validation: **not yet performed for TikTok live provider behavior**. No real provider send is claimed by PR #31.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -132,4 +156,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #29 is the latest completed product milestone recorded here. This documentation branch records that milestone after the fact using already-existing, verifiable PR/CI/Security/merge evidence; it does not create or invent provider-test evidence that did not occur.
+PR #31 is the latest completed product milestone recorded here. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
