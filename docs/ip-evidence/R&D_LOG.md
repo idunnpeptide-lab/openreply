@@ -429,3 +429,40 @@ Regression coverage verifies staging-only behavior, role protection, connected-a
 
 **Result**
 PR #41 merged at `85aec2d01047dfed5b410ec38dc5f9b0369ebe1d`. ReplyHalo can now perform the provider webhook configuration/readback portion of staging from `/tiktok` after a real account is connected. No real TikTok provider configuration, OAuth authorization, signed webhook delivery, disconnect/reconnect, or send is claimed by this milestone.
+
+---
+
+## 2026-09-19 — Doubly locked one-shot TikTok staging execution boundary
+
+**Task**
+Prepare the final controlled-send handoff before the real provider session without making any TikTok send reachable today.
+
+**Problem**
+The action executor already existed behind `TIKTOK_LIVE_EXECUTION_ENABLED=false`, but after future human/provider validation there was no deliberately narrow authenticated path for executing exactly one already-routed durable match. Adding a generic send endpoint or browser-supplied reply body would weaken the safety model and could bypass the evidence collected during inert routing.
+
+**Options considered**
+- Wait until after provider QA and build the send trigger under time pressure.
+- Expose a generic staging send API that accepts text and provider targets from the browser.
+- Prepare a one-shot staging endpoint/UI now, but keep it behind two independent source-controlled disabled gates and require the action to come only from an existing workspace-scoped `MATCHED` durable plan.
+
+**Volodymyr's decision**
+Continue code-only preparation while preserving the rule that no live TikTok send is enabled before real OAuth/webhook/inert-routing/reconnect QA and his explicit later approval.
+
+**Implementation**
+PR #43 added:
+
+- `TIKTOK_CONTROLLED_STAGING_SEND_ENABLED=false` as a second source-controlled approval gate alongside `TIKTOK_LIVE_EXECUTION_ENABLED=false`;
+- staging-only owner/admin `POST /api/admin/diagnostics/tiktok-execute-match`;
+- exact confirmation phrase `EXECUTE_TIKTOK_STAGING_MATCH`;
+- workspace-scoped match resolution, terminal-state rejection, active-account check, and real signed-webhook readiness requirement before either gate is consulted;
+- a `423 LOCKED` response while either source gate is false, with no executor/provider call;
+- a `/tiktok` controlled-send panel that exposes no execute action while locked;
+- future execution input limited to a durable match ID + exact confirmation; reply text, action type, provider IDs, actor data, and conversation target are never accepted from the browser;
+- executor-level rechecks for active refresh-token connection and real signed-webhook readiness inside the same row-locked execution transaction, in addition to existing capability checks;
+- retained single-attempt/no-auto-retry behavior and continued exclusion of Comment-to-Message.
+
+**Test**
+Regression coverage verifies staging-only access, owner/admin authorization, workspace isolation, exact confirmation, terminal match handling, disconnected-account blocking, unconfirmed-webhook blocking, `423 LOCKED` behavior with both source gates false, and zero executor calls while locked. Executor tests additionally verify the connection and signed-webhook readiness rechecks inside the future live transaction. PR #43 head `4a5c564fc560b1afd87cac788fe4299601e59f1d` passed CI run `35438125753` (Prisma validate/generate, TypeScript, lint, tests, production build) and Security run `35438125762`.
+
+**Result**
+PR #43 merged at `615266363e943ddb406406b86f4657b9cd441a3a`. Both send gates remain false, so this milestone cannot send a TikTok public reply or DM. No live TikTok provider validation or send is claimed. The next meaningful work requires the real TikTok for Business staging session and Volodymyr Rudyi's later explicit approval before any separate gate-enabling code change.

@@ -157,6 +157,15 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Security run: `35435557845` — success.
 - Evidence: recorded PR #39 non-destructive disconnect/reconnect design, exact CI/Security proof, data-preservation boundaries, and the provider/human validation stop point.
 
+### PR #42 — TikTok webhook staging-control evidence checkpoint
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/42`
+- Head SHA: `44e4eeca249d233dedb990f54416ecb3ba40a57f`.
+- Merge SHA: `ba979a696f6c1424eaa67d181339b474c863ba5b`.
+- CI run: `35437822934` — success.
+- Security run: `35437822945` — success.
+- Evidence: recorded PR #41 provider webhook configuration/readback controls, truthful separation from signed-delivery readiness, updated live-staging runbook, and exact human/provider continuation point.
+
 ## TikTok staging UI evidence — 2026-09-19
 
 ### PR #29 — additive TikTok staging UI with execution lock
@@ -271,11 +280,32 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Safety evidence: `TIKTOK_LIVE_EXECUTION_ENABLED=false`; no reply/DM/Comment-to-Message execution wiring was added; Instagram paths were unchanged.
 - Human validation: **not yet performed** for real provider webhook configuration/readback or delivery. No TikTok OAuth, provider webhook mutation, signed event, disconnect/reconnect, or send is claimed by PR #41.
 
+## TikTok controlled-send preparation evidence — 2026-09-19
+
+### PR #43 — doubly locked one-shot staging execution boundary
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/43`
+- Head SHA: `4a5c564fc560b1afd87cac788fe4299601e59f1d`.
+- Merge SHA: `615266363e943ddb406406b86f4657b9cd441a3a`.
+- CI run: `35438125753` — success.
+- Security run: `35438125762` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, new controlled-execution route tests, strengthened action-executor tests, existing full test suite, and production build all passed.
+- Double-lock evidence: both `TIKTOK_LIVE_EXECUTION_ENABLED` and `TIKTOK_CONTROLLED_STAGING_SEND_ENABLED` are source-controlled `false`. The staging endpoint returns `423 LOCKED` and does not call the executor while either remains false.
+- Access-control evidence: the endpoint is staging-only, owner/admin-only, and resolves the durable match only within the active workspace.
+- Confirmation evidence: requests must provide the exact `EXECUTE_TIKTOK_STAGING_MATCH` confirmation phrase; there is no generic browser-supplied send body.
+- Lifecycle/readiness evidence: terminal matches, disconnected accounts, and accounts without real signed-webhook runtime readiness are rejected before execution.
+- Input-integrity evidence: the browser can submit only the durable match ID + confirmation. Reply text, action type, provider comment/message IDs, actor identifiers, and conversation targets come only from the already-persisted routing record and are not request parameters.
+- Executor defense-in-depth evidence: active connection and `webhookConfigured` are rechecked again inside the row-locked executor transaction before provider work, in addition to current capability checks.
+- Replay/retry evidence: non-`MATCHED` status remains terminal; one match is row-serialized; provider failure remains single-attempt and no automatic retry is added.
+- UI evidence: `/tiktok` shows the controlled-send boundary as locked and exposes no execute action while both source gates are false.
+- Safety evidence: no TikTok provider send is reachable in PR #43; Comment-to-Message remains excluded; Instagram paths are unchanged.
+- Human validation: **not yet performed** for real TikTok OAuth/webhook/routing/reconnect/send behavior. No provider send is claimed.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
 - `docs/TIKTOK_FOUNDATION_CHECKPOINT_2026-09-18.md` records the provider foundation through PR #27.
-- `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md` records the current live-staging handoff and the staging-only provider webhook control after PR #41.
+- `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md` records the current live-staging handoff and the staging-only provider webhook control after PR #41/#42.
 - Earlier branch checkpoint commit: `8c29acfbe89c0374e9b800f10edca70a19a83b7c`.
 
 ## Human evidence handling
@@ -284,4 +314,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #41 is the latest completed product milestone recorded here. The safe code-only TikTok foundation now includes signed-webhook readiness confirmation, non-destructive disconnect/reconnect preservation, and staging-only provider webhook configuration/readback. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook configuration/readback/signed-delivery/disconnect-reconnect/provider-send validation has not yet occurred and is not claimed.
+PR #43 is the latest completed product milestone recorded here. Safe code-only TikTok preparation now includes OAuth/token handling, isolated ingress/dedupe/routing, signed-webhook readiness, non-destructive disconnect/reconnect, provider webhook configuration/readback, sanitized diagnostics, and a doubly source-locked one-shot execution boundary. The next meaningful phase requires the real TikTok for Business developer app/test account and human provider validation. Both send gates remain false, and no live TikTok OAuth/deployment/webhook/provider-send validation has occurred or is claimed.
