@@ -58,19 +58,24 @@ export async function canConnectTikTokAccount({
 
 export async function getWorkspaceTikTokAccount(
   workspaceId: string,
-  tiktokAccountId?: string | null
+  tiktokAccountId?: string | null,
+  now = new Date()
 ) {
   if (tiktokAccountId && tiktokAccountId !== "all") {
     return prisma.tikTokAccount.findFirst({
       where: {
         id: tiktokAccountId,
         workspaceId,
+        refreshTokenExpiresAt: { gt: now },
       },
     });
   }
 
   return prisma.tikTokAccount.findFirst({
-    where: { workspaceId },
+    where: {
+      workspaceId,
+      refreshTokenExpiresAt: { gt: now },
+    },
     orderBy: { connectedAt: "desc" },
   });
 }

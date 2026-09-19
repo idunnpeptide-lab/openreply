@@ -49,7 +49,7 @@ beforeEach(() => {
 });
 
 describe("TikTok account read API", () => {
-  it("lists only the active workspace's non-secret account metadata", async () => {
+  it("lists only the active workspace's connected non-secret account metadata", async () => {
     dbMocks.accountFindMany.mockResolvedValue([
       {
         id: "tt_1",
@@ -66,7 +66,10 @@ describe("TikTok account read API", () => {
     expect(response.status).toBe(200);
     expect(dbMocks.accountFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { workspaceId: "workspace_1" },
+        where: {
+          workspaceId: "workspace_1",
+          refreshTokenExpiresAt: { gt: expect.any(Date) },
+        },
         select: expect.not.objectContaining({
           accessTokenEncrypted: true,
           refreshTokenEncrypted: true,
@@ -88,7 +91,7 @@ describe("TikTok account read API", () => {
 });
 
 describe("TikTok owned-video read API", () => {
-  it("loads owned videos only after verifying account ownership", async () => {
+  it("loads owned videos only after verifying connected account ownership", async () => {
     dbMocks.accountFindFirst.mockResolvedValue({ id: "tt_1" });
     clientMocks.listVideos.mockResolvedValue({
       items: [{ item_id: "video_1", caption: "Demo" }],
@@ -103,7 +106,11 @@ describe("TikTok owned-video read API", () => {
     );
 
     expect(dbMocks.accountFindFirst).toHaveBeenCalledWith({
-      where: { id: "tt_1", workspaceId: "workspace_1" },
+      where: {
+        id: "tt_1",
+        workspaceId: "workspace_1",
+        refreshTokenExpiresAt: { gt: expect.any(Date) },
+      },
       select: { id: true },
     });
     expect(clientMocks.listVideos).toHaveBeenCalledWith({
@@ -114,7 +121,7 @@ describe("TikTok owned-video read API", () => {
     expect(response.status).toBe(200);
   });
 
-  it("does not leak whether another workspace's account has videos", async () => {
+  it("does not call TikTok for a disconnected or another-workspace account", async () => {
     dbMocks.accountFindFirst.mockResolvedValue(null);
 
     const response = await getVideos(

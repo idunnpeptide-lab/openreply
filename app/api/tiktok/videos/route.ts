@@ -41,12 +41,13 @@ export async function GET(request: NextRequest) {
     where: {
       id: parsed.data.tiktokAccountId,
       workspaceId: context.workspaceId,
+      refreshTokenExpiresAt: { gt: new Date() },
     },
     select: { id: true },
   });
   if (!account) {
     return NextResponse.json(
-      { success: false, error: "TikTok account not found" },
+      { success: false, error: "Connected TikTok account not found" },
       { status: 404 }
     );
   }

@@ -1,3 +1,4 @@
+import TikTokDisconnectControl from "@/components/tiktok-disconnect-control";
 import TikTokExecutionDiagnostics from "@/components/tiktok-execution-diagnostics";
 import TikTokStagingConsole from "@/components/tiktok-staging-console";
 import { prisma } from "@/lib/db/client";
@@ -23,8 +24,12 @@ export default async function TikTokStagingPage() {
     );
   }
 
+  const canManage = canManageWorkspace(context.role);
   const accountsRaw = await prisma.tikTokAccount.findMany({
-    where: { workspaceId: context.workspaceId },
+    where: {
+      workspaceId: context.workspaceId,
+      refreshTokenExpiresAt: { gt: new Date() },
+    },
     select: {
       id: true,
       openId: true,
@@ -126,13 +131,21 @@ export default async function TikTokStagingPage() {
           provider: "TIKTOK",
           phase: "STAGING_FOUNDATION",
           oauthConfigured: getMissingTikTokOAuthEnv().length === 0,
-          canManage: canManageWorkspace(context.role),
+          canManage,
           liveExecutionEnabled: TIKTOK_LIVE_EXECUTION_ENABLED,
         }}
         initialAccounts={accounts}
         initialVideos={videos}
         initialCampaigns={campaigns}
         initialProviderError={providerError}
+      />
+      <TikTokDisconnectControl
+        accounts={accounts.map(({ id, username, displayName }) => ({
+          id,
+          username,
+          displayName,
+        }))}
+        canManage={canManage}
       />
       <div className="max-w-6xl mx-auto">
         <TikTokExecutionDiagnostics data={diagnostics} />
