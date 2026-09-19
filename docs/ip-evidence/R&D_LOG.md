@@ -202,3 +202,47 @@ PR #29 CI run `35431525663` passed: Prisma validate/generate, TypeScript, lint, 
 
 **Result**
 PR #29 merged at `48a3e38143d65f240b38658e16d606e0d8a5e629`. The staging UI milestone is code-complete; human TikTok provider validation has not yet occurred.
+
+---
+
+## 2026-09-19 — Hard-gated TikTok action executor foundation
+
+**Task**
+Prepare the execution boundary for persisted TikTok routing plans while continuing to guarantee that current staging code cannot send a TikTok public reply or DM.
+
+**Problem**
+`TikTokAutomationMatch` already stored inert action plans, but there was no single execution boundary that could validate plan shape, re-check current provider capability, serialize duplicate attempts, record diagnostics, and refuse live sends until approval.
+
+A second constraint is that the current ReplyHalo TikTok send clients do not expose a persisted provider idempotency key. Automatic retry after a network/provider ambiguity could therefore create a duplicate send.
+
+**Options considered**
+- Wire routing directly to provider send calls now.
+- Add automatic provider-send retry using the existing ingress retry model.
+- Build a separate executor behind the source-controlled live gate, serialize same-match attempts with a row lock, treat terminal match states as non-replayable, and prohibit automatic send retry until provider behavior is proven live.
+
+**Volodymyr's decision**
+Continue all safe code-only work autonomously, but do not enable or claim live TikTok sending before real developer-app/account staging and his validation.
+
+**Implementation**
+PR #31 added the hard-gated executor for the two already-approved plan types only:
+
+- `PUBLIC_REPLY` to the triggering TikTok comment;
+- `DM_REPLY` inside an existing inbound Business Messaging conversation.
+
+The executor:
+
+- returns `LOCKED` before any DB transaction/provider work while `TIKTOK_LIVE_EXECUTION_ENABLED=false`;
+- validates stored plan/event compatibility;
+- re-checks current comment/public-reply/messaging capability;
+- uses a database row lock to serialize future concurrent attempts for one durable match;
+- treats non-`MATCHED` states as terminal;
+- records success/skip/failure OperationalEvents without campaign message text or credentials;
+- does not implement Comment-to-Message;
+- does not add queue/cron/UI execution wiring;
+- does not automatically retry a failed/ambiguous provider send.
+
+**Test**
+Focused executor tests cover hard-lock behavior, future approved public-reply execution, existing-conversation DM execution, terminal replay suppression, capability re-check, invalid plan failure, and single-attempt provider failure handling. PR #31 CI run `35431963722` and Security run `35431963663` both passed.
+
+**Result**
+PR #31 merged at `346f1cc998dc28b99dbff9902411fcb1266ad1e5`. No live TikTok provider send occurred; human live provider validation is still pending.
