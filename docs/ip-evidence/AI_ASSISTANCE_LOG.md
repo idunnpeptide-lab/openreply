@@ -230,3 +230,30 @@ PR #35, head SHA `946e17780629601b0af20847745df486cf3a8a58`, merge SHA `a9100d35
 **Repository evidence**
 
 PR #37, head SHA `13a0bcb50c06f46add4ec201d241e3b1aecd9b04`, merge SHA `7ee473003d132aad79b35e2612e5d5371bc2d481`, CI run `35433666350`, Security run `35433666428`.
+
+---
+
+## 2026-09-19 — Safe TikTok disconnect/reconnect milestone
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to keep progressing autonomously until a real TikTok provider/human action is required;
+- had already established the product requirement that disconnect/reconnect must preserve history rather than destroy it;
+- retained final authority over later live TikTok OAuth/disconnect/reconnect validation and any provider-send approval;
+- did not perform or claim a real TikTok disconnect/reconnect test for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- inspected TikTok account relations and identified that deleting `TikTokAccount` would cascade-delete `TikTokAutomation` and `TikTokAutomationMatch` history;
+- designed a migration-free soft-disconnect model using expired local token state while preserving the provider `openId` row and DM Magnet social identity;
+- implemented owner/admin disconnect, encrypted sentinel token replacement, expiry/capability/webhook reset, and connected-account filtering;
+- ensured disconnected/expired TikTok rows are excluded from account/provider-read and webhook resolution paths;
+- implemented same-account OAuth reconnect so fresh credentials restore the preserved row while webhook readiness and Comment-to-Message eligibility must be proven again;
+- added a visible non-destructive disconnect control in `/tiktok`;
+- added focused regression tests and kept `TIKTOK_LIVE_EXECUTION_ENABLED=false` with no send wiring;
+- ran PR #39 through CI and Security and merged only after both succeeded;
+- prepared the required evidence checkpoint immediately after merge.
+
+**Repository evidence**
+
+PR #39, head SHA `8d077a3c4d803f615471ed02218add5086abead4`, merge SHA `ce91619f4ada085e039114e1e11ab606c6c1f831`, CI run `35435285708`, Security run `35435285684`.

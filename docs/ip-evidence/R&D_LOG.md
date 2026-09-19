@@ -353,3 +353,40 @@ Focused tests cover supported events, unsupported events, and the already-confir
 
 **Result**
 PR #37 merged at `7ee473003d132aad79b35e2612e5d5371bc2d481`. The code can now truthfully reflect future signed webhook delivery in staging, but no real TikTok webhook delivery has yet been claimed or human-validated.
+
+---
+
+## 2026-09-19 — Non-destructive TikTok disconnect/reconnect preservation
+
+**Task**
+Prepare a safe TikTok disconnect/reconnect path for live staging without risking deletion of TikTok campaigns or durable routing history.
+
+**Problem**
+`TikTokAutomation` and `TikTokAutomationMatch` cascade from `TikTokAccount`. Deleting the account row during disconnect would therefore erase the exact history needed for staging evidence and later reconnect. The staging UI also had no local TikTok disconnect action, and disconnected/expired rows were not consistently excluded from connected-account/provider/webhook resolution.
+
+**Options considered**
+- Delete the TikTok account row and accept cascade deletion.
+- Add a schema migration solely for a connection-state flag before provider QA.
+- Preserve the existing account row, locally invalidate token/capability state, and use refresh-token expiry as the connected/disconnected boundary until the same `openId` reconnects through OAuth.
+
+**Volodymyr's decision**
+Continue the same data-preserving safety model already proven for Instagram: disconnect must not erase campaigns/history, the same provider identity should reconnect into the preserved row, and live TikTok sends must remain disabled until human provider QA.
+
+**Implementation**
+PR #39 added:
+
+- an owner/admin `/api/tiktok/disconnect` soft-disconnect route;
+- encrypted local sentinel replacement for stored TikTok tokens plus epoch token expiries;
+- clearing of granted scopes, comment/public-reply/messaging/Comment-to-Message capabilities, and webhook readiness on disconnect;
+- connected-account filtering in account resolution, account reads, owned-video reads, `/tiktok`, and webhook account lookup;
+- a `/tiktok` disconnect control that explicitly tells the user campaigns and history are preserved;
+- same-account OAuth reconnect behavior that reuses the preserved `openId` row, restores fresh encrypted tokens/scopes/capabilities, updates `connectedAt`, and requires webhook/Comment-to-Message proof again;
+- preservation of the DM Magnet social-account/license binding rather than releasing the slot on local disconnect.
+
+No schema migration was required. Instagram code paths were not changed.
+
+**Test**
+Focused regression coverage proves that disconnect never calls account deletion, writes the inert/expired token state, clears capabilities, preserves the history contract in the API response, enforces owner/admin access, filters disconnected/expired accounts from provider reads, and keeps normal token-lifecycle behavior. PR #39 head `8d077a3c4d803f615471ed02218add5086abead4` passed CI run `35435285708` (Prisma validate/generate, TypeScript, lint, tests, production build) and Security run `35435285684`.
+
+**Result**
+PR #39 merged at `ce91619f4ada085e039114e1e11ab606c6c1f831`. The code is ready for a future human TikTok disconnect/reconnect staging test, but no real TikTok OAuth, disconnect, reconnect, webhook delivery, or provider send is claimed by this milestone.
