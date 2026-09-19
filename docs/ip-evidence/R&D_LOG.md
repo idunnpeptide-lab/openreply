@@ -282,3 +282,41 @@ Final PR #33 head `bcf67ee27cee10b153dee6f8e82467e85e183e38` passed CI run `3543
 
 **Result**
 PR #33 merged at `5572c398b56e214a3bea33c318c8c99b23da1c16`. TikTok routing/execution diagnostics are code-complete and sanitized. No live TikTok provider validation or send occurred; the next meaningful phase requires real TikTok for Business app/account participation.
+
+---
+
+## 2026-09-19 — TikTok live-staging handoff runbook
+
+**Task**
+Remove avoidable ambiguity from the first real TikTok for Business staging session so the human/provider phase can start with exact ReplyHalo URLs, configuration names, safety gates, QA order, and evidence rules already documented.
+
+**Problem**
+The code-only TikTok foundation was ready, but the external provider phase still depended on details spread across OAuth routes, webhook routes, environment helpers, provider clients, and current TikTok API documentation. Entering the wrong callback URL, exposing a secret in a screenshot/chat, or enabling live execution too early would create unnecessary risk.
+
+**Options considered**
+- Wait until the provider session and reconstruct all setup details interactively.
+- Put real credential examples into repository documentation for convenience.
+- Prepare a non-secret runbook from the actual code and current official provider documentation, while keeping all secret values out of GitHub and preserving the hard live-execution lock.
+
+**Volodymyr's decision**
+Continue autonomously until a genuinely human/provider step is reached; preserve the rule that live TikTok sends remain disabled until real staging has passed and he explicitly approves the controlled send test.
+
+**Implementation**
+PR #35 added `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md` with:
+
+- the current staging host and exact implemented OAuth/webhook callback URLs;
+- TikTok environment-variable **names only** and expected redirect shape;
+- desired scopes/provider products while clearly distinguishing requested permissions from actually granted permissions;
+- OAuth preflight and post-connection checks;
+- signed webhook configuration/verification requirements for `COMMENT` and `DIRECT_MESSAGE`;
+- inert comment and existing-conversation DM QA sequences while execution remains locked;
+- a controlled-send checklist that can be used only after inert provider E2E passes;
+- separate Comment-to-Message eligibility validation;
+- non-secret human evidence rules for the eventual staging session;
+- current official TikTok API for Business documentation references checked during preparation.
+
+**Test / verification**
+The documented URLs were verified against the actual ReplyHalo routes (`/api/tiktok/callback`, `/api/tiktok/webhook`). Environment-variable names and HMAC secret usage were verified against `lib/env.ts` and `lib/tiktok/webhook.ts`. Current TikTok API for Business documentation was checked for the v1.3 account OAuth/token endpoint, TikTok account webhooks, Business Messaging APIs/webhooks, and Comment-to-Message endpoints. PR #35 CI run `35433279605` and Security run `35433279575` passed.
+
+**Result**
+PR #35 merged at `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`. The remaining blocker is now external/human: create/configure the real TikTok for Business developer app, supply secrets directly to staging deployment, authorize a dedicated test Business Account, and perform real provider E2E without changing the live-execution gate beforehand.
