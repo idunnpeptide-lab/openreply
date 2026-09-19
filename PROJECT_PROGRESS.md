@@ -44,8 +44,9 @@ Merged TikTok milestones:
 - PR #33 — sanitized workspace-scoped TikTok routing/execution diagnostics in `/tiktok`; merge SHA `5572c398b56e214a3bea33c318c8c99b23da1c16`.
 - PR #35 — live-staging handoff runbook with exact non-secret staging URLs, environment-variable names, permissions, provider-event sequence, inert QA matrix, and controlled-send safety gate; merge SHA `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`.
 - PR #37 — evidence-based TikTok webhook readiness confirmation after a supported signed webhook is successfully handed to the isolated TikTok ingress queue; merge SHA `7ee473003d132aad79b35e2612e5d5371bc2d481`.
+- PR #39 — non-destructive TikTok soft disconnect/reconnect preservation, connected-account filtering, webhook/provider isolation after local disconnect, and staging disconnect control; merge SHA `ce91619f4ada085e039114e1e11ab606c6c1f831`.
 
-PR #37 CI run `35433666350` passed and Security run `35433666428` passed before merge. No live TikTok provider delivery or send is claimed by that code milestone.
+PR #39 CI run `35435285708` passed and Security run `35435285684` passed before merge. No live TikTok provider disconnect/reconnect or send is claimed by that code milestone.
 
 ## Current TikTok staging state
 
@@ -58,7 +59,8 @@ The dashboard includes **TikTok staging** with:
 - official owned-video loading;
 - TikTok campaign list/create/edit/delete controls;
 - capability-gated comment and inbound-DM campaign configuration;
-- sanitized recent durable-match diagnostics and TikTok worker OperationalEvents.
+- sanitized recent durable-match diagnostics and TikTok worker OperationalEvents;
+- non-destructive TikTok disconnect control for owner/admin users.
 
 The action-execution foundation also exists behind the hard source-controlled gate:
 
@@ -72,7 +74,9 @@ The action-execution foundation also exists behind the hard source-controlled ga
 
 The diagnostics layer deliberately excludes comment/DM text, action-message text, actor identifiers, conversation IDs, provider tokens/credentials, and arbitrary raw OperationalEvent payload fields.
 
-Webhook readiness is now evidence-based rather than configuration-based. A connected TikTok account is marked `webhookConfigured=true` only after a supported event (`comment.update`, `im_receive_msg`, or `im_receive_msg_eu`) passes the existing signature-verification boundary and its provider-specific queue handoff succeeds. Invalid signatures, unsupported event names, and failed queue handoffs do not confirm readiness; repeat valid events do not churn the account timestamp once readiness is already confirmed.
+Webhook readiness is evidence-based rather than configuration-based. A connected TikTok account is marked `webhookConfigured=true` only after a supported event (`comment.update`, `im_receive_msg`, or `im_receive_msg_eu`) passes the existing signature-verification boundary and its provider-specific queue handoff succeeds. Invalid signatures, unsupported event names, failed queue handoffs, or locally disconnected/expired accounts do not confirm readiness.
+
+TikTok disconnect is also evidence-preserving in code. Local disconnect never deletes the `TikTokAccount` row because its campaigns and durable matches use cascade relations. Instead ReplyHalo invalidates the locally stored tokens, expires the connection, clears scopes/capability/webhook-readiness state, hides the account from connected selectors/provider reads, and ignores webhook ingress for that disconnected row. Reconnecting the same `openId` reuses the preserved row and restores fresh OAuth state while requiring webhook readiness and Comment-to-Message eligibility to be proven again. The DM Magnet social-account slot remains bound intentionally, matching the established Instagram preservation model.
 
 The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`, including:
 
@@ -80,7 +84,7 @@ The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`,
 - staging webhook callback: `https://replyhalo-web-staging.up.railway.app/api/tiktok/webhook`;
 - deployment environment-variable names only, never secret values;
 - desired scopes and provider products;
-- OAuth, token/capability, webhook, inert comment, inert DM, duplicate-event, and controlled-send validation order;
+- OAuth, token/capability, webhook, inert comment, inert DM, duplicate-event, disconnect/reconnect, and controlled-send validation order;
 - evidence-handling rules for the human staging session.
 
 `TIKTOK_LIVE_EXECUTION_ENABLED` remains `false`, and the executor is not wired into a queue/cron/UI action.
@@ -92,6 +96,8 @@ The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`,
 - TikTok logical events use stable provider IDs for ingress/routing dedupe.
 - EU stripped-message reconciliation fails closed on ambiguity.
 - TikTok webhook readiness is confirmed only by a valid supported signed delivery whose queue handoff succeeds.
+- TikTok local disconnect preserves the account row, campaigns, durable matches, and license/social-slot identity; it does not cascade-delete history.
+- Disconnected/expired TikTok accounts are excluded from connected-account reads, owned-video/provider reads, and webhook account resolution.
 - TikTok action plans can be persisted and validated, but live public-reply/DM execution remains gated until live provider staging QA.
 - Current TikTok provider clients do not expose a persisted provider idempotency key in ReplyHalo. Therefore automatic send retries are intentionally prohibited; the future live executor uses row serialization + terminal match state, while hard-crash ambiguity after provider acceptance remains a staging/rollout consideration to validate before production enablement.
 - Comment-to-Message is displayed as capability state only; it is not exposed as an active campaign action.
@@ -101,7 +107,7 @@ The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`,
 
 ## Exact continuation point
 
-The safe code-only TikTok foundation, live-staging runbook, and truthful webhook-readiness transition are complete. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
+The safe code-only TikTok foundation, live-staging runbook, truthful webhook-readiness transition, and non-destructive disconnect/reconnect preparation are complete. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
 
 1. create/open the dedicated ReplyHalo TikTok for Business developer app;
 2. request/verify the Organic API and Business Messaging products/permissions available to the test Business Account;
@@ -109,9 +115,10 @@ The safe code-only TikTok foundation, live-staging runbook, and truthful webhook
 4. connect a real test TikTok Business Account through ReplyHalo OAuth;
 5. verify actual scopes/capabilities/token refresh and owned-video reads in `/tiktok`;
 6. configure the `COMMENT` and `DIRECT_MESSAGE` webhook families for the ReplyHalo staging webhook URL and confirm a real signed supported provider event reaches the isolated ingress pipeline; successful accepted delivery should then be reflected by the account's webhook-readiness indicator;
-7. create an inert campaign and confirm one real provider event produces exactly one sanitized `MATCHED` record;
-8. only after those checks pass, explicitly approve a controlled live-execution staging test for one public reply and one existing-conversation DM reply;
-9. keep Comment-to-Message disabled until account eligibility is proven separately.
+7. create an inert TikTok campaign and confirm one real provider event produces exactly one sanitized `MATCHED` record;
+8. perform the safe disconnect/reconnect staging test and verify campaigns/history remain and the same account resumes on the preserved identity;
+9. only after those checks pass, explicitly approve a controlled live-execution staging test for one public reply and one existing-conversation DM reply;
+10. keep Comment-to-Message disabled until account eligibility is proven separately.
 
 No live-execution gate should be changed before the real provider setup and human staging validation above.
 
