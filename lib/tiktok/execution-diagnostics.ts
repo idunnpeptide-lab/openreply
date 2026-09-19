@@ -37,8 +37,13 @@ function planSummary(value: unknown) {
     return [];
   });
 
+  let trigger: "COMMENT" | "MESSAGE" | null = null;
+  if (plan?.trigger === "COMMENT" || plan?.trigger === "MESSAGE") {
+    trigger = plan.trigger;
+  }
+
   return {
-    trigger: plan?.trigger === "COMMENT" || plan?.trigger === "MESSAGE" ? plan.trigger : null,
+    trigger,
     actionTypes,
     blocked,
   };
