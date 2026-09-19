@@ -121,6 +121,15 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Merge SHA: `8e2cbca07b68c14a2349c85ff3a7907c2f1e157a`.
 - Evidence: recorded the completed PR #31 executor milestone, exact CI/Security evidence, safety gate, and the provider idempotency limitation without claiming live provider validation.
 
+### PR #34 — TikTok diagnostics evidence checkpoint
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/34`
+- Head SHA: `bc4348df0d5b4118750a61a53512586b1ae9b649`.
+- Merge SHA: `59d9cdc2c709afd0d2383da16ad2289d57740d4e`.
+- CI run: `35433044451` — success.
+- Security run: `35433044465` — success.
+- Evidence: recorded PR #33 implementation/test history, sanitization/privacy boundaries, human/AI roles, and the exact human/provider continuation point without inventing provider validation.
+
 ## TikTok staging UI evidence — 2026-09-19
 
 ### PR #29 — additive TikTok staging UI with execution lock
@@ -167,10 +176,26 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Safety evidence: `TIKTOK_LIVE_EXECUTION_ENABLED=false`; no executor queue/cron/UI execution wiring was added; no Comment-to-Message execution was added.
 - Human validation: **not yet performed for TikTok live provider behavior**. No TikTok deployment, OAuth approval, webhook delivery, or real provider send is claimed by PR #33.
 
+## TikTok live-staging handoff evidence — 2026-09-19
+
+### PR #35 — TikTok live-staging runbook
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/35`
+- Head SHA: `946e17780629601b0af20847745df486cf3a8a58`.
+- Merge SHA: `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`.
+- CI run: `35433279605` — success.
+- Security run: `35433279575` — success.
+- Repository evidence: `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md` records the exact implemented staging OAuth callback and webhook callback, required environment-variable names, desired provider scopes/products, inert comment/DM provider-E2E sequence, controlled-send gate, Comment-to-Message hold, and non-secret human-evidence checklist.
+- Code cross-check evidence: `/api/tiktok/callback`, `/api/tiktok/webhook`, `lib/env.ts`, and `lib/tiktok/webhook.ts` were inspected while preparing the runbook.
+- Provider research evidence: current official TikTok API for Business documentation was checked for the v1.3 TikTok-account OAuth/token endpoint, account webhooks, Business Messaging direct messages/webhooks, and Comment-to-Message APIs.
+- Safety evidence: `TIKTOK_LIVE_EXECUTION_ENABLED` remains false; no secret values are stored; the runbook explicitly forbids enabling live sends during OAuth/webhook/inert-routing setup.
+- Human validation: **not yet performed** for TikTok developer-app approval, OAuth connection, webhook delivery, or live send. PR #35 is preparation for that future human/provider session, not evidence that it occurred.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
 - `docs/TIKTOK_FOUNDATION_CHECKPOINT_2026-09-18.md` records the provider foundation through PR #27.
+- `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md` records the current live-staging handoff after PR #35.
 - Earlier branch checkpoint commit: `8c29acfbe89c0374e9b800f10edca70a19a83b7c`.
 
 ## Human evidence handling
@@ -179,4 +204,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #33 is the latest completed product milestone recorded here. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
+PR #35 is the latest completed preparation milestone recorded here. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
