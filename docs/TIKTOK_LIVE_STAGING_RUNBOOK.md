@@ -168,7 +168,7 @@ im_receive_msg_eu
 
 The EEA/Switzerland/UK stripped-message path is intentionally reconciled through the official conversation/message APIs and fails closed if the event cannot be mapped unambiguously.
 
-The codebase also contains provider helpers for the official TikTok webhook configuration endpoints:
+The codebase uses the official TikTok webhook configuration endpoints:
 
 ```text
 /business/webhook/update/
@@ -176,7 +176,31 @@ The codebase also contains provider helpers for the official TikTok webhook conf
 /business/webhook/delete/
 ```
 
-Do not mark an account's webhook state as confirmed merely because a callback URL was typed into the provider portal. Confirmation should come from provider configuration/readback and then a real signed event reaching ReplyHalo.
+### Preferred staging workflow after PR #41
+
+After the real staging TikTok Business Account is connected, use the **TikTok webhook setup** panel in `/tiktok` instead of manually constructing provider API requests.
+
+1. Click **Read provider config** first. This performs provider readback only.
+2. Confirm the expected callback shown by ReplyHalo is:
+   `https://replyhalo-web-staging.up.railway.app/api/tiktok/webhook`.
+3. If either `COMMENT` or `DIRECT_MESSAGE` is not verified, click **Configure + verify**.
+4. ReplyHalo sends the provider configuration request server-side using the existing TikTok app credentials; secrets are never returned to the browser.
+5. ReplyHalo immediately performs provider readback for both event families.
+6. Treat **PASS — provider readback matches** as evidence only that the provider configuration points to the expected callback.
+7. Do **not** treat provider readback as runtime webhook readiness. `TikTokAccount.webhookConfigured` remains false until a real supported signed webhook passes signature verification and is successfully handed to the isolated TikTok ingress queue.
+
+Safety boundaries of this control:
+
+- it is staging-only and returns 404 outside a staging deployment;
+- it requires authenticated owner/admin access;
+- provider mutation requires a currently connected TikTok account in the active staging workspace;
+- the browser cannot submit an arbitrary callback URL; ReplyHalo derives it from the staging base URL;
+- it configures only `COMMENT` and `DIRECT_MESSAGE`;
+- it does not enable live ReplyHalo execution;
+- it does not send a public reply, DM, or Comment-to-Message;
+- it does not mark runtime webhook readiness by itself.
+
+Do not mark an account's webhook state as confirmed merely because provider configuration/readback passed. Runtime confirmation must still come from a real signed event reaching ReplyHalo.
 
 ## Inert comment-flow QA — live provider event, no live ReplyHalo send
 
@@ -184,15 +208,17 @@ Keep live execution locked.
 
 1. Connect the dedicated TikTok Business Account.
 2. Confirm comment + public-reply capabilities shown by `/tiktok` reflect the actual connected account.
-3. Select an owned test video.
-4. Create a TikTok staging campaign using a unique QA keyword.
-5. From a separate TikTok test user, post one comment containing the keyword.
-6. Confirm TikTok sends `comment.update` to the ReplyHalo webhook.
-7. Confirm ReplyHalo performs exact comment lookup and normalization.
-8. Confirm one provider-native event receipt exists.
-9. Confirm exactly one `TikTokAutomationMatch` appears in the sanitized `/tiktok` diagnostics panel.
-10. Confirm status remains `MATCHED` and no public reply is sent while the execution gate is locked.
-11. Redeliver/replay the same logical event where safely possible and verify no second logical match is created.
+3. Confirm the `COMMENT` provider webhook shows verified readback in the `/tiktok` webhook setup panel.
+4. Select an owned test video.
+5. Create a TikTok staging campaign using a unique QA keyword.
+6. From a separate TikTok test user, post one comment containing the keyword.
+7. Confirm TikTok sends `comment.update` to the ReplyHalo webhook.
+8. Confirm ReplyHalo performs exact comment lookup and normalization.
+9. Confirm the separate runtime webhook-readiness indicator becomes confirmed after the supported signed delivery is successfully handed to ingress.
+10. Confirm one provider-native event receipt exists.
+11. Confirm exactly one `TikTokAutomationMatch` appears in the sanitized `/tiktok` diagnostics panel.
+12. Confirm status remains `MATCHED` and no public reply is sent while the execution gate is locked.
+13. Redeliver/replay the same logical event where safely possible and verify no second logical match is created.
 
 Passing this stage proves provider ingress/routing, **not** TikTok send execution.
 
@@ -200,14 +226,32 @@ Passing this stage proves provider ingress/routing, **not** TikTok send executio
 
 Keep live execution locked.
 
-1. Create/enable an inbound-DM TikTok staging campaign with a unique QA keyword.
-2. From an eligible separate TikTok test user, open a normal user-created conversation with the Business Account and send the keyword.
-3. Confirm the provider delivers `im_receive_msg` or the applicable `im_receive_msg_eu` event.
-4. Confirm ReplyHalo normalizes/reconciles it without guessing missing EU sender/conversation data.
-5. Confirm exactly one durable `TikTokAutomationMatch` appears.
-6. Confirm its planned action is `DM_REPLY` but no outgoing DM is sent while execution is locked.
+1. Confirm the `DIRECT_MESSAGE` provider webhook shows verified readback in the `/tiktok` webhook setup panel.
+2. Create/enable an inbound-DM TikTok staging campaign with a unique QA keyword.
+3. From an eligible separate TikTok test user, open a normal user-created conversation with the Business Account and send the keyword.
+4. Confirm the provider delivers `im_receive_msg` or the applicable `im_receive_msg_eu` event.
+5. Confirm ReplyHalo normalizes/reconciles it without guessing missing EU sender/conversation data.
+6. Confirm exactly one durable `TikTokAutomationMatch` appears.
+7. Confirm its planned action is `DM_REPLY` but no outgoing DM is sent while execution is locked.
 
 Passing this stage proves provider ingress/routing for an existing conversation, **not** live send execution.
+
+## Safe disconnect/reconnect QA
+
+Keep live execution locked.
+
+After at least one inert campaign/match exists:
+
+1. Capture non-secret campaign/match counts in `/tiktok`.
+2. Use the TikTok disconnect control.
+3. Confirm the account disappears from connected TikTok account/provider-read surfaces while campaign/history data remains preserved in storage.
+4. Reconnect the same TikTok Business Account through OAuth.
+5. Confirm the same provider identity is reused and the existing campaigns/history return rather than being recreated from scratch.
+6. Confirm fresh scopes/capabilities are derived from the new token set.
+7. Confirm webhook readiness is reset and must be re-proven by a new supported signed delivery.
+8. Use **Read provider config** to verify the app-level webhook callback still points to the expected staging URL; local account disconnect does not release the shared provider-app webhook configuration.
+
+Passing this stage proves non-destructive account lifecycle behavior, not send execution.
 
 ## Controlled send QA — only after the inert flows pass
 
@@ -218,11 +262,12 @@ Before any gate change:
 - OAuth passed with the intended account;
 - actual scopes/capabilities were reviewed;
 - token refresh behavior is healthy;
-- provider webhook configuration is confirmed;
-- signed comment event reaches ReplyHalo;
+- provider webhook configuration/readback is confirmed;
+- signed comment event reaches ReplyHalo and confirms runtime readiness;
 - signed DM event reaches ReplyHalo where messaging is available;
 - inert routing creates one logical match per event;
 - duplicate/replay behavior is understood;
+- safe disconnect/reconnect preserves data;
 - diagnostics contain no secrets/message content;
 - no Instagram regression was introduced.
 
@@ -250,7 +295,8 @@ Useful non-secret evidence includes:
 - screenshot showing TikTok developer app product/permission status, with secrets hidden;
 - screenshot showing ReplyHalo `/tiktok` OAuth/capability state;
 - screenshot showing owned videos loaded;
-- screenshot/provider confirmation of webhook configuration;
+- screenshot showing **Read provider config** / **Configure + verify** provider readback state;
+- screenshot showing runtime webhook readiness after a real signed supported delivery;
 - ReplyHalo diagnostics showing one real `MATCHED` event;
 - Railway deployment status for the exact tested build;
 - human report from Volodymyr Rudyi describing which test action was performed and whether the expected result occurred;
@@ -271,7 +317,7 @@ Never capture or commit:
 
 Current TikTok API for Business documentation confirms the provider remains on the `https://business-api.tiktok.com/open_api` base and `v1.3`, supports the TikTok-account OAuth token endpoint, owned-account APIs, TikTok-account webhooks, Business Messaging direct-message APIs, Business Messaging webhooks, and Comment-to-Message capability endpoints.
 
-Official documentation entry points used during preparation:
+Official documentation entry points used during preparation/recheck:
 
 - `https://business-api.tiktok.com/gateway/docs/index?doc_id=1735713875563521`
 - `https://business-api.tiktok.com/gateway/docs/index?doc_id=1833997638479041`
@@ -280,4 +326,4 @@ Provider documentation and approval labels can change. At live setup time, use t
 
 ## Stop point
 
-Once this runbook and the current code are deployed, further meaningful TikTok progress requires the real developer app/test Business Account and human provider authorization. That is the correct point to involve Volodymyr Rudyi.
+The remaining meaningful TikTok work now requires the real TikTok for Business developer app/test Business Account and human provider authorization. Code-only preparation includes OAuth/token handling, webhook configuration/readback, signed-delivery readiness confirmation, inert routing/dedupe diagnostics, safe disconnect/reconnect, and a hard-disabled live executor. The next step is therefore the real provider session with Volodymyr Rudyi; live execution must stay locked until that staging evidence passes.
