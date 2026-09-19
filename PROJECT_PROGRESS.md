@@ -41,8 +41,9 @@ Merged TikTok milestones:
 - PR #27 — public-reply validation aligned with the provider client limit; merge SHA `1c9f5e8dbf41dfd7092085042c7e26ffbefac150`.
 - PR #29 — additive TikTok staging UI with provider capability display, official owned-video loading, campaign list/create/edit/delete controls, and explicit live-execution lock; merge SHA `48a3e38143d65f240b38658e16d606e0d8a5e629`.
 - PR #31 — hard-gated TikTok action executor foundation for persisted `PUBLIC_REPLY` and existing-conversation `DM_REPLY` plans; merge SHA `346f1cc998dc28b99dbff9902411fcb1266ad1e5`.
+- PR #33 — sanitized workspace-scoped TikTok routing/execution diagnostics in `/tiktok`; merge SHA `5572c398b56e214a3bea33c318c8c99b23da1c16`.
 
-PR #31 CI run `35431963722` passed and Security run `35431963663` passed before merge. No live TikTok provider send was claimed or performed.
+PR #33 final CI run `35432848811` passed and Security run `35432848785` passed before merge. No live TikTok provider send was claimed or performed.
 
 ## Current TikTok staging state
 
@@ -55,9 +56,9 @@ The dashboard includes **TikTok staging** with:
 - official owned-video loading;
 - TikTok campaign list/create/edit/delete controls;
 - capability-gated comment and inbound-DM campaign configuration;
-- durable routing/match visibility without implying that a provider send occurred.
+- sanitized recent durable-match diagnostics and TikTok worker OperationalEvents.
 
-The action-execution foundation now also exists behind the hard source-controlled gate:
+The action-execution foundation also exists behind the hard source-controlled gate:
 
 - parses stored action plans and fails closed on invalid/mismatched data;
 - re-checks current account capability before any future provider action;
@@ -66,6 +67,8 @@ The action-execution foundation now also exists behind the hard source-controlle
 - records structured OperationalEvent success/skip/failure diagnostics without storing campaign message text or credentials;
 - does not automatically retry provider sends after provider/network failure;
 - does not execute Comment-to-Message.
+
+The diagnostics layer deliberately excludes comment/DM text, action-message text, actor identifiers, conversation IDs, provider tokens/credentials, and arbitrary raw OperationalEvent payload fields.
 
 `TIKTOK_LIVE_EXECUTION_ENABLED` remains `false`, and the executor is not wired into a queue/cron/UI action.
 
@@ -78,20 +81,25 @@ The action-execution foundation now also exists behind the hard source-controlle
 - TikTok action plans can be persisted and validated, but live public-reply/DM execution remains gated until live provider staging QA.
 - Current TikTok provider clients do not expose a persisted provider idempotency key in ReplyHalo. Therefore automatic send retries are intentionally prohibited; the future live executor uses row serialization + terminal match state, while hard-crash ambiguity after provider acceptance remains a staging/rollout consideration to validate before production enablement.
 - Comment-to-Message is displayed as capability state only; it is not exposed as an active campaign action.
+- Diagnostics are workspace-scoped and sanitized.
 - No scraping/private endpoint fallback is part of the TikTok implementation.
 - Secrets must never be committed into project documentation or evidence logs.
 
 ## Exact continuation point
 
-The next code-only milestone is **TikTok staging execution diagnostics**, still without enabling provider sends:
+The safe code-only TikTok foundation is now complete through staging diagnostics. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
 
-1. expose workspace-scoped recent TikTok automation matches/action-plan states without leaking secrets;
-2. show match status (`MATCHED`, `EXECUTED`, `FAILED`, `SKIPPED`) and trigger/action type in the TikTok staging console;
-3. surface related OperationalEvent diagnostics for provider-action readiness/failure investigation;
-4. add tests for workspace isolation and no-secret/no-message-text diagnostic responses;
-5. keep the executor unqueued and `TIKTOK_LIVE_EXECUTION_ENABLED=false`.
+1. create/configure the ReplyHalo TikTok for Business developer app;
+2. obtain/approve the required Organic API and Business Messaging permissions available to the test Business Account;
+3. configure staging OAuth redirect and webhook URLs plus required secrets in the deployment environment without committing them to GitHub;
+4. connect a real test TikTok Business Account through ReplyHalo OAuth;
+5. verify account capabilities/scopes/token refresh and owned-video reads in `/tiktok`;
+6. configure TikTok webhooks and confirm signed comment/DM event delivery into the staging ingress pipeline;
+7. create an inert TikTok campaign and confirm a real provider event produces one durable sanitized `MATCHED` record;
+8. only after those checks pass, explicitly approve a controlled live-execution staging test for one public reply and one existing-conversation DM reply;
+9. keep Comment-to-Message disabled until account eligibility is proven separately.
 
-After staging diagnostics are prepared, meaningful progress requires human participation for the real TikTok for Business developer app/account phase: app configuration/approval, deployment secrets, real OAuth connection, webhook configuration/delivery, and live end-to-end validation. Live execution must not be enabled before that validation.
+No live-execution gate should be changed before the real provider setup and human staging validation above.
 
 ## Evidence discipline
 
