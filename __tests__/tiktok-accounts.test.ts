@@ -32,6 +32,7 @@ import {
   canConnectTikTokAccount,
   getTikTokCapabilitiesFromScopes,
   getValidTikTokAccessToken,
+  getWorkspaceTikTokAccount,
   TikTokAccountAuthError,
 } from "../lib/tiktok/accounts";
 
@@ -91,6 +92,20 @@ describe("TikTok account lifecycle", () => {
     await expect(
       canConnectTikTokAccount({ workspaceId: "workspace_1", openId: "open_1" })
     ).resolves.toEqual({ allowed: false, reason: "already_connected" });
+  });
+
+  it("resolves only an account whose refresh connection is still active", async () => {
+    dbMocks.findFirst.mockResolvedValue(accountFixture());
+
+    await getWorkspaceTikTokAccount("workspace_1", "tt_db_1", NOW);
+
+    expect(dbMocks.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "tt_db_1",
+        workspaceId: "workspace_1",
+        refreshTokenExpiresAt: { gt: NOW },
+      },
+    });
   });
 
   it("uses the encrypted access token without refreshing while it is safely valid", async () => {
