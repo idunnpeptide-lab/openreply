@@ -46,8 +46,9 @@ Merged TikTok milestones:
 - PR #37 — evidence-based TikTok webhook readiness confirmation after a supported signed webhook is successfully handed to the isolated TikTok ingress queue; merge SHA `7ee473003d132aad79b35e2612e5d5371bc2d481`.
 - PR #39 — non-destructive TikTok soft disconnect/reconnect preservation, connected-account filtering, webhook/provider isolation after local disconnect, and staging disconnect control; merge SHA `ce91619f4ada085e039114e1e11ab606c6c1f831`.
 - PR #41 — staging-only authenticated TikTok webhook setup/readback control for `COMMENT` and `DIRECT_MESSAGE`, with connected-account guard, provider readback verification, sanitized browser output, and strict separation from runtime webhook-readiness evidence; merge SHA `85aec2d01047dfed5b410ec38dc5f9b0369ebe1d`.
+- PR #43 — prepared one-shot controlled TikTok staging execution boundary behind two source-controlled disabled gates, with staging/role/workspace/confirmation/readiness guards and executor-level connection + signed-webhook rechecks; merge SHA `615266363e943ddb406406b86f4657b9cd441a3a`.
 
-PR #41 CI run `35437528458` passed and Security run `35437528438` passed before merge. No real TikTok provider webhook configuration or delivery is claimed by that code milestone.
+PR #43 CI run `35438125753` passed and Security run `35438125762` passed before merge. No real TikTok provider send or provider validation is claimed by that code milestone.
 
 ## Current TikTok staging state
 
@@ -62,17 +63,20 @@ The dashboard includes **TikTok staging** with:
 - capability-gated comment and inbound-DM campaign configuration;
 - sanitized recent durable-match diagnostics and TikTok worker OperationalEvents;
 - non-destructive TikTok disconnect control for owner/admin users;
-- staging-only webhook provider controls to read the provider config or configure + verify `COMMENT` and `DIRECT_MESSAGE` against the expected ReplyHalo callback without exposing app secrets to the browser.
+- staging-only webhook provider controls to read the provider config or configure + verify `COMMENT` and `DIRECT_MESSAGE` against the expected ReplyHalo callback without exposing app secrets to the browser;
+- a prepared controlled-send panel that remains visibly locked while either source-controlled execution gate is false.
 
-The action-execution foundation also exists behind the hard source-controlled gate:
+The action-execution foundation now has a deliberately narrow staging handoff but remains unable to send:
 
 - parses stored action plans and fails closed on invalid/mismatched data;
-- re-checks current account capability before any future provider action;
+- re-checks active connection, real signed-webhook readiness, and current account capability inside the locked execution transaction;
 - serializes concurrent execution attempts for the same durable match with a database row lock;
 - treats non-`MATCHED` states as terminal for sequential replay protection;
 - records structured OperationalEvent success/skip/failure diagnostics without storing campaign message text or credentials;
 - does not automatically retry provider sends after provider/network failure;
-- does not execute Comment-to-Message.
+- does not execute Comment-to-Message;
+- accepts no reply text, provider target, actor ID, or conversation ID from the controlled-send browser request; only an existing durable match ID plus an exact confirmation phrase is accepted;
+- requires both `TIKTOK_LIVE_EXECUTION_ENABLED=false` and `TIKTOK_CONTROLLED_STAGING_SEND_ENABLED=false` to be changed by a later reviewed source-code decision before the staging endpoint can call the provider executor. Both remain `false` now.
 
 The diagnostics layer deliberately excludes comment/DM text, action-message text, actor identifiers, conversation IDs, provider tokens/credentials, and arbitrary raw OperationalEvent payload fields.
 
@@ -90,7 +94,7 @@ The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`,
 - OAuth, token/capability, webhook, inert comment, inert DM, duplicate-event, disconnect/reconnect, and controlled-send validation order;
 - evidence-handling rules for the human staging session.
 
-`TIKTOK_LIVE_EXECUTION_ENABLED` remains `false`, and the executor is not wired into a queue/cron/UI action.
+Both TikTok send gates remain source-controlled `false`. No browser action, environment variable, database row, or provider callback can turn them on.
 
 ## Current safety boundaries
 
@@ -102,9 +106,10 @@ The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`,
 - The browser never supplies the webhook callback; ReplyHalo derives it from the staging base URL.
 - Provider webhook readback is not equivalent to runtime webhook readiness; only a valid supported signed delivery whose queue handoff succeeds confirms runtime readiness.
 - TikTok local disconnect preserves the account row, campaigns, durable matches, and license/social-slot identity; it does not cascade-delete history.
-- Disconnected/expired TikTok accounts are excluded from connected-account reads, owned-video/provider reads, and webhook account resolution.
-- TikTok action plans can be persisted and validated, but live public-reply/DM execution remains gated until live provider staging QA.
-- Current TikTok provider clients do not expose a persisted provider idempotency key in ReplyHalo. Therefore automatic send retries are intentionally prohibited; the future live executor uses row serialization + terminal match state, while hard-crash ambiguity after provider acceptance remains a staging/rollout consideration to validate before production enablement.
+- Disconnected/expired TikTok accounts are excluded from connected-account reads, owned-video/provider reads, webhook account resolution, and controlled execution.
+- The controlled-send endpoint is staging-only, owner/admin-only, workspace-scoped, exact-confirmation guarded, requires a current `MATCHED` row plus active connection and signed-webhook runtime readiness, and is doubly locked by source constants.
+- TikTok action plans can be persisted and validated, but live public-reply/DM execution remains gated until live provider staging QA and explicit human approval.
+- Current TikTok provider clients do not expose a persisted provider idempotency key in ReplyHalo. Therefore automatic send retries are intentionally prohibited; the future controlled executor uses row serialization + terminal match state, while hard-crash ambiguity after provider acceptance remains a staging/rollout consideration to validate before production enablement.
 - Comment-to-Message is displayed as capability state only; it is not exposed as an active campaign action.
 - Diagnostics are workspace-scoped and sanitized.
 - No scraping/private endpoint fallback is part of the TikTok implementation.
@@ -112,7 +117,7 @@ The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`,
 
 ## Exact continuation point
 
-The safe code-only TikTok foundation, provider webhook setup/readback control, truthful runtime-readiness transition, and non-destructive disconnect/reconnect preparation are complete. The next meaningful phase requires **human/provider participation** for a real TikTok for Business staging environment:
+All useful code-only preparation for the first TikTok provider staging session is complete. Further meaningful progress now requires **human/provider participation**:
 
 1. create/open the dedicated ReplyHalo TikTok for Business developer app;
 2. request/verify the Organic API and Business Messaging products/permissions available to the test Business Account;
@@ -121,12 +126,13 @@ The safe code-only TikTok foundation, provider webhook setup/readback control, t
 5. verify actual scopes/capabilities/token refresh and owned-video reads in `/tiktok`;
 6. in `/tiktok`, use **Read provider config** or **Configure + verify** for the `COMMENT` and `DIRECT_MESSAGE` provider webhook families and confirm provider readback points both to the expected staging callback;
 7. trigger a real supported signed provider event and confirm ReplyHalo's separate runtime webhook-readiness indicator becomes confirmed only after successful ingress handoff;
-8. create an inert TikTok campaign and confirm one real provider event produces exactly one sanitized `MATCHED` record;
+8. create an inert TikTok campaign and confirm one real provider event produces exactly one sanitized `MATCHED` record while the controlled-send panel remains locked;
 9. perform the safe disconnect/reconnect staging test and verify campaigns/history remain and the same account resumes on the preserved identity;
-10. only after those checks pass, explicitly approve a controlled live-execution staging test for one public reply and one existing-conversation DM reply;
-11. keep Comment-to-Message disabled until account eligibility is proven separately.
+10. only after those checks pass, Volodymyr Rudyi may explicitly approve a separate reviewed code change to enable the two source-controlled gates for the deliberately tiny controlled-send test;
+11. if approved, execute one public reply to one controlled comment and one text reply in one existing controlled Business Messaging conversation, with no automatic retry after any ambiguous failure;
+12. keep Comment-to-Message disabled until account eligibility is proven separately.
 
-No live-execution gate should be changed before the real provider setup and human staging validation above.
+No send gate should be changed before the real provider setup and human staging validation above.
 
 ## Evidence discipline
 
