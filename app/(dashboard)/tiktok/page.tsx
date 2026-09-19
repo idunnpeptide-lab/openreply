@@ -1,8 +1,9 @@
 import TikTokDisconnectControl from "@/components/tiktok-disconnect-control";
 import TikTokExecutionDiagnostics from "@/components/tiktok-execution-diagnostics";
 import TikTokStagingConsole from "@/components/tiktok-staging-console";
+import TikTokWebhookStagingControl from "@/components/tiktok-webhook-staging-control";
 import { prisma } from "@/lib/db/client";
-import { getMissingTikTokOAuthEnv } from "@/lib/env";
+import { getBaseUrl, getMissingTikTokOAuthEnv } from "@/lib/env";
 import { listTikTokVideos, TikTokApiError } from "@/lib/tiktok/client";
 import { getTikTokExecutionDiagnostics } from "@/lib/tiktok/execution-diagnostics";
 import { TIKTOK_LIVE_EXECUTION_ENABLED } from "@/lib/tiktok/staging-readiness";
@@ -12,6 +13,16 @@ import {
 } from "@/lib/workspace-access";
 
 export const dynamic = "force-dynamic";
+
+function stagingWebhookCallbackUrl() {
+  try {
+    const baseUrl = new URL(getBaseUrl());
+    if (!baseUrl.hostname.toLowerCase().includes("staging")) return null;
+    return new URL("/api/tiktok/webhook", baseUrl.origin).toString();
+  } catch {
+    return null;
+  }
+}
 
 export default async function TikTokStagingPage() {
   const context = await getCurrentWorkspaceContext();
@@ -25,6 +36,7 @@ export default async function TikTokStagingPage() {
   }
 
   const canManage = canManageWorkspace(context.role);
+  const webhookCallbackUrl = stagingWebhookCallbackUrl();
   const accountsRaw = await prisma.tikTokAccount.findMany({
     where: {
       workspaceId: context.workspaceId,
@@ -139,6 +151,12 @@ export default async function TikTokStagingPage() {
         initialCampaigns={campaigns}
         initialProviderError={providerError}
       />
+      {webhookCallbackUrl && (
+        <TikTokWebhookStagingControl
+          canManage={canManage}
+          expectedCallbackUrl={webhookCallbackUrl}
+        />
+      )}
       <TikTokDisconnectControl
         accounts={accounts.map(({ id, username, displayName }) => ({
           id,
