@@ -154,3 +154,28 @@ PR #29, head SHA `af92401ce4ce107e228ad32f8b989e3bd228cf2f`, merge SHA `48a3e381
 **Repository evidence**
 
 PR #31, head SHA `a40f274ba8cc2aa0ce73638eac2326c6dda89a92`, merge SHA `346f1cc998dc28b99dbff9902411fcb1266ad1e5`, CI run `35431963722`, Security run `35431963663`.
+
+---
+
+## 2026-09-19 — TikTok execution diagnostics milestone
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to continue development autonomously;
+- had already required safe milestone evidence capture after every significant stage;
+- retained the requirement that live TikTok execution stay disabled until real provider staging and his validation;
+- did not perform or claim a live TikTok provider validation for this diagnostics milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- rebased the prepared diagnostics work onto the latest evidence checkpoint before opening PR #33;
+- implemented workspace-scoped sanitized TikTok match/worker diagnostics and the `/tiktok` read-only diagnostics surface;
+- explicitly removed comment/DM text, action-message text, actor/conversation identifiers, provider credentials, and arbitrary raw payload fields from the diagnostic response;
+- added regression tests for workspace scoping, sanitization, and bounded result size;
+- diagnosed two TypeScript inference failures surfaced by CI and fixed them with explicit narrow union types rather than weakening type safety;
+- re-ran CI and Security until both passed, then merged PR #33;
+- prepared this evidence checkpoint immediately after merge.
+
+**Repository evidence**
+
+PR #33, final head SHA `bcf67ee27cee10b153dee6f8e82467e85e183e38`, merge SHA `5572c398b56e214a3bea33c318c8c99b23da1c16`, CI run `35432848811`, Security run `35432848785`.
