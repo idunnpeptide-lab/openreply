@@ -41,31 +41,31 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 ### PR #20 — isolated TikTok comment ingress
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/20`
-- Merge SHA: `4ed413e6bb7cdc7a6857fd3aef3578b5c3bf2d5a`
+- Merge SHA: `4ed413e6bb7cdc7a6857fd3aef3578b5c3bf2d5a`.
 - Evidence: exact official comment lookup, isolated ingress queue, normalized handoff, focused tests.
 
 ### PR #21 — inbound TikTok message normalization
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/21`
-- Merge SHA: `4d3251d102e4f6a09a2d040333529f47156ec775`
+- Merge SHA: `4d3251d102e4f6a09a2d040333529f47156ec775`.
 - Evidence: provider-neutral inbound message contract, text-only normalization, isolated ingress processing, tests.
 
 ### PR #22 — conservative EU/UK/CH message reconciliation
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/22`
-- Merge SHA: `03f8a899877874504972b47864c9613580968938`
+- Merge SHA: `03f8a899877874504972b47864c9613580968938`.
 - Evidence: official conversation/message reads, bounded correlation, ambiguity fail-closed behavior, tests.
 
 ### PR #23 — provider-native logical event receipts
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/23`
-- Merge SHA: `078efe0ba84fba30305d7b4bd90dbeb87d69d204`
+- Merge SHA: `078efe0ba84fba30305d7b4bd90dbeb87d69d204`.
 - Evidence: Prisma migration + stable comment/message logical-event dedupe + regression tests.
 
 ### PR #24 — TikTok automation routing foundation
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/24`
-- Merge SHA: `76ad65b6db6ac8377495915c3070ecd37f1927f0`
+- Merge SHA: `76ad65b6db6ac8377495915c3070ecd37f1927f0`.
 - CI: completed successfully before merge.
 - Security: completed successfully before merge.
 - Evidence: separate TikTok campaign/match storage, inert capability-gated action plans, replay-safe routing tests.
@@ -73,7 +73,7 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 ### PR #25 — guarded TikTok campaign management API
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/25`
-- Merge SHA: `b8da4e22aae5f87aa0f4011fa3f60324594f5c33`
+- Merge SHA: `b8da4e22aae5f87aa0f4011fa3f60324594f5c33`.
 - CI: completed successfully before merge.
 - Security: completed successfully before merge.
 - Evidence: workspace-scoped and role-gated TikTok CRUD API with capability validation.
@@ -81,7 +81,7 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 ### PR #26 — safe TikTok account / owned-video read APIs
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/26`
-- Merge SHA: `ef7b57712dd8603d16e34c1f6580e7dc266062cc`
+- Merge SHA: `ef7b57712dd8603d16e34c1f6580e7dc266062cc`.
 - CI: completed successfully before merge.
 - Security: completed successfully before merge.
 - Evidence: non-secret account metadata, official owned-video reads, workspace ownership guard, read API tests.
@@ -89,7 +89,7 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 ### PR #27 — TikTok public-reply provider-limit alignment
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/27`
-- Merge SHA: `1c9f5e8dbf41dfd7092085042c7e26ffbefac150`
+- Merge SHA: `1c9f5e8dbf41dfd7092085042c7e26ffbefac150`.
 - CI: completed successfully before merge.
 - Security: completed successfully before merge.
 - Evidence: API validation changed to reject public replies above the provider client's 150-character limit; regression coverage added for the 151-character boundary.
@@ -99,7 +99,7 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 ### PR #28 — durable project progress and IP evidence history
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/28`
-- Merge SHA: `a43ff6c1fcc0dd3efcd8e9516c4e7c0544797eea`
+- Merge SHA: `a43ff6c1fcc0dd3efcd8e9516c4e7c0544797eea`.
 - CI run: `35404592051` — success.
 - Security run: `35404592036` — success.
 - Evidence: established `PROJECT_PROGRESS.md`, `R&D_LOG.md`, `AI_ASSISTANCE_LOG.md`, `IP_EVIDENCE.md`, and repository-agent guidance for automatic milestone evidence capture.
@@ -130,13 +130,22 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Security run: `35433044465` — success.
 - Evidence: recorded PR #33 implementation/test history, sanitization/privacy boundaries, human/AI roles, and the exact human/provider continuation point without inventing provider validation.
 
+### PR #36 — TikTok live-staging handoff evidence checkpoint
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/36`
+- Head SHA: `fe6c215be558dd032390ae5ea1e57ade9cc58737`.
+- Merge SHA: `4f5e370c22bb5d69b072f4fe91f643c35783ff33`.
+- CI run: `35433526098` — success.
+- Security run: `35433525994` — success.
+- Evidence: recorded PR #35 runbook preparation, exact staging handoff URLs/configuration targets, current provider documentation verification, human/AI roles, and the no-secrets/no-live-send boundary.
+
 ## TikTok staging UI evidence — 2026-09-19
 
 ### PR #29 — additive TikTok staging UI with execution lock
 
 - PR: `https://github.com/idunnpeptide-lab/openreply/pull/29`
-- Head SHA: `af92401ce4ce107e228ad32f8b989e3bd228cf2f`
-- Merge SHA: `48a3e38143d65f240b38658e16d606e0d8a5e629`
+- Head SHA: `af92401ce4ce107e228ad32f8b989e3bd228cf2f`.
+- Merge SHA: `48a3e38143d65f240b38658e16d606e0d8a5e629`.
 - CI run: `35431525663` — success.
 - Security run: `35431525669` — success.
 - Automated evidence: Prisma validation/generation, TypeScript, lint, unit/regression tests, and production build all passed in CI.
@@ -191,6 +200,21 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Safety evidence: `TIKTOK_LIVE_EXECUTION_ENABLED` remains false; no secret values are stored; the runbook explicitly forbids enabling live sends during OAuth/webhook/inert-routing setup.
 - Human validation: **not yet performed** for TikTok developer-app approval, OAuth connection, webhook delivery, or live send. PR #35 is preparation for that future human/provider session, not evidence that it occurred.
 
+## TikTok webhook-readiness evidence — 2026-09-19
+
+### PR #37 — confirm webhook readiness from signed supported ingress
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/37`
+- Head SHA: `13a0bcb50c06f46add4ec201d241e3b1aecd9b04`.
+- Merge SHA: `7ee473003d132aad79b35e2612e5d5371bc2d481`.
+- CI run: `35433666350` — success.
+- Security run: `35433666428` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, focused webhook-readiness regression tests, existing full test suite, and production build passed.
+- Implementation evidence: readiness confirmation is restricted to supported events (`comment.update`, `im_receive_msg`, `im_receive_msg_eu`) and runs only after the existing signature-verification boundary plus successful provider-specific queue handoff.
+- Idempotency evidence: the readiness update is constrained to accounts with `webhookConfigured=false`, so later supported deliveries do not churn the account's timestamp.
+- Safety evidence: invalid signatures, unsupported event names, and failed queue handoffs cannot confirm readiness; `TIKTOK_LIVE_EXECUTION_ENABLED=false`; no TikTok send wiring or Comment-to-Message execution was added; Instagram code paths were unchanged.
+- Human validation: **not yet performed** for real TikTok webhook delivery. PR #37 prepares the truthful runtime transition that the later human/provider staging session can validate.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -204,4 +228,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #35 is the latest completed preparation milestone recorded here. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
+PR #37 is the latest completed product milestone recorded here. The safe code-only TikTok foundation now includes evidence-based webhook-readiness confirmation. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
