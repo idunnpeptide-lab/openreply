@@ -205,3 +205,28 @@ PR #33, final head SHA `bcf67ee27cee10b153dee6f8e82467e85e183e38`, merge SHA `55
 **Repository evidence**
 
 PR #35, head SHA `946e17780629601b0af20847745df486cf3a8a58`, merge SHA `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`, CI run `35433279605`, Security run `35433279575`.
+
+---
+
+## 2026-09-19 — TikTok signed-webhook readiness confirmation milestone
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to continue autonomously until the real TikTok for Business/provider step is reached;
+- retained final authority over the later provider setup and any controlled live-send approval;
+- did not perform or claim a real TikTok webhook delivery or OAuth connection for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- identified that `/tiktok` exposed `webhookConfigured`, but the application had no trustworthy runtime transition from “not confirmed” to confirmed after a real provider delivery;
+- implemented readiness confirmation only after the existing TikTok signature-verification boundary and only after successful handoff of a supported webhook event to the isolated TikTok ingress queue;
+- limited confirmation to `comment.update`, `im_receive_msg`, and `im_receive_msg_eu`;
+- made the database update idempotent so already-confirmed accounts do not have their timestamps churned by later webhook traffic;
+- added focused tests covering supported events, unsupported events, and already-confirmed accounts;
+- kept `TIKTOK_LIVE_EXECUTION_ENABLED=false`, added no provider-send wiring, and changed no Instagram path;
+- ran PR #37 through CI and Security and merged only after both succeeded;
+- prepared the required evidence checkpoint immediately after merge.
+
+**Repository evidence**
+
+PR #37, head SHA `13a0bcb50c06f46add4ec201d241e3b1aecd9b04`, merge SHA `7ee473003d132aad79b35e2612e5d5371bc2d481`, CI run `35433666350`, Security run `35433666428`.
