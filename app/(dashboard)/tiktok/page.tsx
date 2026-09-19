@@ -24,7 +24,10 @@ export default async function TikTokStagingPage() {
   }
 
   const accountsRaw = await prisma.tikTokAccount.findMany({
-    where: { workspaceId: context.workspaceId },
+    where: {
+      workspaceId: context.workspaceId,
+      refreshTokenExpiresAt: { gt: new Date() },
+    },
     select: {
       id: true,
       openId: true,
