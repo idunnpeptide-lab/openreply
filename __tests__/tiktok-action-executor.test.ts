@@ -24,6 +24,8 @@ vi.mock("@/lib/tiktok/messaging", () => ({
 
 import { createTikTokActionExecutor } from "../lib/tiktok/action-executor";
 
+const FUTURE = new Date("2099-01-01T00:00:00.000Z");
+
 const tx = {
   $queryRaw: dbMocks.queryRaw,
   tikTokAutomationMatch: {
@@ -51,6 +53,8 @@ function baseMatch(overrides: Record<string, unknown> = {}) {
     },
     status: "MATCHED",
     tiktokAccount: {
+      refreshTokenExpiresAt: FUTURE,
+      webhookConfigured: true,
       commentsEnabled: true,
       publicReplyEnabled: true,
       messagingEnabled: true,
@@ -136,6 +140,8 @@ describe("TikTok guarded action executor", () => {
     dbMocks.matchFindUnique.mockResolvedValue(
       baseMatch({
         tiktokAccount: {
+          refreshTokenExpiresAt: FUTURE,
+          webhookConfigured: true,
           commentsEnabled: true,
           publicReplyEnabled: false,
           messagingEnabled: true,
@@ -158,6 +164,58 @@ describe("TikTok guarded action executor", () => {
       where: { id: "match_1" },
       data: { status: "SKIPPED" },
     });
+  });
+
+  it("re-checks the account connection inside the locked execution transaction", async () => {
+    dbMocks.matchFindUnique.mockResolvedValue(
+      baseMatch({
+        tiktokAccount: {
+          refreshTokenExpiresAt: new Date(0),
+          webhookConfigured: true,
+          commentsEnabled: true,
+          publicReplyEnabled: true,
+          messagingEnabled: true,
+        },
+      })
+    );
+    const publicReply = vi.fn();
+    const execute = createTikTokActionExecutor({
+      liveExecutionEnabled: true,
+      providers: { publicReply, dmReply: vi.fn() },
+    });
+
+    await expect(execute("match_1")).resolves.toEqual({
+      state: "SKIPPED",
+      matchId: "match_1",
+      reason: "ACCOUNT_DISCONNECTED",
+    });
+    expect(publicReply).not.toHaveBeenCalled();
+  });
+
+  it("re-checks real signed-webhook readiness inside the execution transaction", async () => {
+    dbMocks.matchFindUnique.mockResolvedValue(
+      baseMatch({
+        tiktokAccount: {
+          refreshTokenExpiresAt: FUTURE,
+          webhookConfigured: false,
+          commentsEnabled: true,
+          publicReplyEnabled: true,
+          messagingEnabled: true,
+        },
+      })
+    );
+    const publicReply = vi.fn();
+    const execute = createTikTokActionExecutor({
+      liveExecutionEnabled: true,
+      providers: { publicReply, dmReply: vi.fn() },
+    });
+
+    await expect(execute("match_1")).resolves.toEqual({
+      state: "SKIPPED",
+      matchId: "match_1",
+      reason: "WEBHOOK_DELIVERY_NOT_CONFIRMED",
+    });
+    expect(publicReply).not.toHaveBeenCalled();
   });
 
   it("executes only inside an existing inbound DM conversation", async () => {
