@@ -1,6 +1,9 @@
 # ReplyHalo TikTok Provider — Integration Plan
 
-Checkpoint: 2026-09-18
+Updated checkpoint: 2026-09-19
+
+Project owner / human decision maker: **Volodymyr Rudyi**
+AI development assistance: **ChatGPT (OpenAI)**
 
 ## Goal
 
@@ -12,24 +15,22 @@ The TikTok implementation uses official TikTok APIs only. Scraping, browser auto
 
 ReplyHalo integrates with **TikTok API for Business**.
 
-The relevant products are:
+Relevant provider products:
 
-1. **Organic API / TikTok Accounts**
+1. **TikTok Accounts / Organic API**
    - profile/account data;
    - owned video list;
-   - list comments on owned videos;
-   - list comment replies;
-   - create/reply to comments;
-   - TikTok account webhooks including `comment.update`.
+   - comments/replies on owned videos;
+   - public comment replies;
+   - TikTok account webhooks such as `comment.update`.
 
 2. **Business Messaging API**
-   - list conversations/messages;
-   - send direct messages inside eligible conversations;
-   - account/conversation capability checks;
+   - conversations/messages;
+   - text replies in eligible existing conversations;
    - Business Messaging webhooks;
-   - **Comment-to-Message** when the authorized Business Account is eligible.
+   - Comment-to-Message capability when the authorized Business Account is eligible.
 
-Business Messaging capability is account/app dependent. ReplyHalo must never assume every connected TikTok account can use every messaging feature.
+Business Messaging and Comment-to-Message remain account/app/region dependent. ReplyHalo must not infer eligibility merely from the existence of the API.
 
 ## API and authorization baseline
 
@@ -39,25 +40,35 @@ Business API base URL:
 https://business-api.tiktok.com/open_api
 ```
 
-API version used by the provider:
+API version used by ReplyHalo:
 
 ```text
 v1.3
 ```
 
-TikTok account authorization uses the TikTok for Business authorization flow. The callback returns an `auth_code` and `state`.
+TikTok Business Account authorization uses the TikTok for Business authorization flow. The ReplyHalo callback is implemented at:
 
-Token exchange:
+```text
+/api/tiktok/callback
+```
+
+The staging callback currently expected by the runbook is:
+
+```text
+https://replyhalo-web-staging.up.railway.app/api/tiktok/callback
+```
+
+Token exchange uses:
 
 ```text
 POST https://business-api.tiktok.com/open_api/v1.3/tt_user/oauth2/token/
 ```
 
-ReplyHalo stores encrypted access/refresh tokens and refreshes short-lived access tokens instead of treating the initial token as long-lived.
+ReplyHalo stores encrypted access/refresh tokens and supports refresh instead of treating the initial access token as long-lived.
 
 ## Desired permission set
 
-The exact granted scopes are controlled by TikTok app review and the connected Business Account. The provider targets these capabilities where TikTok grants them:
+The provider requests these scopes where TikTok approves them for the app/account:
 
 ```text
 user.info.basic
@@ -70,79 +81,55 @@ message.list.send
 message.list.manage
 ```
 
-The desired list is not treated as proof of approval. ReplyHalo stores actual granted scopes and derives runtime capability flags from them.
+The desired list is not proof of approval. ReplyHalo persists actual granted scopes and derives runtime capability flags from the provider response.
 
-## Existing ReplyHalo / DM Magnet architecture reused
-
-The central DM Magnet License Server already supports a generic social identity:
-
-```text
-platform + accountId
-```
-
-TikTok binds as:
-
-```text
-platform: TIKTOK
-accountId: <authorized TikTok open_id/business_id>
-```
-
-SOLO / CREATOR / AGENCY social-account slot limits remain shared across providers.
-
-The Instagram provider remains operational and isolated.
-
-## Additive provider structure
+## Additive architecture
 
 ```text
 ReplyHalo core
 |
-+-- Instagram provider (existing, live)
-|   +-- Meta OAuth
-|   +-- Meta webhooks
++-- Instagram provider (existing, staging QA passed)
+|   +-- Meta OAuth/webhooks
 |   +-- comments/public replies
-|   +-- private replies/DM
+|   +-- private reply/DM
 |   +-- Follow Gate
 |   +-- tracked links/follow-ups
 |
-+-- TikTok provider (new)
++-- TikTok provider (additive staging path)
     +-- TikTok for Business OAuth
-    +-- access/refresh token lifecycle
+    +-- encrypted access/refresh token lifecycle
     +-- account capability/scopes
-    +-- owned video reads
-    +-- comment update webhooks
+    +-- owned-video reads
+    +-- signed TikTok account webhooks
     +-- Business Messaging webhooks
-    +-- EU stripped-message reconciliation
-    +-- provider-native event dedupe
-    +-- additive TikTok campaign storage
-    +-- inert keyword/action routing plans
-    +-- live public-reply/DM execution: still gated
+    +-- EU/UK/CH stripped-message reconciliation
+    +-- provider-native logical event receipts/dedupe
+    +-- separate TikTok campaign storage
+    +-- durable routing/action-plan matches
+    +-- hard-gated action executor
+    +-- sanitized staging diagnostics
+    +-- live public-reply/DM execution: LOCKED
 ```
 
-## Data model strategy
+Do **not** rename or replace `InstagramAccount` or the proven Instagram `Automation` model during the TikTok staging rollout.
 
-Do **not** rename or replace `InstagramAccount` or the production Instagram `Automation` model during the TikTok rollout.
+## Persistence / idempotency model
 
-TikTok is additive and currently has separate storage for:
+TikTok currently has separate storage for:
 
-- `TikTokAccount` — workspace, open ID, profile metadata, encrypted tokens, expiry, granted scopes, capability flags, webhook state;
-- `SocialEventReceipt` — provider-native exactly-once boundary for logical events;
-- `TikTokAutomation` — TikTok-specific campaign configuration;
-- `TikTokAutomationMatch` — durable inert match/action-plan snapshot.
+- `TikTokAccount` — workspace, open ID, metadata, encrypted tokens, expiry, actual scopes, capability flags, webhook state;
+- `SocialEventReceipt` — provider-native logical-event dedupe;
+- `TikTokAutomation` — isolated TikTok campaign configuration;
+- `TikTokAutomationMatch` — durable action-plan snapshot and execution state.
 
-This keeps TikTok development reversible and prevents a provider still under live QA from destabilizing Instagram.
-
-## Webhook and idempotency model
-
-TikTok delivery is treated as **at-least-once**.
-
-ReplyHalo now uses two layers of idempotency:
+TikTok webhook delivery is treated as **at least once**:
 
 ```text
 signed webhook delivery
         ↓
-durable WebhookEvent receipt
+durable WebhookEvent
         ↓
-provider-native id (commentId / messageId)
+provider-native commentId/messageId
         ↓
 SocialEventReceipt unique key
         ↓
@@ -151,172 +138,232 @@ normalized event
 TikTokAutomationMatch unique per automation + logical event
 ```
 
-A new webhook envelope containing the same logical TikTok comment/message cannot create a second provider-level handoff. Routing itself is independently replay-safe so a retry can repair a failed routing step without duplicating the campaign match.
+Routing is independently replay-safe so a retry can repair routing without producing a second campaign match.
 
-## Provider capability model
+The future send boundary has additional protection:
 
-A TikTok account can have different capabilities depending on app review, account type, region, and conversation eligibility.
+- row serialization for one durable match;
+- terminal `EXECUTED` / `FAILED` / `SKIPPED` states suppress sequential replay;
+- current account capability is re-checked immediately before a future provider action;
+- automatic provider-send retry is deliberately absent because the current TikTok send clients do not expose a persisted provider idempotency key in ReplyHalo.
 
-ReplyHalo distinguishes:
+Therefore ReplyHalo does **not** claim exactly-once delivery across a hard process crash after provider acceptance but before the DB status commit.
 
-- `SUPPORTED` — official API capability exists and is generally available;
-- `ACCOUNT_DEPENDENT` — official API supports it, but the connected account/app must pass runtime checks;
-- `UNSUPPORTED` — the product must not expose an unsupported action.
+## Webhook model
 
-TikTok direct messaging and Comment-to-Message remain `ACCOUNT_DEPENDENT`.
+ReplyHalo staging receiver:
 
-Campaign configuration fails closed when the connected account lacks the required capability.
+```text
+https://replyhalo-web-staging.up.railway.app/api/tiktok/webhook
+```
 
-## Implementation phases
+The receiver:
 
-### Phase A — developer access and app configuration
+- enforces a request-body size limit;
+- verifies `tiktok-signature` with HMAC SHA-256 using `TIKTOK_BUSINESS_APP_SECRET`;
+- applies a timestamp tolerance;
+- stores durable delivery evidence;
+- uses deterministic delivery dedupe;
+- preserves event-specific raw content where required so 64-bit TikTok IDs are not rounded by JavaScript;
+- routes provider-specific work onto the isolated TikTok ingress queue.
 
-1. Create/use a dedicated ReplyHalo TikTok for Business developer app.
-2. Request TikTok Accounts / Organic API permissions needed for owned videos and comments.
-3. Request Business Messaging API access and complete required review.
-4. Configure the ReplyHalo staging OAuth callback.
-5. Configure TikTok Account and Business Messaging webhooks.
-6. Keep all TikTok credentials out of Git and chat.
+Supported first-stage logical events:
 
-**Code readiness:** foundation implemented. **External app approval/live configuration still required.**
+```text
+comment.update
+im_receive_msg
+im_receive_msg_eu
+```
 
-### Phase B — account connection foundation
+The EU/UK/CH stripped-message path reconciles through official conversation/message reads and fails closed when a unique mapping cannot be proven.
 
-Implemented in code:
+Provider webhook configuration helpers exist for:
 
-- additive TikTok account persistence;
-- OAuth state protection;
-- `auth_code` token exchange;
+```text
+/business/webhook/update/
+/business/webhook/list/
+/business/webhook/delete/
+```
+
+The first live staging phase needs only the relevant `COMMENT` and `DIRECT_MESSAGE` webhook families.
+
+## Capability model
+
+Runtime behavior is based on actual stored capability state, including:
+
+- comments access;
+- public comment reply;
+- Business Messaging;
+- Comment-to-Message;
+- webhook confirmation.
+
+TikTok campaign configuration fails closed when the connected account lacks the required capability.
+
+Comment-to-Message is kept separate from ordinary comment automation and from normal replies in an existing DM conversation.
+
+## Implemented phases
+
+### A — OAuth/account/token foundation
+
+Implemented:
+
+- signed workspace-bound OAuth state;
+- `auth_code` exchange;
 - encrypted access + refresh token storage;
-- granted-scope/capability snapshot;
-- DM Magnet `TIKTOK + accountId` license binding path;
-- token refresh lifecycle;
-- workspace-scoped, non-secret account read API.
+- refresh lifecycle;
+- account profile read;
+- actual scope/capability snapshot;
+- shared multi-platform license slot binding;
+- workspace-scoped non-secret account API.
 
-Live approval/account QA remains outstanding.
+Live provider approval/account validation is still pending.
 
-### Phase C — organic comment automation
+### B — organic comment ingress/routing
 
-Implemented in code:
+Implemented:
 
-- owned-video client and workspace-scoped video read API;
-- comment reads and exact comment lookup;
-- verified `comment.update` webhook ingestion;
-- lossless provider ID parsing;
+- official owned-video reads;
+- comment list/exact lookup;
+- lossless 64-bit comment/video ID handling;
+- signed `comment.update` webhook ingestion;
 - isolated TikTok ingress queue;
-- normalization to provider-neutral comment events;
-- existing Unicode-safe keyword matcher reuse;
-- additive TikTok campaign routing by account + selected video/any video;
-- provider-native dedupe and replay-safe routing;
-- public-reply action planning gated by account capability;
-- TikTok public reply campaign text constrained to the provider client's 150-character limit.
+- provider-neutral normalization;
+- keyword/video matching;
+- provider-native logical-event receipts;
+- replay-safe TikTok campaign routing;
+- public-reply planning gated by account capability;
+- 150-character public-reply validation.
 
-**Not enabled yet:** live execution of planned public replies. Live staging must prove app permissions and provider behavior first.
+Live public-reply execution remains locked.
 
-### Phase D — Business Messaging / Comment-to-Message
+### C — Business Messaging ingress/routing
 
-Implemented in code:
+Implemented:
 
-- conversation list/read clients;
-- normal text send client for an existing conversation;
-- inbound `im_receive_msg` parsing/normalization;
-- stripped `im_receive_msg_eu` conservative reconciliation using official conversation/message reads;
-- stable provider-message dedupe across normal and EU paths;
-- inbound-DM keyword campaign routing;
-- DM reply action planning only for an existing user-created conversation;
-- 6,000-character DM text validation;
-- Comment-to-Message capability read/send client kept separate from normal DM flow.
+- conversation/message reads;
+- text send client for an existing eligible conversation;
+- normal `im_receive_msg` normalization;
+- conservative `im_receive_msg_eu` reconciliation;
+- inbound-DM keyword routing;
+- 6,000-character DM validation;
+- Comment-to-Message read/send client kept separate.
 
-Still gated:
+Live campaign DM execution and Comment-to-Message campaign execution remain locked.
 
-- live campaign action execution;
-- Comment-to-Message UI/control;
-- any Comment-to-Message attempt until account eligibility is verified against the live app/account.
+### D — staging UI / diagnostics
 
-ReplyHalo does not convert an ordinary comment into a cold DM.
+Implemented:
 
-### Phase E — links, analytics, follow-ups
+- `/tiktok` provider QA surface;
+- OAuth configured/not-configured state;
+- connected account selection;
+- actual granted scopes and token expiry;
+- account capability indicators;
+- official owned-video loading;
+- TikTok campaign list/create/edit/delete UI;
+- explicit execution lock;
+- sanitized durable-match/worker diagnostics that exclude message content, action text, actor/conversation identifiers, credentials, and arbitrary raw worker payload fields.
 
-Not yet enabled for TikTok.
+### E — hard-gated executor foundation
 
-Before implementation:
+Implemented for two action-plan types only:
 
-1. confirm which TikTok message formats safely support the needed link UX;
-2. count click/CTR independently from provider delivery stats;
-3. implement follow-up behavior only after live validation of current TikTok conversation windows/rate limits;
-4. do not copy Instagram's 24-hour assumptions into TikTok.
+- `PUBLIC_REPLY` to the triggering controlled comment;
+- `DM_REPLY` in an already existing inbound Business Messaging conversation.
 
-### Phase F — staging E2E
+The executor is not wired into queue/cron/UI execution and returns locked while:
 
-Required live staging matrix:
+```text
+TIKTOK_LIVE_EXECUTION_ENABLED = false
+```
 
-- OAuth + state validation;
-- token refresh;
-- central license slot binding;
-- owned video load;
-- comment webhook receipt;
-- exact comment body lookup;
-- keyword matching;
-- public reply execution;
-- duplicate webhook replay/dedupe;
-- normal inbound DM keyword flow;
-- EU inbound DM reconciliation where applicable;
-- DM send inside an eligible existing conversation;
-- Comment-to-Message only if the test Business Account is eligible;
-- disconnect/reconnect preserving history;
-- token refresh/revocation failure handling;
-- Dashboard/provider activity consistency.
+Comment-to-Message is not an active campaign action.
 
-Only after these pass should TikTok sending be enabled for customer workspaces.
+### F — links, analytics, follow-ups
+
+Not enabled for TikTok.
+
+Do not copy Instagram follow-up windows, link UX, or rate-limit assumptions into TikTok until live provider behavior is validated.
+
+## Current live-staging handoff
+
+The exact provider/human setup sequence is maintained in:
+
+```text
+docs/TIKTOK_LIVE_STAGING_RUNBOOK.md
+```
+
+That runbook contains:
+
+- exact current staging callback URLs;
+- required environment-variable names without values;
+- desired permissions/provider products;
+- OAuth preflight;
+- webhook preflight;
+- inert comment and inbound-DM E2E;
+- dedupe checks;
+- controlled-send prerequisites;
+- Comment-to-Message hold;
+- non-secret evidence checklist.
 
 ## Environment placeholders
 
-Deployment secrets use placeholders similar to:
+Set real values only in the staging deployment environment:
 
 ```text
-TIKTOK_BUSINESS_APP_ID=...
-TIKTOK_BUSINESS_APP_SECRET=...
-TIKTOK_BUSINESS_REDIRECT_URI=https://<replyhalo-host>/api/tiktok/callback
-TIKTOK_BUSINESS_SCOPES=user.info.basic,user.info.username,video.list,comment.list,comment.list.manage,message.list.read,message.list.send,message.list.manage
+TIKTOK_BUSINESS_APP_ID
+TIKTOK_BUSINESS_APP_SECRET
+TIKTOK_BUSINESS_REDIRECT_URI
+TIKTOK_BUSINESS_SCOPES   # optional explicit override
 ```
 
-Never add real values to `.env.example`, GitHub, screenshots, or chat.
+Expected current staging redirect:
 
-## Current status
+```text
+TIKTOK_BUSINESS_REDIRECT_URI=https://replyhalo-web-staging.up.railway.app/api/tiktok/callback
+```
 
-- Instagram provider: **LIVE / staging QA passed**.
-- DM Magnet multi-platform license identity: **TIKTOK supported**.
-- TikTok official API feasibility: **confirmed**.
-- TikTok OAuth/token/account foundation: **implemented in code**.
-- TikTok signed webhook ingestion: **implemented in code**.
-- TikTok comment normalization + exact lookup: **implemented in code**.
-- TikTok normal inbound DM normalization: **implemented in code**.
-- TikTok EU stripped-message reconciliation: **implemented in code, fail-closed on ambiguity**.
-- Provider-native comment/message dedupe: **implemented in code**.
-- TikTok additive campaign storage + keyword routing: **implemented in code**.
-- TikTok campaign management/read APIs: **implemented in code**.
-- Live TikTok campaign sends: **disabled pending developer-app approval and staging E2E**.
-- Instagram schema/worker behavior: **not migrated into TikTok code paths**.
+Core secrets such as `NEXTAUTH_SECRET` and `ENCRYPTION_KEY` must already exist but their values must never be committed or pasted into evidence.
 
 ## Merged implementation checkpoints
 
-- PR #20 — isolated TikTok comment ingress pipeline.
-- PR #21 — inbound TikTok message normalization pipeline.
-- PR #22 — conservative EU stripped-message reconciliation.
+- PR #20 — isolated TikTok comment ingress.
+- PR #21 — inbound message normalization.
+- PR #22 — EU/UK/CH stripped-message reconciliation.
 - PR #23 — provider-native durable event receipts.
-- PR #24 — additive TikTok campaign storage and inert routing plans.
-- PR #25 — guarded TikTok campaign management API.
-- PR #26 — safe TikTok account and owned-video read APIs.
-- PR #27 — public-reply validation aligned with TikTok's 150-character client limit.
+- PR #24 — separate TikTok campaign storage and inert routing plans.
+- PR #25 — guarded TikTok campaign CRUD API.
+- PR #26 — safe account and owned-video read APIs.
+- PR #27 — public-reply provider-limit alignment.
+- PR #29 — additive TikTok staging UI.
+- PR #31 — hard-gated TikTok action executor foundation.
+- PR #33 — sanitized TikTok execution diagnostics.
+- PR #35 — live-staging handoff runbook.
 
-## Next implementation checkpoint
+Evidence checkpoints are recorded separately in `docs/ip-evidence/`.
 
-The remaining blocker is no longer core schema/OAuth/ingress architecture. The next major milestone is **live TikTok for Business staging integration** with an approved developer app and dedicated test Business Account.
+## Current status
 
-Before live sends are enabled, ReplyHalo should add the TikTok staging UI needed to:
+- Instagram provider: **staging QA passed**.
+- TikTok code-only provider foundation: **implemented through staging diagnostics and guarded executor**.
+- TikTok live execution: **disabled**.
+- TikTok developer-app approval/configuration: **not yet human-validated**.
+- TikTok real Business Account OAuth: **not yet human-validated**.
+- TikTok real webhook delivery: **not yet human-validated**.
+- TikTok live public reply / DM send: **not yet performed**.
+- Comment-to-Message campaign action: **disabled pending separate eligibility proof**.
 
-1. connect/inspect a TikTok Business Account;
-2. show actual granted capabilities;
-3. select owned videos;
-4. create/edit additive TikTok campaigns;
-5. keep send execution visibly disabled until the live provider checks pass.
+## Exact next phase
+
+The next meaningful milestone is no longer another speculative code-only feature. It is the real **TikTok for Business staging E2E** with Volodymyr Rudyi:
+
+1. developer app + provider products/permissions;
+2. staging secret configuration directly in Railway;
+3. real OAuth connection;
+4. actual scopes/capabilities + owned-video read;
+5. signed `COMMENT` / `DIRECT_MESSAGE` webhook delivery;
+6. one inert comment match and one inert DM match while execution remains locked;
+7. duplicate-event validation;
+8. only then a separately approved controlled send test.
+
+Do not change `TIKTOK_LIVE_EXECUTION_ENABLED` before that sequence reaches the explicit controlled-send approval point.
