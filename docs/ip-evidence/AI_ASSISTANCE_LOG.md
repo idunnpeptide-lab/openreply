@@ -98,3 +98,33 @@ Volodymyr explicitly required that every significant completed development stage
 **AI assistance — ChatGPT (OpenAI)**
 
 Implemented the repository-level evidence structure and incorporated this rule into project documentation/agent guidance so future milestones are expected to update the evidence set automatically.
+
+**Repository evidence**
+
+PR #28, merge SHA `a43ff6c1fcc0dd3efcd8e9516c4e7c0544797eea`.
+
+---
+
+## 2026-09-19 — TikTok staging UI milestone
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to continue the development autonomously until his participation is actually required;
+- had already chosen the additive TikTok direction and the requirement not to destabilize Instagram;
+- retained the decision that live TikTok execution must not be enabled before real provider staging/approval;
+- did not perform or claim a live TikTok provider validation for this UI milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- analyzed the existing TikTok account/video/automation APIs and dashboard patterns;
+- implemented the dedicated TikTok staging page, capability/readiness surface, official owned-video loading, and campaign management UI;
+- added a non-secret staging-status endpoint and client-safe readiness model;
+- kept `TIKTOK_LIVE_EXECUTION_ENABLED=false` and omitted Comment-to-Message as an executable action;
+- added regression tests and opened PR #29;
+- investigated a failed React lint run, chose to refactor the data flow rather than suppress the lint rule, then re-ran CI/Security to green;
+- merged the milestone only after CI and Security succeeded;
+- prepared this evidence checkpoint immediately after the significant stage, per Volodymyr's permanent rule.
+
+**Repository evidence**
+
+PR #29, head SHA `af92401ce4ce107e228ad32f8b989e3bd228cf2f`, merge SHA `48a3e38143d65f240b38658e16d606e0d8a5e629`, CI run `35431525663`, Security run `35431525669`.
