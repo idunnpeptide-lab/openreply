@@ -114,6 +114,13 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Security run: `35431698783` — success.
 - Evidence: recorded PR #29 progress, R&D decision history, AI-assistance role split, and exact repository/CI evidence without claiming live TikTok validation.
 
+### PR #32 — TikTok executor evidence checkpoint
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/32`
+- Head SHA: `772d9b96dfaf4df1e72fbd449e8789266b0755d8`.
+- Merge SHA: `8e2cbca07b68c14a2349c85ff3a7907c2f1e157a`.
+- Evidence: recorded the completed PR #31 executor milestone, exact CI/Security evidence, safety gate, and the provider idempotency limitation without claiming live provider validation.
+
 ## TikTok staging UI evidence — 2026-09-19
 
 ### PR #29 — additive TikTok staging UI with execution lock
@@ -144,6 +151,22 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Idempotency limitation recorded truthfully: ReplyHalo's current TikTok send clients do not expose a persisted provider idempotency key. A hard process crash after provider acceptance but before DB commit can remain ambiguous. No exactly-once claim is made across that failure boundary.
 - Human validation: **not yet performed for TikTok live provider behavior**. No real provider send is claimed by PR #31.
 
+## TikTok execution-diagnostics evidence — 2026-09-19
+
+### PR #33 — sanitized TikTok execution diagnostics
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/33`
+- Final head SHA: `bcf67ee27cee10b153dee6f8e82467e85e183e38`.
+- Merge SHA: `5572c398b56e214a3bea33c318c8c99b23da1c16`.
+- Final CI run: `35432848811` — success.
+- Final Security run: `35432848785` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, diagnostics regression tests, existing full test suite, and production build passed.
+- Implementation evidence: workspace-scoped sanitized query, authenticated `/api/tiktok/diagnostics` endpoint, `/tiktok` routing/execution diagnostics panel, bounded result size, `no-store` response.
+- Privacy/security evidence: diagnostic output excludes comment/DM text, action-message text, actor IDs/usernames, conversation IDs, provider tokens/credentials, and arbitrary raw OperationalEvent payload fields; tests include explicit sentinel values proving they do not appear in serialized output.
+- Development-history evidence: earlier PR #33 CI attempts surfaced two TypeScript inference issues (`trigger`, then `actionTypes`); both were fixed with explicit narrow union types and the final head above is the green revision.
+- Safety evidence: `TIKTOK_LIVE_EXECUTION_ENABLED=false`; no executor queue/cron/UI execution wiring was added; no Comment-to-Message execution was added.
+- Human validation: **not yet performed for TikTok live provider behavior**. No TikTok deployment, OAuth approval, webhook delivery, or real provider send is claimed by PR #33.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -156,4 +179,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #31 is the latest completed product milestone recorded here. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
+PR #33 is the latest completed product milestone recorded here. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
