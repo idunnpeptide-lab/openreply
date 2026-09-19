@@ -139,6 +139,15 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Security run: `35433525994` — success.
 - Evidence: recorded PR #35 runbook preparation, exact staging handoff URLs/configuration targets, current provider documentation verification, human/AI roles, and the no-secrets/no-live-send boundary.
 
+### PR #38 — TikTok webhook-readiness evidence checkpoint
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/38`
+- Head SHA: `ff6cd5f8a1f9d5fdb25bb3dca56f1bd7af1a0658`.
+- Merge SHA: `ded6f9fdd40cbb02dc7bf4631f44fe391f6fe67b`.
+- CI run: `35434772926` — success.
+- Security run: `35434772933` — success.
+- Evidence: recorded PR #37 signed-webhook readiness semantics, runtime safety boundaries, human/AI contribution split, and the exact provider-validation boundary without claiming a real TikTok delivery.
+
 ## TikTok staging UI evidence — 2026-09-19
 
 ### PR #29 — additive TikTok staging UI with execution lock
@@ -215,6 +224,24 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Safety evidence: invalid signatures, unsupported event names, and failed queue handoffs cannot confirm readiness; `TIKTOK_LIVE_EXECUTION_ENABLED=false`; no TikTok send wiring or Comment-to-Message execution was added; Instagram code paths were unchanged.
 - Human validation: **not yet performed** for real TikTok webhook delivery. PR #37 prepares the truthful runtime transition that the later human/provider staging session can validate.
 
+## TikTok safe-disconnect evidence — 2026-09-19
+
+### PR #39 — non-destructive TikTok disconnect/reconnect preservation
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/39`
+- Head SHA: `8d077a3c4d803f615471ed02218add5086abead4`.
+- Merge SHA: `ce91619f4ada085e039114e1e11ab606c6c1f831`.
+- CI run: `35435285708` — success.
+- Security run: `35435285684` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, safe-disconnect/account-read regression tests, existing full test suite, and production build passed.
+- Data-preservation evidence: the disconnect route updates the existing `TikTokAccount` row and never deletes it, avoiding cascade deletion of `TikTokAutomation` and `TikTokAutomationMatch` history.
+- Local credential-state evidence: encrypted sentinel values replace stored access/refresh token ciphertexts, both token expiries move to epoch, scopes and capability flags are cleared, and webhook readiness resets false.
+- Isolation evidence: disconnected/expired accounts are hidden from connected account resolution/API/UI, blocked from owned-video/provider reads, and excluded from webhook account resolution so stray deliveries cannot resume local routing/readiness.
+- Reconnect evidence in code: OAuth upsert for the same provider `openId` restores fresh encrypted tokens, expiry, granted scopes/capabilities and `connectedAt` on the preserved row, while webhook readiness and Comment-to-Message eligibility reset and must be proven again.
+- License identity evidence: local disconnect intentionally does not release the DM Magnet TikTok social-account slot/binding, matching the established preservation model used for Instagram.
+- Safety evidence: `TIKTOK_LIVE_EXECUTION_ENABLED=false`; no live-send wiring or Comment-to-Message execution was added; Instagram code paths were not changed; no schema migration was required.
+- Human validation: **not yet performed** for real TikTok disconnect/reconnect. No provider OAuth, webhook delivery, disconnect/reconnect, or send is claimed by PR #39.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -228,4 +255,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #37 is the latest completed product milestone recorded here. The safe code-only TikTok foundation now includes evidence-based webhook-readiness confirmation. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook/provider-send validation has not yet occurred and is not claimed.
+PR #39 is the latest completed product milestone recorded here. The safe code-only TikTok foundation now includes signed-webhook readiness confirmation and non-destructive disconnect/reconnect preservation. The next meaningful TikTok phase requires real TikTok for Business developer-app/account configuration and human provider validation. Live TikTok OAuth/deployment/webhook/disconnect/reconnect/provider-send validation has not yet occurred and is not claimed.
