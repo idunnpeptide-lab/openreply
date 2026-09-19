@@ -390,3 +390,42 @@ Focused regression coverage proves that disconnect never calls account deletion,
 
 **Result**
 PR #39 merged at `ce91619f4ada085e039114e1e11ab606c6c1f831`. The code is ready for a future human TikTok disconnect/reconnect staging test, but no real TikTok OAuth, disconnect, reconnect, webhook delivery, or provider send is claimed by this milestone.
+
+---
+
+## 2026-09-19 — Staging-only TikTok webhook configuration/readback control
+
+**Task**
+Reduce manual provider setup during the first real TikTok staging session by exposing a safe in-product way to read and configure the two webhook families ReplyHalo needs, while preserving the distinction between provider configuration and runtime delivery evidence.
+
+**Problem**
+The codebase already had official TikTok webhook update/list/delete helpers, but they were not exposed through an authenticated staging workflow. The human session would otherwise need to construct API requests manually, increasing the risk of wrong callback URLs, secret leakage, or assuming that a successful configuration request meant a real signed webhook had reached ReplyHalo.
+
+**Options considered**
+- Keep webhook configuration fully manual in the TikTok portal/API.
+- Expose a generic customer-facing webhook editor that accepts arbitrary callback URLs.
+- Add a staging-only owner/admin control that derives the callback URL from ReplyHalo itself, requires a connected staging TikTok account before global app mutation, configures only `COMMENT` and `DIRECT_MESSAGE`, and verifies the result by provider readback.
+
+**Volodymyr's decision**
+Continue autonomous staging preparation without enabling sends or weakening evidence rules. Provider configuration may be automated, but `webhookConfigured=true` must still remain reserved for a real supported signed delivery reaching ReplyHalo's ingress path.
+
+**Implementation**
+PR #41 added:
+
+- staging-only authenticated `GET`/`POST` control at `/api/admin/diagnostics/tiktok-webhooks`;
+- owner/admin authorization plus production 404 behavior;
+- a connected-account guard before changing the global TikTok developer-app webhook configuration;
+- server-derived callback URL from the current staging base URL, so the browser cannot supply an arbitrary webhook target;
+- configuration/readback for `COMMENT` and `DIRECT_MESSAGE` only;
+- provider readback verification after update rather than trusting update success alone;
+- sanitized browser output limited to event state, callback URL, and provider error code without raw provider payloads or credentials;
+- a `/tiktok` UI panel with **Read provider config** and **Configure + verify** actions;
+- explicit UI text that provider readback does not change live execution or runtime webhook readiness.
+
+Current TikTok API for Business documentation was rechecked during implementation and still lists the TikTok-account webhook update/list/delete endpoints and Business Messaging webhook configuration APIs.
+
+**Test**
+Regression coverage verifies staging-only behavior, role protection, connected-account mutation guard, correct expected callback derivation, provider readback match/mismatch handling, two-family configuration, operational evidence logging, and output sanitization. PR #41 head `f5bd50842f18db776476657f4bff1e5bcab4c9f0` passed CI run `35437528458` (Prisma validate/generate, TypeScript, lint, tests, production build) and Security run `35437528438`.
+
+**Result**
+PR #41 merged at `85aec2d01047dfed5b410ec38dc5f9b0369ebe1d`. ReplyHalo can now perform the provider webhook configuration/readback portion of staging from `/tiktok` after a real account is connected. No real TikTok provider configuration, OAuth authorization, signed webhook delivery, disconnect/reconnect, or send is claimed by this milestone.
