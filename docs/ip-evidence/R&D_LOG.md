@@ -163,4 +163,42 @@ and added repository-agent guidance so future development checkpoints follow the
 Repository review for presence of required files and subsequent PR/CI checkpoint.
 
 **Result**
-Evidence discipline established as an ongoing project rule. The exact evidence PR/merge SHA is recorded in `IP_EVIDENCE.md` after the checkpoint is merged.
+Evidence discipline established as an ongoing project rule. PR #28 merged at `a43ff6c1fcc0dd3efcd8e9516c4e7c0544797eea` after CI and Security passed.
+
+---
+
+## 2026-09-19 — Additive TikTok staging UI without enabling live sends
+
+**Task**
+Expose the already-built TikTok provider foundation in the ReplyHalo dashboard so the next live staging phase can inspect real account readiness, owned videos, and campaign configuration without changing Instagram or accidentally sending TikTok actions.
+
+**Problem**
+The TikTok backend foundation existed, but there was no customer/staging surface to inspect provider capabilities, select owned videos, or configure the isolated TikTok campaign models. Enabling a normal campaign UI too early could also create the false impression that public replies or DMs were already live.
+
+**Options considered**
+- Reuse the existing Instagram campaign builder and generalize it immediately.
+- Expose live TikTok send controls before provider staging.
+- Build a dedicated additive TikTok staging console on top of the isolated TikTok APIs, with explicit provider capability gates and a hard execution lock.
+
+**Volodymyr's decision**
+Continue the additive TikTok path and do all code-only work possible without his participation, while keeping live sends disabled until real TikTok developer-app/account staging requires human involvement.
+
+**Implementation**
+PR #29 added:
+
+- `/tiktok` staging navigation/page;
+- non-secret provider/OAuth readiness status;
+- connected Business Account capability/scopes/token-expiry display;
+- official owned-video loading;
+- TikTok campaign list/create/edit/delete controls;
+- capability-gated comment and inbound-DM configuration;
+- explicit messaging that durable matches are routing evidence, not send evidence;
+- `TIKTOK_LIVE_EXECUTION_ENABLED=false` staging gate and readiness regression tests.
+
+During CI, the first UI implementation hit the repository's React lint rule against effect-driven synchronous state updates. The implementation was refactored to server-load initial state and perform provider refreshes only from explicit user actions instead of suppressing the lint rule.
+
+**Test**
+PR #29 CI run `35431525663` passed: Prisma validate/generate, TypeScript, lint, tests, and production build. Security run `35431525669` passed. No live TikTok provider message was sent or claimed.
+
+**Result**
+PR #29 merged at `48a3e38143d65f240b38658e16d606e0d8a5e629`. The staging UI milestone is code-complete; human TikTok provider validation has not yet occurred.

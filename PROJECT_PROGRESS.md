@@ -27,9 +27,9 @@ Human validation evidence includes Volodymyr confirming that, after reconnect, t
 
 ### TikTok provider
 
-TikTok is implemented as an additive provider foundation, isolated from the proven Instagram path. Live TikTok send execution remains intentionally gated until real TikTok for Business app/account staging E2E is available.
+TikTok is implemented as an additive provider isolated from the proven Instagram path. Live TikTok send execution remains intentionally gated until a real TikTok for Business developer app/test Business Account completes staging E2E.
 
-Merged TikTok foundation milestones:
+Merged TikTok milestones:
 
 - PR #20 — isolated comment ingress; merge SHA `4ed413e6bb7cdc7a6857fd3aef3578b5c3bf2d5a`.
 - PR #21 — inbound message normalization; merge SHA `4d3251d102e4f6a09a2d040333529f47156ec775`.
@@ -39,8 +39,24 @@ Merged TikTok foundation milestones:
 - PR #25 — guarded TikTok campaign CRUD API; merge SHA `b8da4e22aae5f87aa0f4011fa3f60324594f5c33`.
 - PR #26 — safe TikTok account + owned-video read APIs; merge SHA `ef7b57712dd8603d16e34c1f6580e7dc266062cc`.
 - PR #27 — public-reply validation aligned with the provider client limit; merge SHA `1c9f5e8dbf41dfd7092085042c7e26ffbefac150`.
+- PR #29 — additive TikTok staging UI with provider capability display, official owned-video loading, campaign list/create/edit/delete controls, and explicit live-execution lock; merge SHA `48a3e38143d65f240b38658e16d606e0d8a5e629`.
 
-At the PR #27 checkpoint, `main` was `1c9f5e8dbf41dfd7092085042c7e26ffbefac150`.
+PR #29 CI run `35431525663` passed and Security run `35431525669` passed before merge. No live TikTok provider send was claimed or performed in that milestone.
+
+## Current TikTok staging UI state
+
+The dashboard now includes **TikTok staging** with:
+
+- OAuth/developer-app configuration state;
+- connected TikTok Business Account selection;
+- stored token-expiry and granted-scope display;
+- comment, public-reply, Business Messaging, Comment-to-Message, and webhook readiness indicators;
+- official owned-video loading;
+- TikTok campaign list/create/edit/delete controls;
+- capability-gated comment and inbound-DM campaign configuration;
+- durable routing/match visibility without implying that a provider send occurred.
+
+`TIKTOK_LIVE_EXECUTION_ENABLED` remains `false`.
 
 ## Current safety boundaries
 
@@ -48,19 +64,23 @@ At the PR #27 checkpoint, `main` was `1c9f5e8dbf41dfd7092085042c7e26ffbefac150`.
 - TikTok webhook events are normalized before automation matching.
 - TikTok logical events use stable provider IDs for dedupe.
 - EU stripped-message reconciliation fails closed on ambiguity.
-- TikTok action plans are persisted but live public-reply/DM execution remains gated until live provider staging QA.
-- No scraping/private endpoint fallback is part of the TikTok foundation.
+- TikTok action plans can be persisted, but live public-reply/DM execution remains gated until live provider staging QA.
+- Comment-to-Message is displayed as capability state only; it is not exposed as an active campaign action.
+- No scraping/private endpoint fallback is part of the TikTok implementation.
 - Secrets must never be committed into project documentation or evidence logs.
 
 ## Exact continuation point
 
-The next implementation milestone is the **additive TikTok staging UI** on top of the already merged safe APIs:
+The next engineering milestone is to prepare the **TikTok action-execution layer behind the existing hard staging gate**, while still preventing any live send until provider staging is available. This should include:
 
-1. show connected TikTok account/capability status;
-2. load owned videos from the official read API;
-3. add TikTok campaign list/create/edit UI;
-4. show explicit provider-readiness/capability gating;
-5. keep live TikTok send execution disabled until real developer-app + Business Account staging E2E passes.
+1. executor contracts for persisted `PUBLIC_REPLY` and `DM_REPLY` TikTok action plans;
+2. capability re-check immediately before execution;
+3. provider-native idempotency / terminal action state so one logical match cannot send twice;
+4. structured success/failure diagnostics;
+5. tests proving the executor refuses to send while `TIKTOK_LIVE_EXECUTION_ENABLED=false`;
+6. no Comment-to-Message execution until real account eligibility is proven.
+
+After that code-only milestone, human participation will be required for the real TikTok for Business developer app/account staging phase: OAuth configuration/approval, real account connection, webhook delivery, and live end-to-end validation.
 
 ## Evidence discipline
 
