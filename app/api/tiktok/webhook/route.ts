@@ -18,6 +18,7 @@ import {
   TikTokWebhookError,
   verifyTikTokWebhookSignature,
 } from "@/lib/tiktok/webhook";
+import { confirmTikTokWebhookReadiness } from "@/lib/tiktok/webhook-readiness";
 
 const MAX_WEBHOOK_BODY_BYTES = 512 * 1024;
 
@@ -200,6 +201,18 @@ export async function POST(request: NextRequest) {
       },
       { jobId: `message_eu_${dedupeKey}` }
     );
+  }
+
+  // A known account should show webhook readiness only after TikTok has sent a
+  // correctly signed event that ReplyHalo supports and the corresponding
+  // ingress handoff completed successfully. Merely saving a callback URL is not
+  // treated as proof. Unsupported events and invalid signatures cannot flip the
+  // readiness flag.
+  if (account) {
+    await confirmTikTokWebhookReadiness({
+      tiktokAccountId: account.id,
+      event: envelope.event,
+    });
   }
 
   return NextResponse.json(
