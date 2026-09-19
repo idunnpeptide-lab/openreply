@@ -179,3 +179,29 @@ PR #31, head SHA `a40f274ba8cc2aa0ce73638eac2326c6dda89a92`, merge SHA `346f1cc9
 **Repository evidence**
 
 PR #33, final head SHA `bcf67ee27cee10b153dee6f8e82467e85e183e38`, merge SHA `5572c398b56e214a3bea33c318c8c99b23da1c16`, CI run `35432848811`, Security run `35432848785`.
+
+---
+
+## 2026-09-19 — TikTok live-staging handoff runbook
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to continue all useful autonomous work until his participation is genuinely necessary;
+- retained final authority over provider setup choices and over any future enabling of live TikTok sends;
+- required that secrets never be committed and that future manual screenshots/tests be recorded only as real human evidence;
+- did not perform or claim TikTok developer-app authorization, webhook delivery, or live provider send for this documentation milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- inspected the actual ReplyHalo TikTok OAuth callback, environment helper, webhook receiver, webhook-signature/configuration helpers, status/readiness logic, and staging UI;
+- checked current official TikTok API for Business documentation for v1.3 account OAuth/token handling, TikTok-account webhooks, Business Messaging, and Comment-to-Message;
+- prepared `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md` with the exact current staging callback URLs and a no-secrets deployment checklist;
+- separated desired scopes from actually granted provider permissions;
+- defined inert comment/DM E2E steps that preserve `TIKTOK_LIVE_EXECUTION_ENABLED=false`;
+- defined the conditions that must be met before a later controlled public-reply/DM send test can be approved;
+- added a human-evidence checklist that excludes secrets and private message content;
+- ran the documentation PR through CI and Security before merge and then prepared this required evidence checkpoint.
+
+**Repository evidence**
+
+PR #35, head SHA `946e17780629601b0af20847745df486cf3a8a58`, merge SHA `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`, CI run `35433279605`, Security run `35433279575`.
