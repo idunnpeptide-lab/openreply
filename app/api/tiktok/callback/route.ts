@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
       now + tokenSet.refreshTokenExpiresIn * 1000
     );
     const capabilities = getTikTokCapabilitiesFromScopes(tokenSet.scopes);
+    const connectedAt = new Date(now);
 
     await prisma.tikTokAccount.upsert({
       where: { openId: tokenSet.openId },
@@ -113,6 +114,7 @@ export async function GET(request: NextRequest) {
         // capability/configuration checks. Do not infer them from OAuth scopes.
         commentToMessageEnabled: false,
         webhookConfigured: false,
+        connectedAt,
       },
       update: {
         workspaceId: state.workspaceId,
@@ -124,6 +126,11 @@ export async function GET(request: NextRequest) {
         refreshTokenExpiresAt,
         grantedScopes: tokenSet.scopes,
         ...capabilities,
+        // Reconnect reuses the preserved account row/campaign history but must
+        // re-prove account-dependent capability and signed webhook delivery.
+        commentToMessageEnabled: false,
+        webhookConfigured: false,
+        connectedAt,
       },
     });
 
