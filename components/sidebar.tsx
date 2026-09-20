@@ -13,7 +13,8 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Overview", href: "/overview" },
   { label: "Inbox", href: "/inbox" },
-  { label: "Campaigns", href: "/campaigns" },
+  { label: "Quick Automations", href: "/campaigns/quick" },
+  { label: "Campaigns", href: "/campaigns", exact: true },
   { label: "TikTok staging", href: "/tiktok" },
   { label: "DM Logs", href: "/logs" },
   { label: "Settings", href: "/settings" },
@@ -35,7 +36,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
@@ -51,8 +51,6 @@ export default function Sidebar({
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Same reason as the top bar: the drawer is full height, so the
-            wordmark would otherwise land under the status bar. */}
         <div
           className="px-6 py-5 border-b border-border"
           style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}
@@ -64,8 +62,9 @@ export default function Sidebar({
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}

@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
+import LaunchOnboarding from "@/components/launch-onboarding";
 import StatCard from "@/components/stat-card";
 import StatusBadge from "@/components/status-badge";
 
@@ -82,7 +83,6 @@ export default function DashboardPage() {
   }
 
   const maxDM = Math.max(...(stats?.dailyDMs.map((d) => d.count) ?? [1]), 1);
-
   const connectedCount = stats?.instagramAccounts.length ?? 0;
 
   return (
@@ -114,6 +114,11 @@ export default function DashboardPage() {
         )}
       </div>
 
+      <LaunchOnboarding
+        connectedAccounts={connectedCount}
+        activeAutomations={stats?.activeAutomations ?? 0}
+      />
+
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         <StatCard
@@ -140,7 +145,6 @@ export default function DashboardPage() {
                   className="w-full rounded-sm bg-accent min-h-[4px]"
                   style={{ height: `${Math.max((day.count / maxDM) * 100, 4)}%` }}
                 />
-                {/* Seven labels share a phone's width, so they must not wrap. */}
                 <span className="w-full truncate text-center text-[10px] text-zinc-500">
                   {day.date}
                 </span>
