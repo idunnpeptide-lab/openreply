@@ -370,3 +370,32 @@ PR #45, final head SHA `d521fa5b48b55c59a66637b75bc68ca6bb0b609a`, merge SHA `88
 **Repository evidence**
 
 PR #47, final head SHA `9b814eb580c8bb44ca33df47d2fa2ef0185c3372`, merge SHA `d2fa7a671e1ce6f7b1541e4c089559bad8295741`, CI run `35523019203`, Security run `35523019202`. Earlier head `b82b3376e3b17175c9659f9bde724a39cc8878fc` failed lint on one unescaped apostrophe and is retained as truthful development-history evidence.
+
+---
+
+## 2026-09-20 — Launch empty/error-state and analytics presentation milestone
+
+**Human role — Volodymyr Rudyi**
+
+- approved the launch-priority sequence and explicitly told ChatGPT to continue autonomously;
+- prioritized a short first-run path over expanding ReplyHalo into a large visual builder/CRM before launch;
+- retained final authority over fresh-customer manual staging and launch approval;
+- did not claim manual validation of this UI milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- inspected the existing Dashboard and Automations pages and confirmed the needed KPI data already existed in current APIs;
+- made Quick Automations the primary Automations-page creation action while preserving Import and Custom builder as secondary paths;
+- replaced the first-run empty state with a Quick-Automation-first path;
+- added recoverable data/action error states and connection-repair links instead of console-only failures;
+- added clear-filter recovery when search/status filters return no results;
+- tightened Dashboard metrics around Active Automations, DMs Sent, Link Clicks and CTR while retaining Failed/Skipped operational visibility;
+- added useful zero-data states for recent activity and 7-day delivery;
+- reordered per-automation metrics around runs → sent → clicks → CTR;
+- deliberately reused existing analytics/runtime state and introduced no schema, worker, provider-permission or TikTok gate changes;
+- ran PR #49 through CI and Security and merged only after both succeeded;
+- prepared the required evidence checkpoint after merge.
+
+**Repository evidence**
+
+PR #49, head SHA `4812d60ca790bd508e05e6a826660923073f5fa3`, merge SHA `3d5a75ba1379f8137997e778ca0369b08ead4eeb`, CI run `35524959374`, Security run `35524959433`. No fresh-customer manual staging validation is claimed for this milestone.

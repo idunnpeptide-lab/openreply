@@ -16,7 +16,7 @@ This file records only work supported by repository history, CI, deployment evid
 
 Core Instagram staging behavior has been validated by Volodymyr Rudyi during live manual QA on 2026-09-18, including comment-triggered DM flows, Follow Gate behavior for followers/non-followers, tracked links/click tracking, follow-ups, safe disconnect/reconnect, and post-reconnect automation delivery.
 
-Important fixes from that QA:
+Important fixes from that QA and launch work:
 
 - PR #6 — follow-up scheduling for direct comment reveals; merge SHA `3ca7ca56ddb6de87f2e970413119eea07fad3213`.
 - PR #7 — repeat follow-ups for returning users; merge SHA `940674886d8aa47d086d8a88db040ca36a1e2294`.
@@ -24,12 +24,13 @@ Important fixes from that QA:
 - PR #9 — staging release marker used before live disconnect QA; merge SHA `29938e7251855de89bf1338ad5801e26173fbaad`.
 - PR #45 — launch onboarding, Instagram connection-health API/model, four Quick Automations, and connected-only account counting; merge SHA `8883da17b8d435755263a53137aa6373d112b084`.
 - PR #47 — customer-facing Instagram connection-health and self-service reconnect UX; merge SHA `d2fa7a671e1ce6f7b1541e4c089559bad8295741`.
+- PR #49 — launch-first Automations empty/error states and tighter Dashboard/Campaign analytics presentation; merge SHA `3d5a75ba1379f8137997e778ca0369b08ead4eeb`.
 
-Human validation evidence from the earlier Instagram staging session includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully. PR #45/#47 launch UX changes have automated CI evidence but have **not yet** been manually staging-validated as a fresh customer flow; no new live provider test is claimed for those milestones.
+Human validation evidence from the earlier Instagram staging session includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully. PR #45/#47/#49 launch UX changes have automated CI evidence but have **not yet** been manually staging-validated as a fresh customer flow; no new live provider test is claimed for those milestones.
 
 ### Launch UX / pre-launch readiness
 
-PR #45 moved ReplyHalo's first-run experience toward the intended SaaS model where provider complexity stays on ReplyHalo's side rather than the customer's side. PR #47 then made connection repair customer-readable instead of developer-facing.
+PR #45 moved ReplyHalo's first-run experience toward the intended SaaS model where provider complexity stays on ReplyHalo's side rather than the customer's side. PR #47 made connection repair customer-readable instead of developer-facing. PR #49 then made Quick Automations the primary creation path and tightened launch analytics/error handling without introducing a second analytics subsystem.
 
 Current launch path now includes:
 
@@ -42,23 +43,29 @@ Current launch path now includes:
 - one obvious **Connect / Reconnect Instagram** repair action while reminding users that campaigns/logs/clicks/history stay preserved;
 - customer-facing OAuth failure notices that no longer expose environment-variable names or raw provider error strings;
 - customer-facing plan notices branded as ReplyHalo rather than the older internal DM Magnet name;
-- a dedicated **Quick Automations** entry point;
+- a dedicated **Quick Automations** entry point and primary creation CTA on the Automations page;
 - four launch templates:
   - Comment → DM;
   - Comment → Follow Gate → DM;
   - Comment → Tracked Link;
   - Comment → Link → Follow-up;
 - reuse of the existing official Instagram post picker and existing `/api/automations` creation/runtime path;
-- the full Campaign Builder retained for advanced/custom setups;
+- the full Campaign Builder retained as an explicit **Custom builder** secondary path;
 - tracked-link `{link}` integrity guard;
 - account-switch behavior that clears a previously selected post;
-- dashboard-shell connected-account count that excludes preserved soft-disconnected rows.
+- dashboard-shell connected-account count that excludes preserved soft-disconnected rows;
+- recoverable Dashboard and Automations load/error states with retry and connection-repair paths;
+- a first-run Automations empty state that points to Quick Automations first rather than the advanced builder;
+- a no-results state that can clear search/status filters;
+- launch-oriented Dashboard metrics prioritizing Active Automations, DMs Sent, Link Clicks, CTR, Failed, and Skipped;
+- campaign-card funnel presentation ordered around runs → sent → clicks → CTR, with failed/skipped surfaced when relevant;
+- explicit zero-activity states for the 7-day DM chart and recent activity instead of blank panels.
 
 PR #45 final head `d521fa5b48b55c59a66637b75bc68ca6bb0b609a` passed CI run `35521687018` and Security run `35521687004` before merge. The initial CI attempt `35521482936` failed lint on internal raw links, was corrected, and is retained as truthful engineering history.
 
 PR #47 final head `9b814eb580c8bb44ca33df47d2fa2ef0185c3372` passed CI run `35523019203` and Security run `35523019202` before merge. Its earlier head `b82b3376e3b17175c9659f9bde724a39cc8878fc` failed lint on one unescaped apostrophe, which was corrected without suppressing the rule.
 
-The existing Dashboard already exposes launch-relevant analytics including active campaigns, DMs sent, skipped/failed counts, clicks, CTR, 7-day DM volume, top keywords and recent activity. The campaign API also already computes per-campaign sent/skipped/failed/click/CTR/top-keyword metrics, so a new analytics subsystem is not currently required merely to satisfy the pre-launch MVP goal.
+PR #49 head `4812d60ca790bd508e05e6a826660923073f5fa3` passed CI run `35524959374` and Security run `35524959433` before merge. The change reused the existing Dashboard and per-automation analytics data rather than adding schema, provider, or worker complexity.
 
 ### TikTok provider
 
@@ -124,6 +131,7 @@ TikTok disconnect remains evidence-preserving in code: the provider account row,
 - Instagram health output is workspace-scoped, `no-store`, and does not expose the stored access token.
 - Instagram customer-facing reconnect notices no longer expose deployment configuration names or raw provider failure reasons.
 - Quick Automations reuse the proven Instagram automation runtime rather than creating a second worker or provider path.
+- Launch analytics presentation reuses already persisted Dashboard/campaign data; PR #49 added no schema or background processing.
 - Soft-disconnected Instagram rows are preserved but no longer counted as active shell connections.
 - TikTok webhook events are normalized before automation matching.
 - TikTok logical events use stable provider IDs for ingress/routing dedupe.
@@ -142,12 +150,12 @@ TikTok disconnect remains evidence-preserving in code: the provider account row,
 
 ### Pre-launch Instagram product work
 
-The launch onboarding and self-service connection-health/reconnect milestones are complete in code. The next useful code-only work is:
+The launch onboarding, self-service connection-health/reconnect, first-run empty/error states, and launch KPI presentation are complete in code. The next useful code-only work is:
 
-1. polish campaign/dashboard empty and failure states so first-run users are always directed to **Quick Automations** rather than the advanced builder unless they explicitly choose custom setup;
-2. verify and tighten the existing Dashboard/Campaign analytics presentation around the launch KPI set instead of building a redundant analytics subsystem;
-3. polish template copy only where it reduces first-run friction;
-4. after deployment, perform a human staging walkthrough of the new flow: fresh user/dashboard → Connect Instagram → health state → Quick Automation → choose controlled Reel/post → activate → confirm campaign appears and existing automation behavior still works;
+1. review/polish the four Quick Automation template defaults and microcopy only where it reduces first-run friction without changing proven runtime semantics;
+2. run a focused launch-readiness audit over authentication/sign-up, plan/license activation, account-slot handling, and the path from a newly created workspace into Connect Instagram so customer-facing setup does not leak internal terminology;
+3. fix only launch-blocking gaps found by that audit rather than expanding product scope;
+4. after deployment, perform a human staging walkthrough of the new flow: fresh user/dashboard → Connect Instagram → health state → Quick Automation → choose controlled Reel/post → activate → confirm automation appears and existing delivery behavior still works;
 5. record that manual staging evidence only after Volodymyr Rudyi actually performs/confirms it.
 
 A large visual flow builder, AI manager, CRM, team/agency mode and broad omnichannel expansion remain intentionally outside the immediate launch blocker list.
