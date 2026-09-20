@@ -13,6 +13,7 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Overview", href: "/overview" },
   { label: "Inbox", href: "/inbox" },
+  { label: "Quick Automations", href: "/campaigns/quick" },
   { label: "Campaigns", href: "/campaigns" },
   { label: "TikTok staging", href: "/tiktok" },
   { label: "DM Logs", href: "/logs" },
@@ -35,7 +36,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
@@ -51,8 +51,6 @@ export default function Sidebar({
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Same reason as the top bar: the drawer is full height, so the
-            wordmark would otherwise land under the status bar. */}
         <div
           className="px-6 py-5 border-b border-border"
           style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}
