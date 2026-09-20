@@ -14,7 +14,7 @@ const navItems = [
   { label: "Overview", href: "/overview" },
   { label: "Inbox", href: "/inbox" },
   { label: "Quick Automations", href: "/campaigns/quick" },
-  { label: "Campaigns", href: "/campaigns" },
+  { label: "Campaigns", href: "/campaigns", exact: true },
   { label: "TikTok staging", href: "/tiktok" },
   { label: "DM Logs", href: "/logs" },
   { label: "Settings", href: "/settings" },
@@ -62,8 +62,9 @@ export default function Sidebar({
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
