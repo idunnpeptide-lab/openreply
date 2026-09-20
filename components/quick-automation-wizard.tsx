@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
@@ -89,6 +90,10 @@ export default function QuickAutomationWizard() {
       setError("Add the HTTPS link you want ReplyHalo to track.");
       return;
     }
+    if (template.trackedLinkRequired && !dmMessage.includes("{link}")) {
+      setError('Keep the "{link}" token in the private message so ReplyHalo can insert the tracked URL.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -155,12 +160,12 @@ export default function QuickAutomationWizard() {
             Start from a ready-made flow, choose the Reel/post, review the text, and activate.
           </p>
         </div>
-        <a
+        <Link
           href="/campaigns/new"
           className="text-sm font-medium text-accent hover:underline"
         >
           Open full builder
-        </a>
+        </Link>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -313,12 +318,12 @@ export default function QuickAutomationWizard() {
       )}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-        <a
+        <Link
           href="/campaigns"
           className="rounded-lg border border-border px-5 py-2.5 text-center text-sm font-medium text-foreground hover:bg-surface-hover"
         >
           Cancel
-        </a>
+        </Link>
         <button
           type="button"
           onClick={() => void createAutomation()}
