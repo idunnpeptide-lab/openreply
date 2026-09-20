@@ -59,6 +59,21 @@ interface WorkspaceMembersData {
   }>;
 }
 
+function planAttentionMessage(error?: string) {
+  switch (error) {
+    case "SUSPENDED":
+      return "Your ReplyHalo plan is temporarily paused. Contact support or restore the plan before connecting another account.";
+    case "REVOKED":
+      return "This ReplyHalo access is no longer active. Contact support before continuing.";
+    case "EXPIRED":
+      return "Your ReplyHalo plan has expired. Renew your access before connecting another account.";
+    case "ACCOUNT_LIMIT":
+      return "Your plan has no free social-account slots. Disconnect or migrate an old account, or upgrade the plan.";
+    default:
+      return "We could not verify this ReplyHalo plan. Retry the activation code or contact support.";
+  }
+}
+
 export default function SettingsPage() {
   const [data, setData] = useState<SettingsData | null>(null);
   const [membersData, setMembersData] = useState<WorkspaceMembersData | null>(
@@ -176,9 +191,6 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
-      {/* Surfaces the ?instagram= code the OAuth routes redirect back with.
-          Needs a Suspense boundary: useSearchParams in a prerendered client
-          page fails the production build without one. */}
       <Suspense fallback={null}>
         <InstagramConnectNotice />
       </Suspense>
@@ -188,7 +200,7 @@ export default function SettingsPage() {
           <div>
             <h2 className="text-base font-semibold">ReplyHalo Plan</h2>
             <p className="mt-1 text-xs text-muted">
-              Controls connected social-account slots and automation access for this workspace.
+              Your plan controls how many social accounts can be connected to this workspace.
             </p>
           </div>
 
@@ -217,7 +229,7 @@ export default function SettingsPage() {
 
         {!licenseData?.enabled ? (
           <p className="mt-4 text-sm text-muted">
-            Workspace plan enforcement is not enabled in this environment.
+            Plan activation is not required in this environment.
           </p>
         ) : licenseData.configured && licenseData.valid ? (
           <>
@@ -229,35 +241,40 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="rounded border border-border bg-surface/70 p-3">
-                <p className="text-xs text-muted">Social account slots</p>
+                <p className="text-xs text-muted">Connected account slots</p>
                 <p className="mt-1 text-sm font-semibold text-foreground">
                   {licenseData.usedAccounts}/{licenseData.maxAccounts}
                 </p>
               </div>
               <div className="rounded border border-border bg-surface/70 p-3">
-                <p className="text-xs text-muted">Expires</p>
+                <p className="text-xs text-muted">Plan renewal</p>
                 <p className="mt-1 text-sm font-semibold text-foreground">
                   {licenseData.expiresAt
                     ? new Date(licenseData.expiresAt).toLocaleDateString()
-                    : "No limit"}
+                    : "No expiry"}
                 </p>
               </div>
             </div>
             {licenseData.keyPrefix && (
               <p className="mt-3 text-xs text-muted">
-                License key: {licenseData.keyPrefix}
+                Activation code: {licenseData.keyPrefix}
               </p>
             )}
           </>
         ) : licenseData.configured ? (
-          <p className="mt-4 text-sm text-error">
-            Plan validation failed: {licenseData.error ?? "UNKNOWN"}
-          </p>
+          <div className="mt-4 rounded-lg border border-warning/20 bg-warning/5 p-3">
+            <p className="text-sm font-medium text-foreground">Your plan needs attention</p>
+            <p className="mt-1 text-xs text-muted">
+              {planAttentionMessage(licenseData.error)}
+            </p>
+          </div>
         ) : (
-          <p className="mt-4 text-sm text-muted">
-            Enter the ReplyHalo License Key issued for this workspace before
-            connecting Instagram.
-          </p>
+          <div className="mt-4">
+            <p className="text-sm font-medium text-foreground">Activate your ReplyHalo access</p>
+            <p className="mt-1 text-xs text-muted">
+              Paste the activation code you received with your plan. You only need to do this once for this workspace.
+            </p>
+          </div>
         )}
 
         {licenseData?.enabled &&
@@ -273,9 +290,10 @@ export default function SettingsPage() {
                 onChange={(event) => setLicenseKeyInput(event.target.value)}
                 placeholder={
                   licenseData.configured
-                    ? "Re-enter or replace the ReplyHalo License Key"
-                    : "Paste your ReplyHalo License Key"
+                    ? "Re-enter or replace your activation code"
+                    : "Paste your ReplyHalo activation code"
                 }
+                aria-label="ReplyHalo activation code"
                 className="min-w-0 flex-1 rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
                 autoComplete="off"
                 required
@@ -286,10 +304,10 @@ export default function SettingsPage() {
                 className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
               >
                 {busy === "license"
-                  ? "Validating..."
+                  ? "Checking..."
                   : licenseData.configured
-                    ? "Update key"
-                    : "Activate plan"}
+                    ? "Update code"
+                    : "Activate ReplyHalo"}
               </button>
               {licenseError && (
                 <p className="sm:basis-full text-sm text-error">
@@ -304,8 +322,8 @@ export default function SettingsPage() {
           accounts.length > 0 &&
           canManageMembers && (
             <p className="mt-4 border-t border-border pt-4 text-xs text-muted">
-              The License Key is locked while social accounts are connected.
-              Contact support for a controlled plan/account migration.
+              Your activation code is protected while social accounts are connected.
+              Contact support if you need to move this workspace to a different plan.
             </p>
           )}
       </section>
@@ -348,7 +366,7 @@ export default function SettingsPage() {
           <div className="space-y-3 py-3">
             {accounts.length === 0 && (
               <p className="text-sm text-muted">
-                Connect an Instagram professional account to launch campaigns.
+                Connect an Instagram professional account to launch automations.
               </p>
             )}
             {accounts.map((account) => (
@@ -466,7 +484,7 @@ export default function SettingsPage() {
               type="email"
               value={inviteEmail}
               onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="teammate@agency.com"
+              placeholder="teammate@example.com"
               className="rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
               required
             />
