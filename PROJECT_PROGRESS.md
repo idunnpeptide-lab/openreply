@@ -28,8 +28,9 @@ Important fixes from that QA and launch work:
 - PR #51 — ReplyHalo plan-readiness before Instagram connect, first-time login and template copy polish, customer-facing activation language/error sanitization, and fail-closed plan verification; merge SHA `be4417503533e35a516cb070d180192cfbc35531`.
 - PR #53 — launch auth/plan recovery fixes, customer-safe OAuth error handling, and fail-closed Settings plan verification; merge SHA `f39c65320728ceb92abf71c9c1526a97d2666bec`.
 - PR #55 — account-slot limit recovery guidance aligned with preserved social-account identity; merge SHA `b5563d88f079f1773220c44e921c89f1c19539a3`.
+- PR #58 — Quick Automation account-loading recovery, connected-account activation preflight, account-switch post-picker isolation, and client-side HTTPS validation; merge SHA `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`.
 
-Human validation evidence from the earlier Instagram staging session includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully. PR #45/#47/#49/#51/#53/#55 launch UX changes have automated CI evidence but have **not yet** been manually staging-validated as a fresh customer flow; no new live provider test is claimed for those milestones.
+Human validation evidence from the earlier Instagram staging session includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully. PR #45/#47/#49/#51/#53/#55/#58 launch UX changes have automated CI evidence but have **not yet** been manually staging-validated as a fresh customer flow; no new live provider test is claimed for those milestones.
 
 ### Launch UX / pre-launch readiness
 
@@ -38,6 +39,8 @@ PR #45 moved ReplyHalo's first-run experience toward the intended SaaS model whe
 PR #53 continued the same launch-readiness audit without changing the licensing architecture: it closed authentication recovery, Settings plan-check, and customer-facing OAuth error-leakage blockers found during the focused audit.
 
 PR #55 completed the account-slot / plan-limit audit. The central License Server already enforced the standard `SOLO=1`, `CREATOR=3`, and `AGENCY=10` defaults transactionally, treated reconnecting the same provider account as an existing binding, and preserved account-slot identity across local disconnect. The launch blocker was customer guidance that incorrectly suggested local disconnect would free a slot; PR #55 corrected that guidance without changing the backend model.
+
+PR #58 completed the focused Quick Automations regression stage. The four existing launch templates and proven `/api/automations` runtime remain unchanged; the wizard now distinguishes a real account-list load failure from an empty connected-account state, fails closed if the selected account disconnects before activation, remounts the post picker when accounts change so stale posts cannot be selected, and validates tracked-link HTTPS input before submission.
 
 Current launch path now includes:
 
@@ -68,8 +71,10 @@ Current launch path now includes:
 - launch-oriented default template copy written as normal creator/customer flows rather than technical demos;
 - reuse of the existing official Instagram post picker and existing `/api/automations` creation/runtime path;
 - the full Campaign Builder retained as an explicit **Custom builder** secondary path;
-- tracked-link `{link}` integrity guard;
-- account-switch behavior that clears a previously selected post;
+- tracked-link `{link}` integrity guard plus early malformed/non-HTTPS destination rejection;
+- account-switch behavior that clears the previously selected post and remounts the post picker for the newly selected account;
+- Quick Automations account-list failures show a recoverable **Try again** / Settings path instead of pretending no Instagram account exists;
+- Quick Automations recheck the selected connected Instagram account immediately before activation and fail closed if connection state changed;
 - dashboard-shell connected-account count that excludes preserved soft-disconnected rows;
 - recoverable Dashboard and Automations load/error states with retry and connection-repair paths;
 - a first-run Automations empty state that points to Quick Automations first rather than the advanced builder;
@@ -89,6 +94,8 @@ PR #51 final head `0bf05ea82021bb7b2912ac424df805a20d1ecfe7` passed CI run `3552
 PR #53 final head `73ac74d3ef9db34c49802577ff20b3703c7ea985` passed CI run `35529338503` and Security run `35529338567` before merge. It merged at `f39c65320728ceb92abf71c9c1526a97d2666bec`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone.
 
 PR #55 final head `919305d8e096467fe8a454638d825781322031e7` passed CI run `35534736487` and Security run `35534736497` before merge. It merged at `b5563d88f079f1773220c44e921c89f1c19539a3`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone.
+
+PR #58 final head `fc5e78e508bf2be0eed49c4dc330a891ed868b85` passed CI run `35535726659` and Security run `35535726701` before merge. An earlier head `3aecead1e5ab41f98c0f4efd071d2ba02adf01f7` failed lint; the account-loading implementation was refactored without suppressing the rule and the final head was rerun to green. PR #58 merged at `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone.
 
 ### TikTok provider
 
@@ -159,6 +166,7 @@ TikTok disconnect remains evidence-preserving in code: the provider account row,
 - Central standard account limits remain `SOLO=1`, `CREATOR=3`, and `AGENCY=10`; new bindings fail closed with `ACCOUNT_LIMIT_REACHED` when capacity is exhausted.
 - Reconnecting the same provider account reuses its existing license activation, while local soft disconnect keeps the slot reserved to preserve provider identity and customer history.
 - Quick Automations reuse the proven Instagram automation runtime rather than creating a second worker or provider path.
+- Quick Automations fail closed when connected-account readiness cannot be confirmed immediately before activation, and account switching cannot reuse stale post-picker state from the previous account.
 - Launch analytics presentation reuses already persisted Dashboard/campaign data; PR #49 added no schema or background processing.
 - Soft-disconnected Instagram rows are preserved but no longer counted as active shell connections.
 - TikTok webhook events are normalized before automation matching.
@@ -174,22 +182,21 @@ TikTok disconnect remains evidence-preserving in code: the provider account row,
 - No scraping/private endpoint fallback is part of the TikTok implementation.
 - Secrets must never be committed into project documentation or evidence logs.
 
-## Exact continuation point — 2026-09-20 after PR #55
+## Exact continuation point — 2026-09-20 after PR #58
 
 ### Focused launch-readiness audit
 
-PR #55 completed the account slots / plan-limits stage. The central backend already enforced the expected standard plan capacities and preserved same-account identity correctly; the customer-facing recovery copy was corrected so a local disconnect is no longer presented as a way to free a slot.
+PR #58 completed the Quick Automations regression stage while preserving the existing four templates and runtime. The next code-only work is the remaining customer-journey regression audit.
 
 Continue in this order:
 
-1. Quick Automations: template selection, account/post picker, keyword/public reply/DM/Follow Gate/tracked link/follow-up, activation, account switching and `{link}` integrity;
-2. Custom builder / Automations list / Dashboard / Settings: confirm no launch regression and recoverable empty/error/loading states;
-3. mobile/responsive and basic accessibility only where a real launch usability blocker exists;
-4. email deliverability/domain/resend UX before commercial release, without exposing provider internals.
+1. Custom builder / Automations list / Dashboard / Settings: confirm no launch regression and recoverable empty/error/loading states;
+2. mobile/responsive and basic accessibility only where a real launch usability blocker exists;
+3. email deliverability/domain/resend UX before commercial release, without exposing provider internals.
 
 For any blocker found, create a small dedicated branch, add focused tests when behavior changes, require CI + Security green before merge, and then record a separate evidence checkpoint. Do not expand into the deferred visual-flow/AI/CRM/localization roadmap during this audit.
 
-After the code audit and any blocker fixes are complete, deploy staging and perform the **fresh-customer** manual walkthrough one step at a time with Volodymyr Rudyi. The combined PR #45/#47/#49/#51/#53/#55 first-run journey has **not yet** been manually staging-validated and no deployment/manual success is claimed here.
+After the code audit and any blocker fixes are complete, deploy staging and perform the **fresh-customer** manual walkthrough one step at a time with Volodymyr Rudyi. The combined PR #45/#47/#49/#51/#53/#55/#58 first-run journey has **not yet** been manually staging-validated and no deployment/manual success is claimed here.
 
 ### TikTok provider work
 
