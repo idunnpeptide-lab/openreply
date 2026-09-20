@@ -108,6 +108,7 @@ export default function SettingsPage() {
     null
   );
   const [licenseData, setLicenseData] = useState<LicenseStatusData | null>(null);
+  const [licenseLoadError, setLicenseLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -117,17 +118,39 @@ export default function SettingsPage() {
   const [licenseError, setLicenseError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/dashboard/stats").then((res) => res.json()),
       fetch("/api/workspace/members").then((res) => res.json()),
-      fetch("/api/license/status").then((res) => res.json()),
-    ])
-      .then(([statsPayload, membersPayload, licensePayload]) => {
-        if (statsPayload.success) setData(statsPayload.data);
-        if (membersPayload.success) setMembersData(membersPayload.data);
-        if (licensePayload.success) setLicenseData(licensePayload.data);
-      })
-      .finally(() => setLoading(false));
+      fetch("/api/license/status", { cache: "no-store" }).then((res) =>
+        res.json()
+      ),
+    ]).then(([statsResult, membersResult, licenseResult]) => {
+      if (
+        statsResult.status === "fulfilled" &&
+        statsResult.value?.success
+      ) {
+        setData(statsResult.value.data);
+      }
+
+      if (
+        membersResult.status === "fulfilled" &&
+        membersResult.value?.success
+      ) {
+        setMembersData(membersResult.value.data);
+      }
+
+      if (
+        licenseResult.status === "fulfilled" &&
+        licenseResult.value?.success
+      ) {
+        setLicenseData(licenseResult.value.data);
+        setLicenseLoadError(false);
+      } else {
+        setLicenseLoadError(true);
+      }
+
+      setLoading(false);
+    });
   }, []);
 
   async function refreshMembers() {
@@ -136,26 +159,55 @@ export default function SettingsPage() {
     if (payload.success) setMembersData(payload.data);
   }
 
+  async function refreshLicenseStatus() {
+    setBusy("license-refresh");
+    setLicenseError(null);
+
+    try {
+      const res = await fetch("/api/license/status", { cache: "no-store" });
+      const payload = await res.json();
+
+      if (!payload.success) {
+        setLicenseLoadError(true);
+        return;
+      }
+
+      setLicenseData(payload.data);
+      setLicenseLoadError(false);
+    } catch {
+      setLicenseLoadError(true);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function configureLicense(event: React.FormEvent) {
     event.preventDefault();
     setLicenseError(null);
     setBusy("license");
 
-    const res = await fetch("/api/license/status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ licenseKey: licenseKeyInput }),
-    });
-    const payload = await res.json();
+    try {
+      const res = await fetch("/api/license/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ licenseKey: licenseKeyInput }),
+      });
+      const payload = await res.json();
 
-    if (payload.success) {
-      setLicenseData(payload.data);
-      setLicenseKeyInput("");
-    } else {
-      setLicenseError(activationErrorMessage(payload.error));
+      if (payload.success) {
+        setLicenseData(payload.data);
+        setLicenseLoadError(false);
+        setLicenseKeyInput("");
+      } else {
+        setLicenseError(activationErrorMessage(payload.error));
+      }
+    } catch {
+      setLicenseError(
+        "ReplyHalo could not verify the activation code right now. Please try again."
+      );
+    } finally {
+      setBusy(null);
     }
-
-    setBusy(null);
   }
 
   async function disconnectInstagram(instagramAccountId: string) {
@@ -214,6 +266,11 @@ export default function SettingsPage() {
   const canManageMembers =
     membersData?.currentUserRole === "OWNER" ||
     membersData?.currentUserRole === "ADMIN";
+  const planReadyForInstagram =
+    !licenseLoadError &&
+    licenseData !== null &&
+    (licenseData.enabled === false ||
+      (licenseData.configured && licenseData.valid === true));
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -232,28 +289,49 @@ export default function SettingsPage() {
 
           <span
             className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-              licenseData?.enabled &&
-              licenseData.configured &&
-              licenseData.valid
-                ? "bg-success/10 text-success"
-                : licenseData?.enabled
-                  ? licenseData.configured
-                    ? "bg-error/10 text-error"
-                    : "bg-warning/10 text-warning"
-                  : "bg-zinc-500/10 text-muted"
+              licenseLoadError
+                ? "bg-warning/10 text-warning"
+                : licenseData?.enabled &&
+                    licenseData.configured &&
+                    licenseData.valid
+                  ? "bg-success/10 text-success"
+                  : licenseData?.enabled
+                    ? licenseData.configured
+                      ? "bg-error/10 text-error"
+                      : "bg-warning/10 text-warning"
+                    : "bg-zinc-500/10 text-muted"
             }`}
           >
-            {!licenseData?.enabled
-              ? "Local mode"
-              : !licenseData.configured
-                ? "Activation required"
-                : licenseData.valid
-                  ? "Active"
-                  : "Needs attention"}
+            {licenseLoadError
+              ? "Check required"
+              : !licenseData?.enabled
+                ? "Local mode"
+                : !licenseData.configured
+                  ? "Activation required"
+                  : licenseData.valid
+                    ? "Active"
+                    : "Needs attention"}
           </span>
         </div>
 
-        {!licenseData?.enabled ? (
+        {licenseLoadError ? (
+          <div className="mt-4 rounded-lg border border-warning/20 bg-warning/5 p-3">
+            <p className="text-sm font-medium text-foreground">
+              We could not verify your ReplyHalo plan
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Your saved data is safe. Check the plan again before connecting or reconnecting a social account.
+            </p>
+            <button
+              type="button"
+              onClick={refreshLicenseStatus}
+              disabled={busy === "license-refresh"}
+              className="mt-3 rounded border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-surface-hover disabled:opacity-50"
+            >
+              {busy === "license-refresh" ? "Checking..." : "Check plan"}
+            </button>
+          </div>
+        ) : !licenseData?.enabled ? (
           <p className="mt-4 text-sm text-muted">
             Plan activation is not required in this environment.
           </p>
@@ -303,7 +381,8 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {licenseData?.enabled &&
+        {!licenseLoadError &&
+          licenseData?.enabled &&
           canManageMembers &&
           (!licenseData.configured || accounts.length === 0) && (
             <form
@@ -343,7 +422,8 @@ export default function SettingsPage() {
             </form>
           )}
 
-        {licenseData?.enabled &&
+        {!licenseLoadError &&
+          licenseData?.enabled &&
           licenseData.configured &&
           accounts.length > 0 &&
           canManageMembers && (
@@ -427,12 +507,18 @@ export default function SettingsPage() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-border flex gap-3">
-          <a
-            href="/api/instagram/connect"
-            className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-white hover:bg-accent-hover"
-          >
-            {accounts.length > 0 ? "Connect another account" : "Connect Instagram"}
-          </a>
+          {planReadyForInstagram ? (
+            <a
+              href="/api/instagram/connect"
+              className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-white hover:bg-accent-hover"
+            >
+              {accounts.length > 0 ? "Connect another account" : "Connect Instagram"}
+            </a>
+          ) : (
+            <span className="px-4 py-2 rounded text-sm font-medium bg-zinc-500/10 text-muted">
+              Check your ReplyHalo plan before connecting Instagram
+            </span>
+          )}
         </div>
       </section>
 

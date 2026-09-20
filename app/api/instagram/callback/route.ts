@@ -149,10 +149,8 @@ export async function GET(request: NextRequest) {
       })
       .catch(() => {});
 
-    return NextResponse.redirect(
-      `${baseUrl}/settings?instagram=failed&reason=${encodeURIComponent(
-        message.slice(0, 200)
-      )}`
-    );
+    // Keep detailed failure evidence server-side. Provider/API error strings
+    // must not be reflected into the customer-visible URL.
+    return NextResponse.redirect(`${baseUrl}/settings?instagram=failed`);
   }
 }

@@ -66,7 +66,7 @@ const LICENSE_MESSAGES: Record<
     tone: "error",
     title: "ReplyHalo plan not found",
     detail:
-      "The activation key saved for this workspace is not recognized. Check the key issued for this workspace or contact support.",
+      "The activation code saved for this workspace is not recognized. Check the code issued for this workspace or contact support.",
   },
   not_configured: {
     tone: "warning",
@@ -76,9 +76,9 @@ const LICENSE_MESSAGES: Record<
   },
   already_assigned: {
     tone: "warning",
-    title: "Activation key already assigned",
+    title: "Activation code already assigned",
     detail:
-      "That key belongs to another ReplyHalo workspace. Use the key issued for this workspace.",
+      "That activation code belongs to another ReplyHalo workspace. Use the code issued for this workspace.",
   },
   account_migration_required: {
     tone: "warning",
