@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentWorkspaceId } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
+import { getWorkspaceInstagramAccount } from "@/lib/instagram-accounts";
 import { calculateCtr, normalizeTopKeywords } from "@/lib/tracking/analytics";
 import { buildTrackedUrl } from "@/lib/tracking/message";
 import { generateTrackedLinkSlug } from "@/lib/tracking/server";
@@ -253,31 +254,31 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(
     {
-    success: true,
-    data: automationsWithReports.map((automation) => {
-      const item = analytics.get(automation.id) ?? {
-        sent: 0,
-        skipped: 0,
-        failed: 0,
-        clicks: 0,
-        topKeywords: [],
-      };
+      success: true,
+      data: automationsWithReports.map((automation) => {
+        const item = analytics.get(automation.id) ?? {
+          sent: 0,
+          skipped: 0,
+          failed: 0,
+          clicks: 0,
+          topKeywords: [],
+        };
 
-      return {
-        ...automation,
-        trackedLinks: automation.trackedLinks.map((link) => ({
-          ...link,
-          trackedUrl: buildTrackedUrl(link.slug),
-        })),
-        reportUrl: automation.reportShareSlug
-          ? buildReportUrl(automation.reportShareSlug)
-          : null,
-        analytics: {
-          ...item,
-          ctr: calculateCtr(item.clicks, item.sent),
-        },
-      };
-    }),
+        return {
+          ...automation,
+          trackedLinks: automation.trackedLinks.map((link) => ({
+            ...link,
+            trackedUrl: buildTrackedUrl(link.slug),
+          })),
+          reportUrl: automation.reportShareSlug
+            ? buildReportUrl(automation.reportShareSlug)
+            : null,
+          analytics: {
+            ...item,
+            ctr: calculateCtr(item.clicks, item.sent),
+          },
+        };
+      }),
     },
     { headers: { "Cache-Control": "no-store" } }
   );
@@ -325,14 +326,7 @@ export async function POST(request: NextRequest) {
       where: { id: workspaceId },
       select: { id: true },
     }),
-    requestedInstagramAccountId
-      ? prisma.instagramAccount.findFirst({
-          where: { id: requestedInstagramAccountId, workspaceId },
-        })
-      : prisma.instagramAccount.findFirst({
-          where: { workspaceId },
-          orderBy: { connectedAt: "desc" },
-        }),
+    getWorkspaceInstagramAccount(workspaceId, requestedInstagramAccountId),
   ]);
 
   if (!workspace) {
@@ -344,8 +338,11 @@ export async function POST(request: NextRequest) {
 
   if (!instagramAccount) {
     return NextResponse.json(
-      { success: false, error: "Connect Instagram before creating campaigns" },
-      { status: 400 }
+      {
+        success: false,
+        error: "Reconnect Instagram before activating this automation",
+      },
+      { status: 409 }
     );
   }
 
