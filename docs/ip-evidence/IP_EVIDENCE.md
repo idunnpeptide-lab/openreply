@@ -475,6 +475,23 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no schema migration, provider worker/send behavior, account-migration backend, licensing/control-plane change, or TikTok execution-gate change was introduced.
 - Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #64.
 
+## Automations / Settings recovery evidence — 2026-09-20
+
+### PR #66 — reconnect recovery, truthful slot guidance, and disconnect failure handling
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/66`
+- Final head SHA: `3320daca236678c39283784489abadb36b10e153`.
+- Merge SHA: `91e90bcd847d14a41fad6686a67aa052aef9e8aa`.
+- CI run: `35539584486` — success.
+- Security run: `35539584447` — success.
+- Automations recovery evidence: stable `INSTAGRAM_RECONNECT_REQUIRED` now becomes customer-readable reconnect guidance instead of a generic toggle failure.
+- Settings plan evidence: account-limit guidance reflects preserved-slot semantics; local disconnect is no longer presented as freeing centrally preserved capacity.
+- Disconnect evidence: page reload occurs only after HTTP success and `payload.success=true`; failure remains visible, says nothing changed, clears busy state, and remains retryable.
+- Regression evidence: focused helper tests cover preserved-slot copy and Disconnect success/failure decisions.
+- Dashboard audit evidence: current Dashboard recovery/empty states were reviewed and no new launch blocker requiring code changes was found.
+- Scope evidence: no schema, disconnect backend semantics, provider worker/runtime, central licensing enforcement, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment or manual success is claimed by PR #66.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -486,6 +503,6 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 
 Human validation means an explicit result reported/performed by Volodymyr Rudyi. Screenshots referenced in development chat are not automatically copied into GitHub unless a real repository artifact/path is created. This register records the fact of the human validation without inventing a file path for screenshots that were not committed.
 
-## Current evidence checkpoint — after PR #64
+## Current evidence checkpoint — after PR #66
 
-PR #64 is the latest completed product milestone recorded here. Custom Builder now distinguishes account-loading failure from an empty state, rechecks connected-account readiness before active saves, isolates provider-content state across new-account changes, and truthfully keeps edit campaigns attached to their existing Instagram account rather than presenting unsupported migration. Inactive editing and Stop/Pause remain available after disconnect. The focused audit continues with Automations-list and Settings customer recovery, then Dashboard regression, mobile/basic accessibility launch blockers, and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
+PR #66 is the latest completed product milestone recorded here. Automations reactivation now gives customer-readable reconnect recovery, Settings account-limit copy matches the preserved-slot model, and failed Instagram Disconnect actions can no longer look successful because reload requires confirmed API success. Dashboard regression was reviewed without finding a new launch blocker requiring code changes. The focused audit now continues with mobile/responsive and basic accessibility blockers only where real, followed by email deliverability/domain/resend UX and then the fresh-customer staging walkthrough. No deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.

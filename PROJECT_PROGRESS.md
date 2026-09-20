@@ -243,3 +243,27 @@ Continue in this order:
 5. then deploy staging and perform the fresh-customer walkthrough with Volodymyr Rudyi.
 
 TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## Launch-readiness update — 2026-09-20 after PR #66
+
+PR #66 closed the Automations-list and Settings customer-recovery blockers without changing the Instagram backend or licensing enforcement. Reactivating a preserved automation from the Automations list now maps stable `INSTAGRAM_RECONNECT_REQUIRED` into customer-readable reconnect guidance rather than a generic toggle failure. Successful toggles clear stale action errors.
+
+Settings now matches the preserved-slot model already enforced by the control plane: reconnecting the same already-linked account uses its existing slot, while connecting a different account requires available plan capacity, an upgrade, or controlled migration/support. The UI no longer tells customers that a local disconnect frees a slot. Instagram Disconnect now reloads the page only after both HTTP success and `payload.success=true`; network/API failures stay on the page, clear the busy state, state that nothing changed, and allow retry. Focused recovery-helper tests cover both decisions.
+
+PR #66 final head `3320daca236678c39283784489abadb36b10e153` passed CI run `35539584486` and Security run `35539584447` before merge; merge SHA `91e90bcd847d14a41fad6686a67aa052aef9e8aa`.
+
+The Dashboard regression surface was reviewed in the same focused audit. Its initial-load recovery, refresh-error preservation, zero-data states, responsive account filter, and Quick Automation entry point remain launch-appropriate; no new blocker requiring a Dashboard code change was found.
+
+No deployment or fresh-customer manual staging walkthrough is claimed for PR #66.
+
+### Latest continuation point after PR #66
+
+Continue in this order:
+
+1. mobile/responsive and basic accessibility only where a real launch usability blocker exists;
+2. email deliverability/domain/resend UX before commercial release, without exposing provider internals;
+3. then deploy staging and perform the fresh-customer walkthrough with Volodymyr Rudyi.
+
+TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
