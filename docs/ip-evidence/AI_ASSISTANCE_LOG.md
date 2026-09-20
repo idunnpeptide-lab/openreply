@@ -399,3 +399,28 @@ PR #47, final head SHA `9b814eb580c8bb44ca33df47d2fa2ef0185c3372`, merge SHA `d2
 **Repository evidence**
 
 PR #49, head SHA `4812d60ca790bd508e05e6a826660923073f5fa3`, merge SHA `3d5a75ba1379f8137997e778ca0369b08ead4eeb`, CI run `35524959374`, Security run `35524959433`. No fresh-customer manual staging validation is claimed for this milestone.
+
+---
+
+## 2026-09-20 — ReplyHalo plan-readiness / activation-copy milestone
+
+**Human role — Volodymyr Rudyi**
+
+- established the launch-priority sequence and required completion of the existing `feat/launch-readiness-plan-copy` branch before starting a new stage;
+- required plan readiness before Instagram connection, customer-facing ReplyHalo activation language, preservation of existing customer data, and no raw internal/provider/licensing errors in normal customer UX;
+- retained final authority over fresh-customer staging validation and commercial launch;
+- did not perform or claim manual staging validation for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- verified current `openreply` and `dm-magnet-system` source-of-truth state and confirmed that the handoff branch was still unmerged with no PR;
+- inspected `main...feat/launch-readiness-plan-copy`, opened product PR #51, and kept its scope to the existing launch readiness/copy work;
+- reviewed onboarding against `/api/license/status` and identified a fail-open edge case when plan verification could not be completed;
+- fixed that edge case in the same branch so Instagram connection remains unavailable and the customer is directed to Settings until plan readiness can be verified;
+- preserved the existing workspace licensing internals while keeping customer UI on ReplyHalo activation/plan terminology;
+- ran final CI and Security, merged only after both were green, and created a separate evidence branch as required;
+- no deployment or manual staging success is claimed.
+
+**Repository evidence**
+
+PR #51, final head SHA `0bf05ea82021bb7b2912ac424df805a20d1ecfe7`, merge SHA `be4417503533e35a516cb070d180192cfbc35531`, CI run `35528589277`, Security run `35528589275`.
