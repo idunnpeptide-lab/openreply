@@ -542,3 +542,42 @@ The first PR #47 head `b82b3376e3b17175c9659f9bde724a39cc8878fc` passed typechec
 
 **Result**
 PR #47 merged at `d2fa7a671e1ce6f7b1541e4c089559bad8295741`. The self-service Instagram health/reconnect milestone is code-complete. No fresh-customer live OAuth/reconnect walkthrough is claimed yet; that remains a human staging validation step after deployment.
+
+---
+
+## 2026-09-20 — Launch-first empty states and analytics presentation
+
+**Task**
+Finish the immediate code-only launch polish by making Quick Automations the default creation path, adding recoverable empty/error states, and presenting the analytics ReplyHalo already records as a clear launch funnel.
+
+**Problem**
+The first-run Dashboard had onboarding after PR #45, but the Automations page still made the full builder the primary CTA and the empty state sent new users straight into the advanced setup. Dashboard and Automations fetch failures were mostly console-only, and campaign metrics presented sent/skipped/failed/clicks without emphasizing the customer value path.
+
+**Options considered**
+- Build a new analytics subsystem and new persistence before launch.
+- Keep current UI and document which button new customers should choose.
+- Reuse existing Dashboard/campaign analytics and runtime, change only the launch presentation, recovery states, and primary CTAs.
+
+**Volodymyr's decision**
+Keep the MVP narrow and launch-focused: guide ordinary customers to Quick Automations first, preserve the advanced builder as an explicit secondary path, and reuse proven analytics/runtime data instead of expanding scope.
+
+**Implementation**
+PR #49:
+
+- makes **Quick Automation** the primary Automations-page creation CTA;
+- keeps **Custom builder** and Import available as secondary/advanced paths;
+- replaces the no-automation empty state with a Quick-Automation-first launch path;
+- adds explicit retry/connection-repair states for Dashboard and Automations data failures;
+- adds visible failure handling for automation toggle/delete/duplicate actions;
+- adds a clear-filter recovery state when search/status filters return nothing;
+- renames Dashboard presentation around **Launch performance** and prioritizes Active Automations, DMs Sent, Link Clicks and CTR;
+- keeps Failed and Skipped visible for operational health;
+- adds useful zero-data states for 7-day DMs and recent activity;
+- orders per-automation funnel metrics as runs → sent → clicks → CTR, surfacing failed/skipped when non-zero;
+- introduces no schema migration, worker/provider change, or new analytics store.
+
+**Test**
+PR #49 head `4812d60ca790bd508e05e6a826660923073f5fa3` passed CI run `35524959374` including Prisma validate/generate, TypeScript, lint, full tests and production build. Security run `35524959433` passed.
+
+**Result**
+PR #49 merged at `3d5a75ba1379f8137997e778ca0369b08ead4eeb`. The immediate empty/error-state and launch-analytics presentation milestone is code-complete. No fresh-customer manual staging walkthrough is claimed by this milestone.
