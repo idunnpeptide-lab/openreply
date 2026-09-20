@@ -129,7 +129,7 @@ PRs #20–#27 built the foundation in isolated stages:
 Each PR was submitted through repository CI and Security workflows before merge. Unit/regression coverage was added for webhook parsing, ingress, dedupe, routing, campaign API guards, owned-video reads, and provider limits. TikTok live send actions remain intentionally untested because a real approved TikTok for Business developer app/test Business Account is still required.
 
 **Result**
-Foundation merged through PR #27. Main checkpoint after PR #27: `1c9f5e8dbf41dfed5d57740d4e`.
+Foundation merged through PR #27. Main checkpoint after PR #27: `1c9f5e8dbf41dfd7092085042c7e26ffbefac150`.
 
 ---
 
