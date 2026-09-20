@@ -437,6 +437,24 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no schema migration, Instagram worker/provider change, licensing backend/control-plane change, or TikTok execution-gate change was introduced.
 - Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #58.
 
+## Automation connection-guard evidence — 2026-09-20
+
+### PR #62 — fail closed on active automation state after Instagram disconnect
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/62`
+- Head SHA: `bb1b039ef7a9b33a8b55d47d98ad0f207cb8ba2e`.
+- Merge SHA: `fb7f9b954351728456766143f234aa415b7d972e`.
+- CI run: `35537552869` — success.
+- Security run: `35537552791` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, focused regression tests, existing full test suite, and production build passed before merge.
+- Server-boundary evidence: active POST creation rejects a requested preserved row with an empty access token using HTTP 409 and stable `INSTAGRAM_RECONNECT_REQUIRED`; default active account resolution also selects only a connected account.
+- Reactivation evidence: PATCH checks the automation's attached workspace Instagram account whenever the resulting state is active and refuses the update if the account is soft-disconnected.
+- Preservation evidence: inactive drafts/duplicates may remain attached to the preserved account row, and an active automation may still be paused after disconnect.
+- Regression evidence: four tests cover active create rejection, inactive creation preservation, disconnected reactivation rejection, and successful Pause after disconnect.
+- Import audit evidence: bulk import already resolves the selected account through `getWorkspaceInstagramAccount()`, which requires a non-empty access token, so no parallel import bypass was found.
+- Scope evidence: no schema migration, provider worker/send behavior, licensing/control-plane change, destructive disconnect behavior, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #62.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -448,6 +466,6 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 
 Human validation means an explicit result reported/performed by Volodymyr Rudyi. Screenshots referenced in development chat are not automatically copied into GitHub unless a real repository artifact/path is created. This register records the fact of the human validation without inventing a file path for screenshots that were not committed.
 
-## Current evidence checkpoint — after PR #58
+## Current evidence checkpoint — after PR #62
 
-PR #58 is the latest completed product milestone recorded here. The Quick Automations regression stage is closed in code: account-loading failures are recoverable rather than presented as zero accounts, selected account readiness is rechecked immediately before activation, account switching cannot reuse stale post-picker content, and tracked-link destination errors fail early while the existing four templates/runtime remain unchanged. The focused audit continues with Custom builder/Automations/Dashboard/Settings regression, then mobile/basic accessibility launch blockers and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
+PR #62 is the latest completed product milestone recorded here. Active automation creation/reactivation now fails closed server-side if the attached Instagram account is soft-disconnected, while inactive drafts/duplicates and Pause remain compatible with preserved account identity/history. The focused audit continues with Custom builder account-loading/account-switch/readiness recovery, then Automations/Settings customer recovery, mobile/basic accessibility launch blockers, and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
