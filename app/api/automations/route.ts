@@ -330,7 +330,10 @@ export async function POST(request: NextRequest) {
           where: { id: requestedInstagramAccountId, workspaceId },
         })
       : prisma.instagramAccount.findFirst({
-          where: { workspaceId },
+          where: {
+            workspaceId,
+            ...(parsed.data.isActive ? { accessToken: { not: "" } } : {}),
+          },
           orderBy: { connectedAt: "desc" },
         }),
   ]);
@@ -346,6 +349,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { success: false, error: "Connect Instagram before creating campaigns" },
       { status: 400 }
+    );
+  }
+
+  if (parsed.data.isActive && !instagramAccount.accessToken) {
+    return NextResponse.json(
+      { success: false, error: "INSTAGRAM_RECONNECT_REQUIRED" },
+      { status: 409 }
     );
   }
 
@@ -502,6 +512,25 @@ export async function PATCH(request: NextRequest) {
       { success: false, error: "Campaign not found" },
       { status: 404 }
     );
+  }
+
+  const shouldBeActive = parsed.data.isActive ?? existing.isActive;
+  if (shouldBeActive) {
+    const connectedInstagramAccount = await prisma.instagramAccount.findFirst({
+      where: {
+        id: existing.instagramAccountId,
+        workspaceId,
+        accessToken: { not: "" },
+      },
+      select: { id: true },
+    });
+
+    if (!connectedInstagramAccount) {
+      return NextResponse.json(
+        { success: false, error: "INSTAGRAM_RECONNECT_REQUIRED" },
+        { status: 409 }
+      );
+    }
   }
 
   const {
