@@ -1,1 +1,0 @@
-Instagram health/reconnect evidence checkpoint prepared after PR #47. This marker contains no secrets and may be removed in a later documentation cleanup.
