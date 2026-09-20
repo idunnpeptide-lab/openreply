@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import PostPicker from "@/components/post-picker";
@@ -44,11 +44,31 @@ export default function QuickAutomationWizard() {
     [selectedTemplateId]
   );
 
-  const loadAccounts = useCallback(async (showLoading = true) => {
-    if (showLoading) {
-      setAccountsLoading(true);
-      setAccountsError(null);
-    }
+  useEffect(() => {
+    fetch("/api/dashboard/stats", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error("Could not load connected Instagram accounts");
+        }
+        return payload;
+      })
+      .then((payload) => {
+        const next = (payload.data.instagramAccounts ?? []) as AccountOption[];
+        setAccounts(next);
+        setSelectedAccountId(next[0]?.id ?? "");
+      })
+      .catch(() =>
+        setAccountsError(
+          "ReplyHalo could not load your connected Instagram accounts. Your saved automations are unchanged."
+        )
+      )
+      .finally(() => setAccountsLoading(false));
+  }, []);
+
+  async function retryAccounts() {
+    setAccountsLoading(true);
+    setAccountsError(null);
 
     try {
       const response = await fetch("/api/dashboard/stats", { cache: "no-store" });
@@ -71,11 +91,7 @@ export default function QuickAutomationWizard() {
     } finally {
       setAccountsLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    void loadAccounts(false);
-  }, [loadAccounts]);
+  }
 
   function chooseTemplate(next: QuickAutomationTemplate) {
     setSelectedTemplateId(next.id);
@@ -234,7 +250,7 @@ export default function QuickAutomationWizard() {
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => void loadAccounts()}
+              onClick={() => void retryAccounts()}
               className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
             >
               Try again
