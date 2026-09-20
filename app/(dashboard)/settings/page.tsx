@@ -61,16 +61,44 @@ interface WorkspaceMembersData {
 
 function planAttentionMessage(error?: string) {
   switch (error) {
-    case "SUSPENDED":
+    case "LICENSE_SUSPENDED":
       return "Your ReplyHalo plan is temporarily paused. Contact support or restore the plan before connecting another account.";
-    case "REVOKED":
+    case "LICENSE_REVOKED":
       return "This ReplyHalo access is no longer active. Contact support before continuing.";
-    case "EXPIRED":
+    case "LICENSE_EXPIRED":
       return "Your ReplyHalo plan has expired. Renew your access before connecting another account.";
-    case "ACCOUNT_LIMIT":
+    case "ACCOUNT_LIMIT_REACHED":
       return "Your plan has no free social-account slots. Disconnect or migrate an old account, or upgrade the plan.";
+    case "LICENSE_NOT_FOUND":
+    case "LICENSE_SECRET_INVALID":
+      return "We could not verify the saved activation code. Enter the code issued for this ReplyHalo workspace again.";
+    case "LICENSE_SERVICE_UNAVAILABLE":
+      return "ReplyHalo could not verify your plan right now. Your saved data is safe; please try again in a moment.";
     default:
       return "We could not verify this ReplyHalo plan. Retry the activation code or contact support.";
+  }
+}
+
+function activationErrorMessage(error?: string) {
+  switch (error) {
+    case "LICENSE_NOT_FOUND":
+      return "That activation code was not recognized. Check the code and try again.";
+    case "LICENSE_ALREADY_ASSIGNED":
+      return "That activation code is already linked to another ReplyHalo workspace.";
+    case "LICENSE_ACCOUNT_MIGRATION_REQUIRED":
+      return "This workspace already has connected social accounts. Contact support before moving it to a different plan.";
+    case "LICENSE_SUSPENDED":
+      return "This ReplyHalo plan is temporarily paused. Contact support before continuing.";
+    case "LICENSE_REVOKED":
+      return "This ReplyHalo access is no longer active. Contact support before continuing.";
+    case "LICENSE_EXPIRED":
+      return "This ReplyHalo plan has expired. Renew your access and try again.";
+    case "ACCOUNT_LIMIT_REACHED":
+      return "This plan has no free social-account slots.";
+    case "LICENSE_SERVICE_UNAVAILABLE":
+      return "ReplyHalo could not verify the plan right now. Please try again in a moment.";
+    default:
+      return "We could not activate ReplyHalo with that code. Check it and try again, or contact support.";
   }
 }
 
@@ -124,9 +152,7 @@ export default function SettingsPage() {
       setLicenseData(payload.data);
       setLicenseKeyInput("");
     } else {
-      setLicenseError(
-        payload.message ?? payload.error ?? "Could not activate the ReplyHalo plan"
-      );
+      setLicenseError(activationErrorMessage(payload.error));
     }
 
     setBusy(null);
