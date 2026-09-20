@@ -329,6 +329,24 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no schema migration, no new provider permission assumption, no TikTok behavior change, and no secret values were added.
 - Human validation: **not yet performed for this new first-run UI**. No new deployment, live Instagram OAuth, customer activation, or production launch is claimed by PR #45.
 
+## Instagram health / reconnect evidence — 2026-09-20
+
+### PR #47 — customer-facing connection health and self-service reconnect UX
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/47`
+- Final head SHA: `9b814eb580c8bb44ca33df47d2fa2ef0185c3372`.
+- Merge SHA: `d2fa7a671e1ce6f7b1541e4c089559bad8295741`.
+- Final CI run: `35523019203` — success.
+- Security run: `35523019202` — success.
+- Automated evidence: final typecheck, lint, full tests and production build passed in CI.
+- Development-history evidence: earlier head `b82b3376e3b17175c9659f9bde724a39cc8878fc` passed typecheck but failed lint on one unescaped apostrophe; the copy was corrected without suppressing the rule, then CI/Security were rerun to green.
+- UX evidence: Settings now shows per-account Connection, Authorization and Automation readiness plus an overall `Ready`, `Needs attention`, or `Disconnected` state and a clear Connect/Reconnect action.
+- Preservation evidence: customer-facing copy explicitly explains that campaigns, logs, clicks and history stay saved while connection repair occurs; the existing non-destructive disconnect implementation is unchanged.
+- Sanitization evidence: customer-facing OAuth failure notices no longer expose environment-variable names or raw provider failure reasons; the underlying health API remains workspace-scoped and does not return token material.
+- Branding evidence: the customer-facing notice surface uses ReplyHalo plan wording instead of the older internal DM Magnet brand.
+- Scope evidence: no provider permission model, worker/runtime behavior, TikTok path, or TikTok execution gate was changed.
+- Human validation: **not yet performed as a fresh-customer launch walkthrough**. No new deployment, live OAuth/reconnect test or customer activation is claimed by PR #47.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -342,4 +360,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #45 is the latest completed product milestone recorded here. The Instagram launch path now includes the existing one-click OAuth surfaced directly in first-run onboarding, a sanitized connection-health model, four Quick Automations that reuse the proven campaign runtime, and connected-account counting that respects soft disconnect. Manual staging validation of the new first-run UI has not yet occurred and is not claimed. TikTok remains separately doubly locked pending its real provider session; no TikTok send gate changed in PR #45.
+PR #47 is the latest completed product milestone recorded here. ReplyHalo's Instagram launch path now combines one-click OAuth entry, a sanitized connection-health model, four Quick Automations using the proven runtime, and customer-readable self-service health/reconnect UX. Manual staging validation of the combined fresh-customer launch flow has not yet occurred and is not claimed. TikTok remains separately doubly locked pending its real provider session; no TikTok send gate changed in PR #47.
