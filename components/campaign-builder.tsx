@@ -12,12 +12,18 @@
  * follow / email / follow-up steps arrive in later turns.
  */
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import PostPicker from "@/components/post-picker";
 import CampaignPreview, { type PreviewTab } from "@/components/campaign-preview";
 import { readCache, writeCache } from "@/lib/client-cache";
+import {
+  automationMutationCustomerError,
+  isConnectedInstagramAccount,
+  resolveConnectedInstagramAccountId,
+} from "@/lib/customer-instagram-readiness";
 import {
   IMPORT_QUEUE_KEY,
   IMPORT_ACCOUNT_KEY,
@@ -53,6 +59,7 @@ interface LoadedCampaign {
   publicReplyMessages: string[];
   isActive: boolean;
   instagramAccountId: string;
+  instagramAccount?: { username: string; instagramId?: string };
   trackedLinks?: { destinationUrl: string; label?: string | null }[];
 }
 
@@ -60,6 +67,11 @@ interface CampaignBuilderProps {
   mode: "new" | "edit";
   campaignId?: string;
 }
+
+const ACCOUNT_LOAD_ERROR =
+  "ReplyHalo could not load your connected Instagram accounts. Your saved automations are unchanged.";
+const ACCOUNT_CHECK_ERROR =
+  "ReplyHalo could not confirm the Instagram connection. Check the account and try again before activating.";
 
 function Section({
   title,
@@ -136,10 +148,16 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionRecoveryNeeded, setConnectionRecoveryNeeded] = useState(false);
 
   const [name, setName] = useState("");
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [attachedAccountUsername, setAttachedAccountUsername] = useState<string | null>(
+    null
+  );
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
@@ -225,20 +243,75 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     };
   }, [selectedAccountId]);
 
-  // Load accounts (both modes need them for the preview username + selector).
+  // Load connected accounts. A request failure is a recovery state, not a
+  // legitimate "zero accounts" state.
   useEffect(() => {
-    fetch("/api/dashboard/stats")
-      .then((r) => r.json())
+    let cancelled = false;
+
+    fetch("/api/dashboard/stats", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error("Could not load connected Instagram accounts");
+        }
+        return payload;
+      })
       .then((payload) => {
-        if (!payload.success) return;
-        const next: AccountOption[] = payload.data.instagramAccounts ?? [];
+        if (cancelled) return;
+        const next = (payload.data.instagramAccounts ?? []) as AccountOption[];
         setAccounts(next);
-        setSelectedAccountId(
-          (prev) => prev || payload.data.selectedInstagramAccountId || next[0]?.id || ""
+        setAccountsError(null);
+        setSelectedAccountId((current) =>
+          mode === "edit" && current
+            ? current
+            : resolveConnectedInstagramAccountId(
+                next,
+                current,
+                payload.data.selectedInstagramAccountId
+              )
         );
       })
-      .catch(() => setAccounts([]));
-  }, []);
+      .catch(() => {
+        if (!cancelled) setAccountsError(ACCOUNT_LOAD_ERROR);
+      })
+      .finally(() => {
+        if (!cancelled) setAccountsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
+
+  async function retryAccounts() {
+    setAccountsLoading(true);
+    setAccountsError(null);
+
+    try {
+      const response = await fetch("/api/dashboard/stats", { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error("Could not load connected Instagram accounts");
+      }
+
+      const next = (payload.data.instagramAccounts ?? []) as AccountOption[];
+      setAccounts(next);
+      setSelectedAccountId((current) =>
+        mode === "edit" && current
+          ? current
+          : resolveConnectedInstagramAccountId(
+              next,
+              current,
+              payload.data.selectedInstagramAccountId
+            )
+      );
+      setConnectionRecoveryNeeded(false);
+    } catch {
+      setAccountsError(ACCOUNT_LOAD_ERROR);
+    } finally {
+      setAccountsLoading(false);
+    }
+  }
 
   // Prefill when editing.
   useEffect(() => {
@@ -251,6 +324,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         if (!c) return setNotFound(true);
         setName(c.name);
         setSelectedAccountId(c.instagramAccountId);
+        setAttachedAccountUsername(c.instagramAccount?.username ?? null);
         setTriggerScope(
           c.matchAnyPost ? "any" : c.pendingNextReel ? "next" : "specific"
         );
@@ -342,6 +416,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     setTrackedDestinationUrl(link);
     setLinkOpen(Boolean(link));
     setError(null);
+    setConnectionRecoveryNeeded(false);
   }
 
   // Pick up a staged CSV import (new mode only) and prefill the first row.
@@ -365,7 +440,13 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const username =
-    accounts.find((a) => a.id === selectedAccountId)?.username ?? "yourbrand";
+    accounts.find((a) => a.id === selectedAccountId)?.username ??
+    attachedAccountUsername ??
+    "yourbrand";
+  const selectedAccountConnected = isConnectedInstagramAccount(
+    accounts,
+    selectedAccountId
+  );
 
   function handlePostSelect(
     id: string,
@@ -379,12 +460,68 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     setPostCaption(caption ?? "");
   }
 
+  function chooseAccount(accountId: string) {
+    if (accountId === selectedAccountId) return;
+    setSelectedAccountId(accountId);
+    setPostId(null);
+    setPostUrl(null);
+    setPostThumb(null);
+    setPostCaption("");
+    setError(null);
+    setConnectionRecoveryNeeded(false);
+  }
+
   function ensureLinkToken() {
     setDmMessage((cur) => (cur.includes("{link}") ? cur : `${cur.trim()} {link}`.trim()));
   }
 
+  async function selectedAccountStillConnected() {
+    try {
+      const response = await fetch("/api/dashboard/stats", { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        setConnectionRecoveryNeeded(true);
+        setError(ACCOUNT_CHECK_ERROR);
+        return false;
+      }
+
+      const currentAccounts = (payload.data.instagramAccounts ?? []) as AccountOption[];
+      setAccounts(currentAccounts);
+      setAccountsError(null);
+
+      if (!isConnectedInstagramAccount(currentAccounts, selectedAccountId)) {
+        if (mode === "new") {
+          setSelectedAccountId(
+            resolveConnectedInstagramAccountId(
+              currentAccounts,
+              "",
+              payload.data.selectedInstagramAccountId
+            )
+          );
+          setPostId(null);
+          setPostUrl(null);
+          setPostThumb(null);
+          setPostCaption("");
+        }
+        setConnectionRecoveryNeeded(true);
+        setError(
+          "That Instagram account is no longer connected. Reconnect it in Settings before activating this automation."
+        );
+        return false;
+      }
+
+      setConnectionRecoveryNeeded(false);
+      return true;
+    } catch {
+      setConnectionRecoveryNeeded(true);
+      setError(ACCOUNT_CHECK_ERROR);
+      return false;
+    }
+  }
+
   async function handleSubmit(activeValue: boolean) {
     setError(null);
+    setConnectionRecoveryNeeded(false);
 
     if (!selectedAccountId) return setError("Connect an Instagram account first.");
     if (triggerScope === "specific" && !postId)
@@ -431,6 +568,10 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     };
 
     try {
+      // Inactive drafts and Stop remain available while disconnected. Any save
+      // whose resulting state is active must re-confirm the provider account.
+      if (activeValue && !(await selectedAccountStillConnected())) return;
+
       const res =
         mode === "new"
           ? await fetch("/api/automations", {
@@ -483,17 +624,23 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         router.push("/campaigns");
         router.refresh();
       } else {
-        // Surface the specific field that failed validation instead of a
-        // generic "Invalid input".
-        const fieldErrors = data.details?.fieldErrors as
-          | Record<string, string[]>
-          | undefined;
-        const firstField = fieldErrors && Object.keys(fieldErrors)[0];
-        setError(
-          firstField
-            ? `${firstField}: ${fieldErrors[firstField][0]}`
-            : data.error ?? "Failed to save campaign"
-        );
+        const customerError = automationMutationCustomerError(data.error);
+        if (customerError) {
+          setConnectionRecoveryNeeded(true);
+          setError(customerError);
+        } else {
+          // Surface the specific field that failed validation instead of a
+          // generic "Invalid input".
+          const fieldErrors = data.details?.fieldErrors as
+            | Record<string, string[]>
+            | undefined;
+          const firstField = fieldErrors && Object.keys(fieldErrors)[0];
+          setError(
+            firstField
+              ? `${firstField}: ${fieldErrors[firstField][0]}`
+              : data.error ?? "Failed to save campaign"
+          );
+        }
         if (typeof window !== "undefined")
           window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -509,6 +656,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   function skipRow() {
     if (!importQueue) return;
     setError(null);
+    setConnectionRecoveryNeeded(false);
     if (importQueue.length > 1) {
       const remaining = importQueue.slice(1);
       try {
@@ -532,7 +680,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     router.refresh();
   }
 
-  if (loading) {
+  if (loading || (mode === "new" && accountsLoading)) {
     return <div className="panel h-64 rounded" />;
   }
 
@@ -550,8 +698,87 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     );
   }
 
+  if (mode === "new" && accountsError) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Custom builder</h1>
+          <p className="mt-1 text-sm text-muted">
+            ReplyHalo needs to confirm a connected Instagram account before a new automation can go live.
+          </p>
+        </div>
+        <div className="panel rounded-xl p-6">
+          <p className="text-sm font-medium text-foreground">
+            Could not load connected accounts
+          </p>
+          <p className="mt-1 text-sm text-muted">{accountsError}</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void retryAccounts()}
+              disabled={accountsLoading}
+              className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
+            >
+              {accountsLoading ? "Checking…" : "Try again"}
+            </button>
+            <Link
+              href="/settings"
+              className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-hover"
+            >
+              Check Instagram connection
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "new" && accounts.length === 0) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Custom builder</h1>
+          <p className="mt-1 text-sm text-muted">
+            Connect Instagram first, then you can build a custom automation.
+          </p>
+        </div>
+        <div className="panel rounded-xl p-6">
+          <p className="text-sm text-muted">
+            You need a connected Instagram Business or Creator account before creating an automation.
+          </p>
+          <a
+            href="/api/instagram/connect"
+            className="mt-4 inline-flex rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
+          >
+            Connect Instagram
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {accountsError && mode === "edit" && (
+        <div className="rounded border border-warning/30 bg-warning/5 px-4 py-3 text-sm">
+          <p className="font-medium text-foreground">Could not refresh Instagram connection</p>
+          <p className="mt-1 text-muted">{accountsError}</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void retryAccounts()}
+              disabled={accountsLoading}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover disabled:opacity-50"
+            >
+              {accountsLoading ? "Checking…" : "Try again"}
+            </button>
+            <Link href="/settings" className="text-sm font-medium text-accent hover:underline">
+              Check Instagram connection
+            </Link>
+          </div>
+        </div>
+      )}
+
       {importQueue && (
         <div className="rounded border border-accent/30 bg-accent/5 px-4 py-3 text-sm">
           <span className="font-medium text-foreground">
@@ -633,7 +860,15 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
       <div className="space-y-8 min-w-0">
         {error && (
           <div className="rounded border border-error/20 bg-error/10 p-3 text-sm text-error">
-            {error}
+            <p>{error}</p>
+            {connectionRecoveryNeeded && (
+              <Link
+                href="/settings"
+                className="mt-2 inline-flex font-medium text-accent hover:underline"
+              >
+                Check Instagram connection
+              </Link>
+            )}
           </div>
         )}
 
@@ -649,20 +884,26 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
             maxLength={100}
           />
-          {accounts.length > 1 && (
+          {mode === "new" && accounts.length > 1 && (
             <div className="pt-2">
               <AccountSelect
                 accounts={accounts}
                 value={selectedAccountId}
-                onChange={(id) => {
-                  setSelectedAccountId(id);
-                  setPostId(null);
-                  setPostUrl(null);
-                  setPostThumb(null);
-                }}
+                onChange={chooseAccount}
                 includeAll={false}
                 label="Instagram account"
               />
+            </div>
+          )}
+          {mode === "edit" && selectedAccountId && (
+            <div className="rounded-lg border border-border bg-surface/70 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Instagram account
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">@{username}</p>
+              <p className="mt-1 text-xs text-muted">
+                This automation stays attached to this account. Reconnect it in Settings if the connection needs repair.
+              </p>
             </div>
           )}
         </div>
@@ -676,12 +917,37 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
           </Radio>
           {triggerScope === "specific" && (
             <div className="rounded-lg border border-border p-2">
-              <PostPicker
-                selectedPostId={postId}
-                instagramAccountId={selectedAccountId}
-                usedPostIds={usedPosts}
-                onSelect={handlePostSelect}
-              />
+              {mode === "edit" &&
+              (accountsLoading || accountsError || !selectedAccountConnected) ? (
+                <div className="p-3 text-sm">
+                  <p className="font-medium text-foreground">
+                    {accountsLoading
+                      ? "Checking Instagram connection…"
+                      : "Reconnect Instagram to choose a different post or Reel"}
+                  </p>
+                  {!accountsLoading && (
+                    <p className="mt-1 text-xs text-muted">
+                      The current automation stays saved. Reconnect the attached account before changing provider content or going live.
+                    </p>
+                  )}
+                  {!accountsLoading && (
+                    <Link
+                      href="/settings"
+                      className="mt-2 inline-flex text-xs font-medium text-accent hover:underline"
+                    >
+                      Check Instagram connection
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <PostPicker
+                  key={selectedAccountId || "no-account"}
+                  selectedPostId={postId}
+                  instagramAccountId={selectedAccountId}
+                  usedPostIds={usedPosts}
+                  onSelect={handlePostSelect}
+                />
+              )}
             </div>
           )}
           <Radio
