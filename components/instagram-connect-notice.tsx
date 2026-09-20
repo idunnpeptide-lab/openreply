@@ -108,7 +108,7 @@ const LICENSE_MESSAGES: Record<
     tone: "warning",
     title: "Connected account limit reached",
     detail:
-      "This plan has no free social-account slots. Disconnect an unused account or upgrade the plan.",
+      "This plan has no free social-account slots. You can reconnect an account already linked to this plan without using another slot. To add a different account, upgrade the plan or contact support for a controlled migration. Disconnecting locally keeps the account slot reserved so your history can be preserved.",
   },
   misconfigured: {
     tone: "error",
