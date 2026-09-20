@@ -267,3 +267,21 @@ Continue in this order:
 3. then deploy staging and perform the fresh-customer walkthrough with Volodymyr Rudyi.
 
 TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## Launch-readiness update — 2026-09-21 after PR #70
+
+The focused mobile/responsive/basic-accessibility audit reviewed the normal launch surfaces rather than redesigning the product. Login, verify-request, Dashboard shell sizing/overflow, Quick Automations layout, Settings layout, account selection, and campaign preview were already responsive enough for launch and did not require cosmetic rewrites.
+
+Two narrow product PRs fixed the real blockers found. PR #69 made the off-canvas mobile navigation keyboard-safe: a closed sidebar is no longer left in the mobile tab order, Menu exposes expanded/control state, opening moves focus into navigation, Close/overlay/Escape can dismiss it, and focus returns to the Menu control. The Instagram post search also received a programmatic accessible name. PR #69 final head `3f7c1fe429bf14360f71070fd96d74a252620e0f` passed CI run `35541233027` and Security run `35541232961`; merge SHA `5bcf272d87eec26b810710eeb995d4a427ca8615`.
+
+PR #70 closed the remaining primary-control semantics blockers without changing automation behavior. Custom Builder selection buttons now expose selected state, visual toggles expose switch state and specific accessible names, key form fields no longer rely on placeholders alone, and save errors are announced as alerts. Settings team-invite controls are named. Automations search/status controls expose names/selection, active state is a switch, each automation name is a real keyboard-accessible editor link, and the reel preview exposes basic dialog semantics. PR #70 final head `22c1780a5bc3289da647088bb7207f6cd1d0fcf5` passed CI run `35541638010` and Security run `35541638050`; merge SHA `bf9788f036c8180b648e088e02b2eb6aaea369ae`.
+
+No deployment or fresh-customer manual staging walkthrough is claimed for PR #69 or PR #70.
+
+### Latest continuation point after PR #70
+
+Continue with the focused **email login deliverability/domain/resend UX** audit before commercial release. Keep provider and email-service internals out of customer-facing errors, verify the production sender/domain assumptions and resend/recovery path, and fix only real launch blockers. After that code stage is complete and evidenced, deploy staging and perform the fresh-customer walkthrough with Volodymyr Rudyi.
+
+TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
