@@ -1,6 +1,6 @@
 # ReplyHalo — Project Progress
 
-Last updated: 2026-09-19
+Last updated: 2026-09-20
 Owner / product decision maker: **Volodymyr Rudyi**
 AI development assistance: **ChatGPT (OpenAI)**
 
@@ -22,8 +22,36 @@ Important fixes from that QA:
 - PR #7 — repeat follow-ups for returning users; merge SHA `940674886d8aa47d086d8a88db040ca36a1e2294`.
 - PR #8 — soft Instagram disconnect preserving campaigns/history; merge SHA `b5453b0b2fefe85f3b624fb07c4b07def29ef207`.
 - PR #9 — staging release marker used before live disconnect QA; merge SHA `29938e7251855de89bf1338ad5801e26173fbaad`.
+- PR #45 — launch onboarding, Instagram connection-health API/model, four Quick Automations, and connected-only account counting; merge SHA `8883da17b8d435755263a53137aa6373d112b084`.
 
-Human validation evidence includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully.
+Human validation evidence from the earlier Instagram staging session includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully. PR #45's new first-run/onboarding UI has automated CI evidence but has **not yet** been manually staging-validated; no new live provider test is claimed for that milestone.
+
+### Launch UX / pre-launch readiness
+
+PR #45 moved ReplyHalo's first-run experience toward the intended SaaS model where provider complexity stays on ReplyHalo's side rather than the customer's side.
+
+Current launch path now includes:
+
+- Dashboard **Connect Instagram** as the first action when no active Instagram connection exists;
+- reuse of the existing ReplyHalo-owned Instagram OAuth route instead of asking customers to create Meta developer apps or provide developer secrets;
+- a three-step onboarding path: connect account → choose automation → activate;
+- workspace-scoped Instagram health reporting for connection state, token expiry, and webhook subscription without returning token material;
+- self-service attention/reconnect guidance when a connected account is not fully ready;
+- a dedicated **Quick Automations** entry point;
+- four launch templates:
+  - Comment → DM;
+  - Comment → Follow Gate → DM;
+  - Comment → Tracked Link;
+  - Comment → Link → Follow-up;
+- reuse of the existing official Instagram post picker and existing `/api/automations` creation/runtime path;
+- the full Campaign Builder retained for advanced/custom setups;
+- tracked-link `{link}` integrity guard;
+- account-switch behavior that clears a previously selected post;
+- dashboard-shell connected-account count that excludes preserved soft-disconnected rows.
+
+PR #45 final head `d521fa5b48b55c59a66637b75bc68ca6bb0b609a` passed CI run `35521687018` and Security run `35521687004` before merge. The initial CI attempt `35521482936` failed lint on internal raw links, was corrected, and is retained as truthful engineering history.
+
+The existing Dashboard already exposes launch-relevant analytics including active campaigns, DMs sent, skipped/failed counts, clicks, CTR, 7-day DM volume, top keywords and recent activity. The campaign API also already computes per-campaign sent/skipped/failed/click/CTR/top-keyword metrics, so a new analytics subsystem is not currently required merely to satisfy the pre-launch MVP goal.
 
 ### TikTok provider
 
@@ -66,7 +94,7 @@ The dashboard includes **TikTok staging** with:
 - staging-only webhook provider controls to read the provider config or configure + verify `COMMENT` and `DIRECT_MESSAGE` against the expected ReplyHalo callback without exposing app secrets to the browser;
 - a prepared controlled-send panel that remains visibly locked while either source-controlled execution gate is false.
 
-The action-execution foundation now has a deliberately narrow staging handoff but remains unable to send:
+The action-execution foundation remains unable to send while the two source gates are false:
 
 - parses stored action plans and fails closed on invalid/mismatched data;
 - re-checks active connection, real signed-webhook readiness, and current account capability inside the locked execution transaction;
@@ -78,38 +106,25 @@ The action-execution foundation now has a deliberately narrow staging handoff bu
 - accepts no reply text, provider target, actor ID, or conversation ID from the controlled-send browser request; only an existing durable match ID plus an exact confirmation phrase is accepted;
 - requires both `TIKTOK_LIVE_EXECUTION_ENABLED=false` and `TIKTOK_CONTROLLED_STAGING_SEND_ENABLED=false` to be changed by a later reviewed source-code decision before the staging endpoint can call the provider executor. Both remain `false` now.
 
-The diagnostics layer deliberately excludes comment/DM text, action-message text, actor identifiers, conversation IDs, provider tokens/credentials, and arbitrary raw OperationalEvent payload fields.
+Webhook readiness is evidence-based rather than configuration-based. A connected TikTok account is marked `webhookConfigured=true` only after a supported event (`comment.update`, `im_receive_msg`, or `im_receive_msg_eu`) passes the existing signature-verification boundary and its provider-specific queue handoff succeeds. Provider webhook readback deliberately does not set runtime readiness.
 
-Webhook readiness is evidence-based rather than configuration-based. A connected TikTok account is marked `webhookConfigured=true` only after a supported event (`comment.update`, `im_receive_msg`, or `im_receive_msg_eu`) passes the existing signature-verification boundary and its provider-specific queue handoff succeeds. The staging webhook control may prove that TikTok's provider readback points to the expected callback, but it deliberately does **not** set runtime readiness. Invalid signatures, unsupported event names, failed queue handoffs, or locally disconnected/expired accounts do not confirm readiness.
-
-TikTok disconnect is evidence-preserving in code. Local disconnect never deletes the `TikTokAccount` row because its campaigns and durable matches use cascade relations. Instead ReplyHalo invalidates the locally stored tokens, expires the connection, clears scopes/capability/webhook-readiness state, hides the account from connected selectors/provider reads, and ignores webhook ingress for that disconnected row. Reconnecting the same `openId` reuses the preserved row and restores fresh OAuth state while requiring webhook readiness and Comment-to-Message eligibility to be proven again. The DM Magnet social-account slot remains bound intentionally, matching the established Instagram preservation model.
-
-The live-staging handoff is documented in `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md`, including:
-
-- staging OAuth callback: `https://replyhalo-web-staging.up.railway.app/api/tiktok/callback`;
-- staging webhook callback: `https://replyhalo-web-staging.up.railway.app/api/tiktok/webhook`;
-- deployment environment-variable names only, never secret values;
-- desired scopes and provider products;
-- provider webhook readback/configuration through the staging-only `/tiktok` control after a real account is connected;
-- OAuth, token/capability, webhook, inert comment, inert DM, duplicate-event, disconnect/reconnect, and controlled-send validation order;
-- evidence-handling rules for the human staging session.
-
-Both TikTok send gates remain source-controlled `false`. No browser action, environment variable, database row, or provider callback can turn them on.
+TikTok disconnect remains evidence-preserving in code: the provider account row, campaigns, durable matches and social-slot identity are preserved, while local tokens/capabilities/readiness are invalidated until same-account OAuth reconnect.
 
 ## Current safety boundaries
 
 - Instagram and TikTok account/automation paths remain additive and isolated.
+- Instagram launch onboarding reuses existing OAuth/runtime infrastructure; no customer developer credentials are introduced.
+- Instagram health output is workspace-scoped, `no-store`, and does not expose the stored access token.
+- Quick Automations reuse the proven Instagram automation runtime rather than creating a second worker or provider path.
+- Soft-disconnected Instagram rows are preserved but no longer counted as active shell connections.
 - TikTok webhook events are normalized before automation matching.
 - TikTok logical events use stable provider IDs for ingress/routing dedupe.
 - EU stripped-message reconciliation fails closed on ambiguity.
 - TikTok webhook provider setup/readback is restricted to authenticated owner/admin access on staging and requires a currently connected TikTok staging account before mutation.
-- The browser never supplies the webhook callback; ReplyHalo derives it from the staging base URL.
-- Provider webhook readback is not equivalent to runtime webhook readiness; only a valid supported signed delivery whose queue handoff succeeds confirms runtime readiness.
+- Provider webhook readback is not equivalent to runtime webhook readiness.
 - TikTok local disconnect preserves the account row, campaigns, durable matches, and license/social-slot identity; it does not cascade-delete history.
-- Disconnected/expired TikTok accounts are excluded from connected-account reads, owned-video/provider reads, webhook account resolution, and controlled execution.
 - The controlled-send endpoint is staging-only, owner/admin-only, workspace-scoped, exact-confirmation guarded, requires a current `MATCHED` row plus active connection and signed-webhook runtime readiness, and is doubly locked by source constants.
-- TikTok action plans can be persisted and validated, but live public-reply/DM execution remains gated until live provider staging QA and explicit human approval.
-- Current TikTok provider clients do not expose a persisted provider idempotency key in ReplyHalo. Therefore automatic send retries are intentionally prohibited; the future controlled executor uses row serialization + terminal match state, while hard-crash ambiguity after provider acceptance remains a staging/rollout consideration to validate before production enablement.
+- Current TikTok provider clients do not expose a persisted provider idempotency key in ReplyHalo; automatic send retries remain intentionally prohibited.
 - Comment-to-Message is displayed as capability state only; it is not exposed as an active campaign action.
 - Diagnostics are workspace-scoped and sanitized.
 - No scraping/private endpoint fallback is part of the TikTok implementation.
@@ -117,22 +132,33 @@ Both TikTok send gates remain source-controlled `false`. No browser action, envi
 
 ## Exact continuation point
 
-All useful code-only preparation for the first TikTok provider staging session is complete. Further meaningful progress now requires **human/provider participation**:
+### Pre-launch Instagram product work
+
+The first launch-priority code milestone is complete. The next useful code-only work is:
+
+1. improve **Settings → Instagram connection health/reconnect UX** so each connected account shows a human-readable connection/authorization/automation-ready state and one obvious repair action;
+2. verify the existing Campaign/Dashboard analytics surface covers the launch KPI set rather than building a redundant analytics subsystem;
+3. polish empty/error states and template copy only where they reduce first-run friction;
+4. after deployment, perform a human staging walkthrough of the new flow: fresh user/dashboard → Connect Instagram → Quick Automation → choose controlled Reel/post → activate → confirm campaign appears and existing automation behavior still works;
+5. record that manual staging evidence only after Volodymyr Rudyi actually performs/confirms it.
+
+A large visual flow builder, AI manager, CRM, team/agency mode and broad omnichannel expansion remain intentionally outside the immediate launch blocker list.
+
+### TikTok provider work
+
+Further meaningful TikTok progress still requires human/provider participation:
 
 1. create/open the dedicated ReplyHalo TikTok for Business developer app;
 2. request/verify the Organic API and Business Messaging products/permissions available to the test Business Account;
-3. configure the exact staging OAuth callback and deployment environment values directly in TikTok/Railway, without posting secret values in GitHub or chat;
+3. configure the exact staging OAuth callback and deployment environment values directly in TikTok/Railway without posting secret values in GitHub/chat;
 4. connect a real test TikTok Business Account through ReplyHalo OAuth;
 5. verify actual scopes/capabilities/token refresh and owned-video reads in `/tiktok`;
-6. in `/tiktok`, use **Read provider config** or **Configure + verify** for the `COMMENT` and `DIRECT_MESSAGE` provider webhook families and confirm provider readback points both to the expected staging callback;
-7. trigger a real supported signed provider event and confirm ReplyHalo's separate runtime webhook-readiness indicator becomes confirmed only after successful ingress handoff;
-8. create an inert TikTok campaign and confirm one real provider event produces exactly one sanitized `MATCHED` record while the controlled-send panel remains locked;
-9. perform the safe disconnect/reconnect staging test and verify campaigns/history remain and the same account resumes on the preserved identity;
-10. only after those checks pass, Volodymyr Rudyi may explicitly approve a separate reviewed code change to enable the two source-controlled gates for the deliberately tiny controlled-send test;
-11. if approved, execute one public reply to one controlled comment and one text reply in one existing controlled Business Messaging conversation, with no automatic retry after any ambiguous failure;
-12. keep Comment-to-Message disabled until account eligibility is proven separately.
+6. configure/read back `COMMENT` and `DIRECT_MESSAGE` webhooks;
+7. trigger a real supported signed event and confirm runtime readiness;
+8. validate inert routing/dedupe and safe disconnect/reconnect;
+9. only after those checks pass, Volodymyr Rudyi may explicitly approve a separate reviewed gate-enabling change for the tiny controlled-send test.
 
-No send gate should be changed before the real provider setup and human staging validation above.
+No TikTok send gate should be changed before the real provider setup and human staging validation above.
 
 ## Evidence discipline
 
