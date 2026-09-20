@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import { readCache, writeCache } from "@/lib/client-cache";
+import { automationMutationCustomerError } from "@/lib/customer-instagram-readiness";
 
 interface Campaign {
   id: string;
@@ -219,7 +220,14 @@ export default function CampaignsPage() {
         body: JSON.stringify({ isActive: !isActive }),
       });
       const payload = await response.json();
-      if (!response.ok || !payload.success) throw new Error("toggle_failed");
+      if (!response.ok || !payload.success) {
+        const customerError = automationMutationCustomerError(payload.error);
+        setLoadError(
+          customerError ?? "That automation could not be updated. Please retry."
+        );
+        return;
+      }
+      setLoadError(null);
       setAutomations((prev) =>
         prev.map((a) => (a.id === id ? { ...a, isActive: !isActive } : a))
       );
