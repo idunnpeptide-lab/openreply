@@ -542,3 +542,35 @@ No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for
 Checkpoint PR #61 merge SHA `53253e3f3f9b6cf061744d789b5087bc5ad4c16a`. Product PR #62 head SHA `bb1b039ef7a9b33a8b55d47d98ad0f207cb8ba2e`, merge SHA `fb7f9b954351728456766143f234aa415b7d972e`, CI run `35537552869`, Security run `35537552791`.
 
 No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
+
+---
+
+## 2026-09-20 — Custom Builder account-readiness milestone
+
+**Human role — Volodymyr Rudyi**
+
+- explicitly asked ChatGPT to preserve completed work before continuing the launch-readiness audit;
+- retained the product requirement that customer recovery be clear while preserved account identity/history remains non-destructive;
+- retained final authority over staging deployment, fresh-customer validation, and commercial release;
+- did not perform or claim manual staging validation for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- resumed only after the PR #62 evidence checkpoint was merged to `main`;
+- audited the Custom Builder account-loading, provider-content picker, edit binding, and active-save paths;
+- identified that account-list failure could be indistinguishable from a legitimate zero-account state;
+- identified that active Custom Builder saves lacked the customer-side connected-account preflight already added to Quick Automations, while the server guard remained authoritative;
+- identified stale provider-content risk when a new campaign switched Instagram accounts;
+- identified an integrity mismatch where edit UI offered Instagram account switching even though the PATCH API does not migrate `instagramAccountId`;
+- chose not to introduce silent account migration semantics; edit mode now truthfully keeps the automation attached to its original Instagram account and points the customer to reconnect when needed;
+- added account-load retry/Settings recovery, active-save preflight, customer-safe `INSTAGRAM_RECONNECT_REQUIRED` mapping, post-picker remount/reset, and disconnected-edit provider-read protection;
+- preserved inactive editing and Stop/Pause after disconnect;
+- added focused regression tests for connected-account selection/readiness and customer error mapping;
+- left schema, worker/provider runtime, licensing/control-plane behavior, and TikTok execution gates unchanged;
+- merged PR #64 only after final CI and Security were green.
+
+**Repository evidence**
+
+PR #64, final head SHA `6be3162bdf47c57ae450138868f37cbea8e20aa4`, merge SHA `8e64d0b52017495bc0048bc790dfb0bb8eb5acc7`, CI run `35538310136`, Security run `35538309969`.
+
+No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
