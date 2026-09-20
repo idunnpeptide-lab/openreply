@@ -365,6 +365,23 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no schema migration, new analytics persistence, background job, provider permission, Instagram worker behavior, TikTok behavior, or TikTok gate change was introduced.
 - Human validation: **not yet performed as a fresh-customer launch walkthrough**. No deployment/customer activation is claimed by PR #49.
 
+## ReplyHalo plan-readiness and activation-copy evidence — 2026-09-20
+
+### PR #51 — plan readiness, customer copy, and fail-closed onboarding
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/51`
+- Final head SHA: `0bf05ea82021bb7b2912ac424df805a20d1ecfe7`.
+- Merge SHA: `be4417503533e35a516cb070d180192cfbc35531`.
+- CI run: `35528589277` — success.
+- Security run: `35528589275` — success.
+- Automated evidence: Prisma validate/generate, TypeScript, lint, tests, and production build passed before merge.
+- Customer-journey evidence: Dashboard verifies ReplyHalo plan readiness in addition to Instagram health before first connect; missing/invalid activation routes the customer to Settings; first-time login uses customer-friendly email/passwordless/workspace language; all four Quick Automation launch defaults were polished; Settings uses **ReplyHalo activation code**, **Connected account slots**, and **Plan renewal** terminology.
+- Sanitization evidence: `LICENSE_SUSPENDED`, `LICENSE_REVOKED`, `LICENSE_EXPIRED`, `ACCOUNT_LIMIT_REACHED`, `LICENSE_NOT_FOUND`, `LICENSE_ALREADY_ASSIGNED`, `LICENSE_ACCOUNT_MIGRATION_REQUIRED`, and `LICENSE_SERVICE_UNAVAILABLE` are mapped to customer-facing ReplyHalo messages rather than displayed as raw internal errors.
+- Fail-closed evidence: during PR review, failure of `/api/license/status` was identified as a potential fail-open onboarding state. Final head blocks **Connect Instagram** when plan readiness cannot be verified and instead shows **Plan check needed / Check plan**.
+- Preservation evidence: plan-repair/temporary-verification copy tells customers that existing automations/history remain saved; the underlying workspace licensing architecture is unchanged.
+- Scope evidence: no schema migration, Instagram worker/runtime rewrite, provider-permission change, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #51.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -376,6 +393,6 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 
 Human validation means an explicit result reported/performed by Volodymyr Rudyi. Screenshots referenced in development chat are not automatically copied into GitHub unless a real repository artifact/path is created. This register records the fact of the human validation without inventing a file path for screenshots that were not committed.
 
-## Current evidence checkpoint
+## Current evidence checkpoint — after PR #51
 
-PR #49 is the latest completed product milestone recorded here. ReplyHalo's Instagram launch path now combines one-click OAuth entry, customer-readable health/reconnect, four Quick Automations using the proven runtime, launch-first empty/error recovery, and focused existing analytics presentation. Manual staging validation of the combined fresh-customer launch flow has not yet occurred and is not claimed. TikTok remains separately doubly locked pending its real provider session; no TikTok send gate changed in PR #49.
+PR #51 is the latest completed product milestone recorded here. ReplyHalo's current Instagram launch path now combines customer-friendly passwordless login, workspace plan-readiness before provider connection, sanitized activation/plan errors, one-click Instagram OAuth entry, customer-readable health/reconnect, four Quick Automations using the proven runtime, launch-first empty/error recovery, and focused existing analytics presentation. Manual staging validation of the combined fresh-customer launch flow has not yet occurred and is not claimed. The exact next engineering stage is the focused launch-readiness audit; TikTok remains separately doubly locked pending its later real-provider session.
