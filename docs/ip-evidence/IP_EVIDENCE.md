@@ -347,6 +347,24 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no provider permission model, worker/runtime behavior, TikTok path, or TikTok execution gate was changed.
 - Human validation: **not yet performed as a fresh-customer launch walkthrough**. No new deployment, live OAuth/reconnect test or customer activation is claimed by PR #47.
 
+## Launch empty/error-state and analytics evidence — 2026-09-20
+
+### PR #49 — launch-first Automations and performance presentation
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/49`
+- Head SHA: `4812d60ca790bd508e05e6a826660923073f5fa3`.
+- Merge SHA: `3d5a75ba1379f8137997e778ca0369b08ead4eeb`.
+- CI run: `35524959374` — success.
+- Security run: `35524959433` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, full existing tests, and production build all passed before merge.
+- Creation-path evidence: Automations now presents **Quick Automation** as the primary action; Import and the full **Custom builder** remain available as secondary/advanced choices.
+- First-run evidence: the empty state directs a customer to the four Quick Automation templates instead of requiring the full builder first.
+- Recovery evidence: Dashboard and Automations expose recoverable load/error states; automation toggle/delete/duplicate failures become visible; filter/search no-result state offers a clear reset.
+- Analytics evidence: Dashboard reuses existing data and prioritizes Active Automations, DMs Sent, Link Clicks, CTR, Failed and Skipped; campaign cards present runs → sent → clicks → CTR and surface failed/skipped when relevant.
+- Zero-data evidence: 7-day DM and recent-activity sections explain what will appear after the first automation runs rather than showing an unexplained blank panel.
+- Scope evidence: no schema migration, new analytics persistence, background job, provider permission, Instagram worker behavior, TikTok behavior, or TikTok gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer launch walkthrough**. No deployment/customer activation is claimed by PR #49.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -360,4 +378,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #47 is the latest completed product milestone recorded here. ReplyHalo's Instagram launch path now combines one-click OAuth entry, a sanitized connection-health model, four Quick Automations using the proven runtime, and customer-readable self-service health/reconnect UX. Manual staging validation of the combined fresh-customer launch flow has not yet occurred and is not claimed. TikTok remains separately doubly locked pending its real provider session; no TikTok send gate changed in PR #47.
+PR #49 is the latest completed product milestone recorded here. ReplyHalo's Instagram launch path now combines one-click OAuth entry, customer-readable health/reconnect, four Quick Automations using the proven runtime, launch-first empty/error recovery, and focused existing analytics presentation. Manual staging validation of the combined fresh-customer launch flow has not yet occurred and is not claimed. TikTok remains separately doubly locked pending its real provider session; no TikTok send gate changed in PR #49.
