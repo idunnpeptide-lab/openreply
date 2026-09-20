@@ -3,6 +3,10 @@
 import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
 import { InstagramConnectNotice } from "@/components/instagram-connect-notice";
+import {
+  accountLimitRecoveryMessage,
+  instagramDisconnectCustomerError,
+} from "@/lib/customer-settings-recovery";
 
 interface SettingsData {
   workspace: {
@@ -68,7 +72,7 @@ function planAttentionMessage(error?: string) {
     case "LICENSE_EXPIRED":
       return "Your ReplyHalo plan has expired. Renew your access before connecting another account.";
     case "ACCOUNT_LIMIT_REACHED":
-      return "Your plan has no free social-account slots. Disconnect or migrate an old account, or upgrade the plan.";
+      return accountLimitRecoveryMessage();
     case "LICENSE_NOT_FOUND":
     case "LICENSE_SECRET_INVALID":
       return "We could not verify the saved activation code. Enter the code issued for this ReplyHalo workspace again.";
@@ -116,6 +120,7 @@ export default function SettingsPage() {
   const [memberError, setMemberError] = useState<string | null>(null);
   const [licenseKeyInput, setLicenseKeyInput] = useState("");
   const [licenseError, setLicenseError] = useState<string | null>(null);
+  const [instagramError, setInstagramError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.allSettled([
@@ -219,13 +224,33 @@ export default function SettingsPage() {
       return;
     }
 
-    setBusy(`disconnect:${instagramAccountId}`);
-    await fetch("/api/instagram/disconnect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ instagramAccountId }),
-    });
-    window.location.reload();
+    const busyKey = `disconnect:${instagramAccountId}`;
+    setBusy(busyKey);
+    setInstagramError(null);
+
+    try {
+      const response = await fetch("/api/instagram/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instagramAccountId }),
+      });
+      const payload = await response.json();
+      const customerError = instagramDisconnectCustomerError(
+        response.ok,
+        payload?.success
+      );
+
+      if (customerError) {
+        setInstagramError(customerError);
+        return;
+      }
+
+      window.location.reload();
+    } catch {
+      setInstagramError(instagramDisconnectCustomerError(false, undefined));
+    } finally {
+      setBusy((current) => (current === busyKey ? null : current));
+    }
   }
 
   async function inviteMember(event: React.FormEvent) {
@@ -436,6 +461,13 @@ export default function SettingsPage() {
 
       <section className="panel rounded p-4 sm:p-6">
         <h2 className="text-base font-semibold mb-6">Instagram</h2>
+
+        {instagramError && (
+          <div className="mb-4 rounded-lg border border-error/20 bg-error/5 p-3">
+            <p className="text-sm font-medium text-error">Could not disconnect Instagram</p>
+            <p className="mt-1 text-xs text-muted">{instagramError}</p>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
