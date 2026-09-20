@@ -424,3 +424,31 @@ PR #49, head SHA `4812d60ca790bd508e05e6a826660923073f5fa3`, merge SHA `3d5a75ba
 **Repository evidence**
 
 PR #51, final head SHA `0bf05ea82021bb7b2912ac424df805a20d1ecfe7`, merge SHA `be4417503533e35a516cb070d180192cfbc35531`, CI run `35528589277`, Security run `35528589275`.
+
+---
+
+## 2026-09-20 — Launch auth / plan recovery milestone
+
+**Human role — Volodymyr Rudyi**
+
+- established the launch-priority requirements already governing this audit: plan readiness before Instagram, customer-facing ReplyHalo language, provider/licensing internals hidden, preserved customer work, and fixes limited to real launch blockers;
+- retained final authority over fresh-customer manual staging and commercial release;
+- did not perform or claim manual validation for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- continued from the exact post-PR #52 checkpoint and audited the actual authentication, plan-status, activation, and Instagram OAuth entry/callback paths;
+- identified the stale OpenReply `/verify-request` surface and missing resend guidance;
+- identified the Settings fail-open presentation where failed plan-status loading could look like `Local mode`;
+- identified customer-visible leakage of OAuth environment-variable names and callback/provider exception text;
+- identified remaining activation-key wording and raw licensing `error.message` in the activation API response;
+- implemented narrow fixes while preserving the existing workspace licensing architecture, Instagram worker/runtime, provider permissions, and TikTok execution gates;
+- kept detailed callback failure evidence server-side while removing it from customer-visible URLs;
+- ran PR #53 through CI and Security and merged only after both were green;
+- prepared this separate evidence checkpoint.
+
+**Repository evidence**
+
+PR #53, final head SHA `73ac74d3ef9db34c49802577ff20b3703c7ea985`, merge SHA `f39c65320728ceb92abf71c9c1526a97d2666bec`, CI run `35529338503`, Security run `35529338567`.
+
+No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.

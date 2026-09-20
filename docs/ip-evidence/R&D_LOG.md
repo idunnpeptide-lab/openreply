@@ -619,3 +619,42 @@ The final PR #51 head `0bf05ea82021bb7b2912ac424df805a20d1ecfe7` passed CI run `
 
 **Result**
 PR #51 merged at `be4417503533e35a516cb070d180192cfbc35531`. The previously active launch plan-readiness/copy branch is closed. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone. The exact next engineering phase is the focused launch-readiness audit, followed only later by deployment and one-step-at-a-time fresh-customer staging validation.
+
+---
+
+## 2026-09-20 — Launch auth / plan recovery milestone
+
+**Task**
+Continue the focused launch-readiness audit through authentication recovery, plan-status failure handling, and Instagram OAuth customer-error boundaries without expanding the licensing or provider architecture.
+
+**Problem**
+The audit found three launch blockers after PR #51: the verify-request screen still used the old OpenReply brand and offered weak resend guidance; Settings could make a failed plan-status request look like Local mode and expose Instagram connection before readiness was actually known; and Instagram OAuth/customer activation responses could leak environment-variable names, provider exception text, or raw licensing error messages into browser-visible responses.
+
+**Options considered**
+- Leave these cases to support/documentation because the happy path worked.
+- Redesign the licensing/control-plane and Instagram OAuth architecture before launch.
+- Keep the existing architecture, make readiness fail closed, provide explicit customer recovery, and retain detailed diagnostics server-side while returning stable customer-safe errors.
+
+**Volodymyr's decision**
+Continue the launch-focused audit and fix only real customer blockers. Keep provider and licensing complexity on ReplyHalo's side, do not expose internal errors to customers, and do not claim manual staging validation until the later fresh-customer walkthrough actually occurs.
+
+**Implementation**
+PR #53 delivered:
+
+- ReplyHalo-branded `/verify-request` copy describing the secure one-time email link, spam/junk guidance, and **Send a new sign-in link** recovery;
+- `Promise.allSettled` startup handling in Settings so plan-status failure is isolated from unrelated stats/member loading;
+- explicit Settings `licenseLoadError` / **Check required** / **Check plan** behavior;
+- fail-closed Instagram connection availability until plan status is successfully known and acceptable;
+- safe activation network-failure copy;
+- Instagram connect misconfiguration redirect reduced to `?instagram=misconfigured` instead of exposing missing environment-variable names;
+- Instagram callback failures reduced to `?instagram=failed` while server-side logging/OperationalEvent diagnostics retain the detailed reason;
+- remaining customer-facing **activation key** wording changed to **activation code**;
+- activation POST responses reduced to stable error code output without returning raw `error.message` text.
+
+No licensing schema/backend redesign, Instagram worker/runtime rewrite, or TikTok gate change was introduced.
+
+**Test**
+Final PR #53 head `73ac74d3ef9db34c49802577ff20b3703c7ea985` passed CI run `35529338503` and Security run `35529338567` before merge.
+
+**Result**
+PR #53 merged at `f39c65320728ceb92abf71c9c1526a97d2666bec`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone. The next focused audit stage is account slots / plan limits, followed by Quick Automations regression and the remaining launch-readiness sequence.
