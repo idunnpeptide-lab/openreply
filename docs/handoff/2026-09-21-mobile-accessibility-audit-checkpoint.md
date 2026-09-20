@@ -2,6 +2,8 @@
 
 This checkpoint preserves the exact launch-readiness continuation state before any new mobile/responsive/accessibility product changes. It does **not** claim that the mobile/accessibility audit is complete, deployed, or manually staging-validated.
 
+Checkpoint status: **saved before the mobile/accessibility audit resumes**.
+
 ## Source of truth
 
 - Repository: `idunnpeptide-lab/openreply`
