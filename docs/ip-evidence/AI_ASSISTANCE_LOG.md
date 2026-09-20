@@ -343,3 +343,30 @@ PR #43, head SHA `4a5c564fc560b1afd87cac788fe4299601e59f1d`, merge SHA `61526636
 **Repository evidence**
 
 PR #45, final head SHA `d521fa5b48b55c59a66637b75bc68ca6bb0b609a`, merge SHA `8883da17b8d435755263a53137aa6373d112b084`, final CI run `35521687018`, Security run `35521687004`. Initial CI run `35521482936` failed lint and is retained as truthful development-history evidence rather than hidden.
+
+---
+
+## 2026-09-20 — Instagram health / self-service reconnect milestone
+
+**Human role — Volodymyr Rudyi**
+
+- prioritized one-click connection and clean reconnect/error UX as launch blockers;
+- directed ReplyHalo to hide Meta/API implementation complexity from normal customers;
+- instructed ChatGPT to continue autonomous pre-launch implementation;
+- retains final authority over manual staging/customer-launch approval;
+- did not claim a fresh-customer live OAuth/reconnect walkthrough for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- translated the existing sanitized Instagram health endpoint into customer-facing readiness states in Settings;
+- added per-account Connection, Authorization and Automation readiness plus `Ready`, `Needs attention`, and `Disconnected` summaries;
+- added one clear Connect/Reconnect path and preserved-history explanation;
+- removed deployment environment-variable names and raw provider failure strings from customer-facing OAuth notices;
+- replaced remaining internal DM Magnet naming in that customer-facing notice surface with ReplyHalo plan language;
+- investigated the initial PR #47 lint failure and fixed the unescaped apostrophe without suppressing the rule;
+- verified final CI/Security green and merged only after success;
+- prepared the required evidence checkpoint.
+
+**Repository evidence**
+
+PR #47, final head SHA `9b814eb580c8bb44ca33df47d2fa2ef0185c3372`, merge SHA `d2fa7a671e1ce6f7b1541e4c089559bad8295741`, CI run `35523019203`, Security run `35523019202`. Earlier head `b82b3376e3b17175c9659f9bde724a39cc8878fc` failed lint on one unescaped apostrophe and is retained as truthful development-history evidence.
