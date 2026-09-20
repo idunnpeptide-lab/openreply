@@ -14,6 +14,7 @@ import {
 export default function QuickAutomationWizard() {
   const router = useRouter();
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState(
     QUICK_AUTOMATION_TEMPLATES[0].id
@@ -51,7 +52,8 @@ export default function QuickAutomationWizard() {
         setAccounts(next);
         setSelectedAccountId(next[0]?.id ?? "");
       })
-      .catch(() => setAccounts([]));
+      .catch(() => setAccounts([]))
+      .finally(() => setAccountsLoading(false));
   }, []);
 
   function chooseTemplate(next: QuickAutomationTemplate) {
@@ -61,6 +63,14 @@ export default function QuickAutomationWizard() {
     setPublicReplyMessage(next.publicReplyMessage);
     setDmMessage(next.dmMessage);
     setTrackedDestinationUrl("");
+    setError(null);
+  }
+
+  function chooseAccount(accountId: string) {
+    if (accountId === selectedAccountId) return;
+    setSelectedAccountId(accountId);
+    setPostId(null);
+    setPostUrl(null);
     setError(null);
   }
 
@@ -91,7 +101,9 @@ export default function QuickAutomationWizard() {
       return;
     }
     if (template.trackedLinkRequired && !dmMessage.includes("{link}")) {
-      setError('Keep the "{link}" token in the private message so ReplyHalo can insert the tracked URL.');
+      setError(
+        'Keep the "{link}" token in the private message so ReplyHalo can insert the tracked URL.'
+      );
       return;
     }
 
@@ -125,6 +137,19 @@ export default function QuickAutomationWizard() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (accountsLoading) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-5">
+        <div className="h-8 w-56 rounded bg-surface-hover" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <div key={item} className="h-32 rounded-xl border border-border bg-surface" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (accounts.length === 0) {
@@ -201,7 +226,7 @@ export default function QuickAutomationWizard() {
             <AccountSelect
               accounts={accounts}
               value={selectedAccountId}
-              onChange={setSelectedAccountId}
+              onChange={chooseAccount}
               includeAll={false}
             />
 
