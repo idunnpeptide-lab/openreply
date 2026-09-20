@@ -4,6 +4,8 @@ This checkpoint preserves the exact launch-readiness continuation state before a
 
 Checkpoint status: **saved before the mobile/accessibility audit resumes; documentation only, with no product/runtime diff**.
 
+Checkpoint merge policy: merge only after the checkpoint head passes both repository CI and Security workflows.
+
 ## Source of truth
 
 - Repository: `idunnpeptide-lab/openreply`
