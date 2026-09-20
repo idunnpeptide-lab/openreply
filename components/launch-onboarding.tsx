@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type HealthAccount = {
@@ -81,12 +82,12 @@ export default function LaunchOnboarding({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a
+            <Link
               href="/settings"
               className="rounded border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover"
             >
               Check connection
-            </a>
+            </Link>
             <a
               href="/api/instagram/connect"
               className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover"
@@ -125,19 +126,19 @@ export default function LaunchOnboarding({
                 Connect Instagram
               </a>
             ) : (
-              <a
+              <Link
                 href="/campaigns/quick"
                 className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
               >
                 Choose quick automation
-              </a>
+              </Link>
             )}
-            <a
+            <Link
               href="/settings"
               className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-hover"
             >
               Connection settings
-            </a>
+            </Link>
           </div>
         </div>
 
