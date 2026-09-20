@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import PostPicker from "@/components/post-picker";
@@ -15,6 +15,7 @@ export default function QuickAutomationWizard() {
   const router = useRouter();
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState(
     QUICK_AUTOMATION_TEMPLATES[0].id
@@ -43,18 +44,39 @@ export default function QuickAutomationWizard() {
     [selectedTemplateId]
   );
 
-  useEffect(() => {
-    fetch("/api/dashboard/stats", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((payload) => {
-        if (!payload.success) return;
-        const next = (payload.data.instagramAccounts ?? []) as AccountOption[];
-        setAccounts(next);
-        setSelectedAccountId(next[0]?.id ?? "");
-      })
-      .catch(() => setAccounts([]))
-      .finally(() => setAccountsLoading(false));
+  const loadAccounts = useCallback(async () => {
+    setAccountsLoading(true);
+    setAccountsError(null);
+    try {
+      const response = await fetch("/api/dashboard/stats", { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error("Could not load Instagram accounts");
+      }
+
+      const next = (payload.data.instagramAccounts ?? []) as AccountOption[];
+      setAccounts(next);
+      setSelectedAccountId((current) =>
+        next.some((account) => account.id === current)
+          ? current
+          : (next[0]?.id ?? "")
+      );
+    } catch {
+      setAccounts([]);
+      setSelectedAccountId("");
+      setPostId(null);
+      setPostUrl(null);
+      setAccountsError(
+        "ReplyHalo could not load your connected Instagram accounts. Try again before creating an automation."
+      );
+    } finally {
+      setAccountsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadAccounts();
+  }, [loadAccounts]);
 
   function chooseTemplate(next: QuickAutomationTemplate) {
     setSelectedTemplateId(next.id);
@@ -147,6 +169,29 @@ export default function QuickAutomationWizard() {
           {[0, 1, 2, 3].map((item) => (
             <div key={item} className="h-32 rounded-xl border border-border bg-surface" />
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (accountsError) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Quick Automations</h1>
+          <p className="mt-1 text-sm text-muted">
+            We could not verify your connected Instagram accounts yet.
+          </p>
+        </div>
+        <div className="panel rounded-xl p-6">
+          <p className="text-sm text-muted">{accountsError}</p>
+          <button
+            type="button"
+            onClick={() => void loadAccounts()}
+            className="mt-4 inline-flex rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
+          >
+            Try again
+          </button>
         </div>
       </div>
     );
@@ -325,6 +370,7 @@ export default function QuickAutomationWizard() {
           </p>
           <div className="mt-4">
             <PostPicker
+              key={selectedAccountId}
               selectedPostId={postId}
               instagramAccountId={selectedAccountId}
               onSelect={(id, url) => {
