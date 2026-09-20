@@ -734,3 +734,38 @@ The first PR #58 head `3aecead1e5ab41f98c0f4efd071d2ba02adf01f7` passed TypeScri
 
 **Result**
 PR #58 merged at `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`. The Quick Automations regression stage is closed in code. No deployment or fresh-customer manual staging walkthrough is claimed. The next focused audit stage is Custom builder / Automations list / Dashboard / Settings regression.
+
+---
+
+## 2026-09-20 — Server-side automation connection guard
+
+**Task**
+Close the server-side customer-journey gap where a preserved soft-disconnected Instagram row could still be used to create or reactivate an automation in an active state.
+
+**Problem**
+Quick Automations had a client preflight after PR #58, but `/api/automations` still resolved a requested Instagram account by workspace/account ID without requiring a non-empty access token. PATCH also allowed an automation to be left or made active without rechecking the attached account connection. A stale client or alternate caller could therefore bypass the customer-side readiness check.
+
+**Options considered**
+- Rely only on the Quick Automations client preflight.
+- Delete disconnected account rows so they can no longer be referenced, sacrificing preserved history/identity.
+- Keep the non-destructive account model and enforce the active-state boundary server-side while still allowing inactive drafts/duplicates and Pause after disconnect.
+
+**Volodymyr's decision**
+Preserve the established non-destructive disconnect model and continue fixing real launch blockers without expanding scope. Active automations must fail closed when Instagram is disconnected, while preserved inactive work must remain editable/pausable.
+
+**Implementation**
+PR #62:
+
+- rejects active POST creation against a soft-disconnected requested Instagram account with stable `INSTAGRAM_RECONNECT_REQUIRED` / HTTP 409;
+- when no account ID is requested for an active create, resolves only a currently connected Instagram account;
+- on PATCH, verifies the attached workspace Instagram account still has a non-empty access token whenever the resulting automation state is active;
+- allows inactive drafts/duplicates to stay attached to the preserved Instagram account row;
+- allows an active automation to be paused after disconnect instead of trapping the customer in an active state;
+- leaves schema, worker/provider execution, licensing/control-plane behavior, and TikTok gates unchanged;
+- separately audited bulk import and confirmed it was already fail-closed through `getWorkspaceInstagramAccount()`.
+
+**Test**
+Focused regression coverage verifies: active create rejection on a soft-disconnected row; inactive draft creation on the preserved row; reactivation rejection after disconnect; and successful Pause after disconnect. PR #62 head `bb1b039ef7a9b33a8b55d47d98ad0f207cb8ba2e` passed CI run `35537552869` (Prisma validate/generate, TypeScript, lint, tests and production build) and Security run `35537552791`.
+
+**Result**
+PR #62 merged at `fb7f9b954351728456766143f234aa415b7d972e`. No deployment, live provider test, or fresh-customer manual walkthrough is claimed. The audit continues with Custom Builder and the remaining Automations/Settings customer-recovery blockers.
