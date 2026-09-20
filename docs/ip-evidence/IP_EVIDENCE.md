@@ -506,3 +506,36 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 ## Current evidence checkpoint — after PR #66
 
 PR #66 is the latest completed product milestone recorded here. Automations reactivation now gives customer-readable reconnect recovery, Settings account-limit copy matches the preserved-slot model, and failed Instagram Disconnect actions can no longer look successful because reload requires confirmed API success. Dashboard regression was reviewed without finding a new launch blocker requiring code changes. The focused audit now continues with mobile/responsive and basic accessibility blockers only where real, followed by email deliverability/domain/resend UX and then the fresh-customer staging walkthrough. No deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
+
+## Mobile / basic accessibility evidence — 2026-09-20
+
+### PR #69 — keyboard-safe mobile navigation and post-search labeling
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/69`
+- Final head SHA: `3f7c1fe429bf14360f71070fd96d74a252620e0f`.
+- Merge SHA: `5bcf272d87eec26b810710eeb995d4a427ca8615`.
+- CI run: `35541233027` — success.
+- Security run: `35541232961` — success.
+- Navigation evidence: the closed mobile sidebar is hidden/non-interactive on small screens so off-canvas navigation links do not remain in the normal keyboard tab sequence.
+- Keyboard/focus evidence: mobile navigation has an explicit Close control, closes on Escape, receives focus when opened, and restores focus to the Menu control when closed by Close/overlay/Escape.
+- State evidence: the Menu control exposes `aria-expanded` and `aria-controls`; the sidebar has a stable control id and the navigation has an explicit label.
+- Post-picker evidence: Instagram post search has a programmatic accessible name rather than relying on placeholder text alone.
+- Scope evidence: no API, schema, provider, automation-runtime, licensing/control-plane, analytics, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer staging or manual accessibility walkthrough**. No deployment/manual success is claimed by PR #69.
+
+### PR #70 — primary launch-control accessibility semantics
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/70`
+- Final head SHA: `22c1780a5bc3289da647088bb7207f6cd1d0fcf5`.
+- Merge SHA: `bf9788f036c8180b648e088e02b2eb6aaea369ae`.
+- CI run: `35541638010` — success.
+- Security run: `35541638050` — success.
+- Custom Builder evidence: visual selection controls expose programmatic selected state; toggle controls expose switch semantics/checked state; primary message/link/follow-up fields receive explicit accessible names; save errors expose alert semantics.
+- Automations evidence: search/status controls have programmatic names/state, automation active controls expose switch state, automation names are keyboard-accessible links to their editor, and the reel preview exposes basic dialog semantics while existing pointer/card navigation is preserved.
+- Settings evidence: team invitation email and role controls receive explicit accessible names.
+- Scope evidence: no schema, API payload, automation runtime, Instagram provider behavior, licensing/control-plane enforcement, analytics model, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer staging or manual accessibility walkthrough**. No deployment/manual success is claimed by PR #70.
+
+## Current evidence checkpoint — after PR #70
+
+PR #69 and PR #70 close the focused mobile/responsive/basic-accessibility code stage. The responsive shell/login/verify-request/Quick Automation layouts were reviewed and no broader redesign blocker was found; product changes stayed limited to confirmed keyboard/focus and programmatic-control semantics. Both product PRs passed CI and Security before merge. No new deployment, fresh-customer manual walkthrough, or accessibility certification is claimed. The next launch-readiness stage is email sign-in deliverability/domain/resend UX, followed by staging deployment and the one-step-at-a-time fresh-customer walkthrough with Volodymyr Rudyi. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
