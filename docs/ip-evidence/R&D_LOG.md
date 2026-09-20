@@ -86,7 +86,7 @@ Automated disconnect regression tests; PR #9 added a staging release marker so V
 - campaign data/statistics remained after disconnect;
 - reconnect restored the same Instagram account;
 - webhook-ready connection returned;
-- public comment reply arrived after reconnect;
+- public comment reply arrived;
 - first private message arrived;
 - subsequent configured message arrived.
 
@@ -466,3 +466,42 @@ Regression coverage verifies staging-only access, owner/admin authorization, wor
 
 **Result**
 PR #43 merged at `615266363e943ddb406406b86f4657b9cd441a3a`. Both send gates remain false, so this milestone cannot send a TikTok public reply or DM. No live TikTok provider validation or send is claimed. The next meaningful work requires the real TikTok for Business staging session and Volodymyr Rudyi's later explicit approval before any separate gate-enabling code change.
+
+---
+
+## 2026-09-20 — Launch onboarding, Instagram health, and Quick Automations
+
+**Task**
+Reduce first-run friction before launch so a customer can connect Instagram and activate a useful automation without seeing Meta developer/API setup or learning the full Campaign Builder first.
+
+**Problem**
+The official Instagram OAuth route already existed, but it was primarily surfaced inside Settings. A new customer landing on Dashboard could see statistics before seeing a clear first action. Connection health was also scattered across token/webhook fields, and the full Campaign Builder required more decisions than a first-time user should need. Soft-disconnected Instagram rows could additionally inflate the dashboard-shell connected-account count.
+
+**Options considered**
+- Keep onboarding documentation-only and leave the existing dashboard/settings flow unchanged.
+- Build a large visual flow builder before launch.
+- Reuse the existing OAuth, post picker, automation API, Follow Gate, tracked-link and follow-up runtime while adding a thin launch onboarding layer, health model, and template-driven quick creator.
+
+**Volodymyr's decision**
+Prioritize launch simplicity over adding broad new platform functionality: one-click Instagram connect, visible account health/reconnect guidance, ready-made automations, and a short path to activation before expanding into a larger visual builder or AI layer.
+
+**Implementation**
+PR #45 added:
+
+- Dashboard first-run onboarding with **Connect Instagram** as the first action;
+- clear 3-step progress: connect account → choose automation → activate;
+- workspace-scoped `/api/instagram/health` plus a pure connection-health model using only evidenced local state: connection, token expiry and webhook subscription;
+- a self-service connection-attention/reconnect banner when an active account needs attention;
+- `Quick Automations` navigation and `/campaigns/quick`;
+- four launch templates: Comment → DM, Comment → Follow Gate → DM, Comment → Tracked Link, and Comment → Link → Follow-up;
+- reuse of the existing official Instagram post picker and existing `/api/automations` backend rather than creating a parallel runtime;
+- tracked-link template guard requiring the `{link}` token before activation;
+- account-switch behavior that clears a previously selected post so content from one Instagram account cannot accidentally be submitted under another account;
+- dashboard-shell counting of connected accounts only, excluding preserved soft-disconnected rows;
+- retention of the full Campaign Builder as the advanced/custom path.
+
+**Test**
+Automated coverage was added for Instagram connection-health states, workspace scoping and token sanitization in the health API, and quick-template payload behavior. The first PR #45 CI run `35521482936` failed lint because three internal page navigations used raw `<a>` tags. Those links were changed to Next `Link`, the quick wizard received loading/account-switch polish, and the final head `d521fa5b48b55c59a66637b75bc68ca6bb0b609a` passed CI run `35521687018` (Prisma validate/generate, TypeScript, lint, tests, production build) and Security run `35521687004`.
+
+**Result**
+PR #45 merged at `8883da17b8d435755263a53137aa6373d112b084`. The launch onboarding/Quick Automations milestone is code-complete. No new live Instagram provider QA or production customer activation is claimed by this code milestone; manual staging validation of the new first-run UX remains a later human test step.

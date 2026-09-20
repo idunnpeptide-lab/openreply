@@ -166,6 +166,15 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Security run: `35437822945` — success.
 - Evidence: recorded PR #41 provider webhook configuration/readback controls, truthful separation from signed-delivery readiness, updated live-staging runbook, and exact human/provider continuation point.
 
+### PR #44 — TikTok controlled-send evidence checkpoint
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/44`
+- Head SHA: `7559146a427e2d961136313564ea0a72ee0255e7`.
+- Merge SHA: `b5dcfd871782e048b1b1e3ea51981de8ba38e922`.
+- CI run: `35438434392` — success.
+- Security run: `35438434391` — success.
+- Evidence: recorded PR #43's doubly source-locked one-shot execution boundary, no-send state, human/AI roles, and the exact real-provider continuation point.
+
 ## TikTok staging UI evidence — 2026-09-19
 
 ### PR #29 — additive TikTok staging UI with execution lock
@@ -301,6 +310,25 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Safety evidence: no TikTok provider send is reachable in PR #43; Comment-to-Message remains excluded; Instagram paths are unchanged.
 - Human validation: **not yet performed** for real TikTok OAuth/webhook/routing/reconnect/send behavior. No provider send is claimed.
 
+## Instagram launch-onboarding evidence — 2026-09-20
+
+### PR #45 — one-click onboarding, connection health, and Quick Automations
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/45`
+- Final head SHA: `d521fa5b48b55c59a66637b75bc68ca6bb0b609a`.
+- Merge SHA: `8883da17b8d435755263a53137aa6373d112b084`.
+- Final CI run: `35521687018` — success.
+- Security run: `35521687004` — success.
+- Development-history evidence: initial CI run `35521482936` failed lint on three raw internal anchors; the implementation was corrected to use Next `Link`, then rerun to green. The failed run is retained as part of the truthful engineering history.
+- Onboarding evidence: Dashboard now presents Connect Instagram as the first action when no account is connected and a three-step connect → choose automation → activate path.
+- OAuth-boundary evidence: onboarding reuses the existing server-side `/api/instagram/connect` OAuth route; customers are not asked for Meta App ID, App Secret, webhook configuration, or developer credentials.
+- Health evidence: `/api/instagram/health` is authenticated/workspace-scoped, derives only connection/token-expiry/webhook state already stored by ReplyHalo, uses `no-store`, and does not return the stored access token. Regression tests explicitly assert token material is absent from serialized output.
+- Quick-Automation evidence: `/campaigns/quick` ships four templates — Comment → DM, Comment → Follow Gate → DM, Comment → Tracked Link, Comment → Link → Follow-up — while reusing the existing Instagram post picker and the existing `/api/automations` creation/runtime path.
+- Input-integrity evidence: tracked-link templates require the `{link}` token; switching Instagram account clears the previously selected post to avoid submitting content from the wrong account.
+- Lifecycle evidence: Dashboard shell counts only rows with a non-empty access token as connected, so preserved soft-disconnected rows no longer inflate active connection counts.
+- Scope evidence: no schema migration, no new provider permission assumption, no TikTok behavior change, and no secret values were added.
+- Human validation: **not yet performed for this new first-run UI**. No new deployment, live Instagram OAuth, customer activation, or production launch is claimed by PR #45.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -314,4 +342,4 @@ Human validation means an explicit result reported/performed by Volodymyr Rudyi.
 
 ## Current evidence checkpoint
 
-PR #43 is the latest completed product milestone recorded here. Safe code-only TikTok preparation now includes OAuth/token handling, isolated ingress/dedupe/routing, signed-webhook readiness, non-destructive disconnect/reconnect, provider webhook configuration/readback, sanitized diagnostics, and a doubly source-locked one-shot execution boundary. The next meaningful phase requires the real TikTok for Business developer app/test account and human provider validation. Both send gates remain false, and no live TikTok OAuth/deployment/webhook/provider-send validation has occurred or is claimed.
+PR #45 is the latest completed product milestone recorded here. The Instagram launch path now includes the existing one-click OAuth surfaced directly in first-run onboarding, a sanitized connection-health model, four Quick Automations that reuse the proven campaign runtime, and connected-account counting that respects soft disconnect. Manual staging validation of the new first-run UI has not yet occurred and is not claimed. TikTok remains separately doubly locked pending its real provider session; no TikTok send gate changed in PR #45.

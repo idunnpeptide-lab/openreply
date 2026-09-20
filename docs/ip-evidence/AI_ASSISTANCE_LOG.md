@@ -314,3 +314,32 @@ PR #41, head SHA `f5bd50842f18db776476657f4bff1e5bcab4c9f0`, merge SHA `85aec2d0
 **Repository evidence**
 
 PR #43, head SHA `4a5c564fc560b1afd87cac788fe4299601e59f1d`, merge SHA `615266363e943ddb406406b86f4657b9cd441a3a`, CI run `35438125753`, Security run `35438125762`.
+
+---
+
+## 2026-09-20 — Launch onboarding / Quick Automations milestone
+
+**Human role — Volodymyr Rudyi**
+
+- asked for a current comparison of Buzzfy, ManyChat, SendPulse, ChatPlace, SmartSender and ReplyHalo specifically to reduce launch friction;
+- decided that ReplyHalo should hide Meta/TikTok developer complexity from customers and prioritize one-click connection, connection health, quick automations, onboarding, simple analytics, templates and clean reconnect UX before broader features;
+- explicitly instructed ChatGPT to implement the launch-priority work (`роби`);
+- retains final approval over live staging/customer activation and did not claim a new live Instagram staging test for this milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- inspected the existing Instagram OAuth, dashboard, Settings, Campaign Builder, post picker, automation API and soft-disconnect architecture;
+- reused the existing `/api/instagram/connect` OAuth path rather than introducing customer-side Meta developer configuration;
+- implemented a workspace-scoped Instagram connection-health model/API that exposes no token value;
+- implemented Dashboard first-run onboarding and self-service reconnect guidance;
+- implemented four template-driven Quick Automations using the existing Instagram post picker and `/api/automations` runtime;
+- kept the full Campaign Builder as the advanced/custom path instead of replacing the proven runtime;
+- added guards for tracked-link token placement and account-switch/post-selection integrity;
+- corrected dashboard-shell connected-account counting so soft-disconnected preserved rows are not presented as active connections;
+- added focused regression coverage;
+- investigated the first PR #45 lint failure, replaced raw internal anchors with Next `Link`, then reran CI/Security until green;
+- merged only after the final CI and Security runs succeeded and prepared the required evidence checkpoint.
+
+**Repository evidence**
+
+PR #45, final head SHA `d521fa5b48b55c59a66637b75bc68ca6bb0b609a`, merge SHA `8883da17b8d435755263a53137aa6373d112b084`, final CI run `35521687018`, Security run `35521687004`. Initial CI run `35521482936` failed lint and is retained as truthful development-history evidence rather than hidden.
