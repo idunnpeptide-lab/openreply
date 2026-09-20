@@ -366,7 +366,7 @@ export default function CampaignsPage() {
       </div>
 
       {loadError && (
-        <div className="flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div role="alert" className="flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">Something needs attention</p>
             <p className="mt-0.5 text-xs text-muted">{loadError}</p>
@@ -398,14 +398,20 @@ export default function CampaignsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search automations by name, keyword, or message…"
+            aria-label="Search automations"
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
           />
-          <div className="inline-flex shrink-0 rounded-lg bg-surface p-1">
+          <div
+            className="inline-flex shrink-0 rounded-lg bg-surface p-1"
+            role="group"
+            aria-label="Automation status filter"
+          >
             {(["all", "active", "paused"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
+                aria-pressed={statusFilter === s}
                 className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${
                   statusFilter === s
                     ? "bg-background font-medium text-foreground ring-1 ring-accent/40"
@@ -516,7 +522,13 @@ export default function CampaignsPage() {
                 )}
                 <div className="min-w-[12rem] flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <h3 className="truncate text-sm font-semibold">{auto.name}</h3>
+                    <Link
+                      href={`/campaigns/${auto.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="truncate text-sm font-semibold hover:underline"
+                    >
+                      {auto.name}
+                    </Link>
                     <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-xs text-muted">
                       @{auto.instagramAccount.username}
                     </span>
@@ -605,6 +617,7 @@ export default function CampaignsPage() {
                 >
                   {auto.postUrl && (
                     <button
+                      type="button"
                       onClick={() => void copyReelUrl(auto)}
                       className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
                     >
@@ -612,6 +625,9 @@ export default function CampaignsPage() {
                     </button>
                   )}
                   <button
+                    type="button"
+                    role="switch"
+                    aria-checked={auto.isActive}
                     onClick={() => void toggleActive(auto.id, auto.isActive)}
                     aria-label={auto.isActive ? "Pause automation" : "Activate automation"}
                     className={`relative h-6 w-11 rounded-full transition-colors ${
@@ -627,6 +643,7 @@ export default function CampaignsPage() {
 
                   <div className="relative">
                     <button
+                      type="button"
                       onClick={() =>
                         setMenuOpenId((cur) => (cur === auto.id ? null : auto.id))
                       }
@@ -643,12 +660,14 @@ export default function CampaignsPage() {
                         />
                         <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
                           <button
+                            type="button"
                             onClick={() => void duplicateAutomation(auto)}
                             className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
                           >
                             Duplicate
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               setMenuOpenId(null);
                               void deleteAutomation(auto.id);
@@ -672,6 +691,9 @@ export default function CampaignsPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setPlayingVideo(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Reel preview"
         >
           <div
             className="relative flex max-w-full flex-col items-end gap-2"

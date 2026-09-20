@@ -101,6 +101,7 @@ function Radio({
     <button
       type="button"
       onClick={onSelect}
+      aria-pressed={checked}
       className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
         checked ? "border-accent bg-accent/5" : "border-border hover:border-border-hover"
       }`}
@@ -120,13 +121,18 @@ function Radio({
 function Toggle({
   on,
   onToggle,
+  label,
 }: {
   on: boolean;
   onToggle: () => void;
+  label: string;
 }) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
       onClick={onToggle}
       className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
         on ? "bg-accent" : "bg-zinc-300"
@@ -859,7 +865,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
       {/* Left: controls */}
       <div className="space-y-8 min-w-0">
         {error && (
-          <div className="rounded border border-error/20 bg-error/10 p-3 text-sm text-error">
+          <div role="alert" className="rounded border border-error/20 bg-error/10 p-3 text-sm text-error">
             <p>{error}</p>
             {connectionRecoveryNeeded && (
               <Link
@@ -881,6 +887,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. YC referral"
+            aria-label="Campaign name"
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
             maxLength={100}
           />
@@ -977,6 +984,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 value={keywordText}
                 onChange={(e) => setKeywordText(e.target.value)}
                 placeholder="Enter a word or multiple"
+                aria-label="Comment keywords"
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
               />
               <p className="text-xs text-muted">Use commas to separate words</p>
@@ -996,6 +1004,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             <Toggle
               on={dmTriggerEnabled}
               onToggle={() => setDmTriggerEnabled(!dmTriggerEnabled)}
+              label="Reply to matching direct messages"
             />
           </div>
           {dmTriggerEnabled && (
@@ -1012,6 +1021,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             <Toggle
               on={publicReplyEnabled}
               onToggle={() => setPublicReplyEnabled(!publicReplyEnabled)}
+              label="Publicly reply to matching comments"
             />
           </div>
           {publicReplyEnabled && (
@@ -1026,6 +1036,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                       )
                     }
                     placeholder="Sent you a DM! 📩"
+                    aria-label={`Public reply ${i + 1}`}
                     maxLength={1000}
                     className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                   />
@@ -1071,6 +1082,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               <Toggle
                 on={openingDmEnabled}
                 onToggle={() => setOpeningDmEnabled(!openingDmEnabled)}
+                label="Send an opening direct message"
               />
             </div>
             {openingDmEnabled && (
@@ -1079,6 +1091,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={openingDmMessage}
                   onChange={(e) => setOpeningDmMessage(e.target.value)}
                   placeholder="Hey there! I'm so happy you're here 😊"
+                  aria-label="Opening direct message"
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
@@ -1087,6 +1100,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={openingDmButtonLabel}
                   onChange={(e) => setOpeningDmButtonLabel(e.target.value)}
                   placeholder="Send me the link"
+                  aria-label="Opening direct message button label"
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                   maxLength={64}
                 />
@@ -1101,6 +1115,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               <Toggle
                 on={requireFollow}
                 onToggle={() => setRequireFollow(!requireFollow)}
+                label="Require a follow before the private reply"
               />
             </div>
             {requireFollow && (
@@ -1109,6 +1124,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={followPromptMessage}
                   onChange={(e) => setFollowPromptMessage(e.target.value)}
                   placeholder="quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over"
+                  aria-label="Follow requirement message"
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
@@ -1117,6 +1133,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={followPromptButtonLabel}
                   onChange={(e) => setFollowPromptButtonLabel(e.target.value)}
                   placeholder="i'm following"
+                  aria-label="Follow requirement button label"
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                   maxLength={20}
                 />
@@ -1137,6 +1154,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               value={dmMessage}
               onChange={(e) => setDmMessage(e.target.value)}
               placeholder="Write a message"
+              aria-label="Private message"
               rows={3}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
               maxLength={1000}
@@ -1148,12 +1166,14 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   onChange={(e) => setTrackedDestinationUrl(e.target.value)}
                   onBlur={ensureLinkToken}
                   placeholder="https://yourlink.com/offer"
+                  aria-label="Tracked link destination URL"
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                 />
                 <input
                   value={linkButtonLabel}
                   onChange={(e) => setLinkButtonLabel(e.target.value)}
                   placeholder="Button label (e.g. Open link)"
+                  aria-label="Tracked link button label"
                   maxLength={20}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                 />
@@ -1163,12 +1183,14 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                       value={secondaryDestinationUrl}
                       onChange={(e) => setSecondaryDestinationUrl(e.target.value)}
                       placeholder="https://yourlink.com/second"
+                      aria-label="Second link destination URL"
                       className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                     />
                     <input
                       value={secondaryButtonLabel}
                       onChange={(e) => setSecondaryButtonLabel(e.target.value)}
                       placeholder="Second button label"
+                      aria-label="Second link button label"
                       maxLength={20}
                       className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                     />
@@ -1204,6 +1226,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               <Toggle
                 on={followUpEnabled}
                 onToggle={() => setFollowUpEnabled(!followUpEnabled)}
+                label="Send a follow-up message"
               />
             </div>
             {followUpEnabled && (
@@ -1212,6 +1235,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={followUpMessage}
                   onChange={(e) => setFollowUpMessage(e.target.value)}
                   placeholder="Btw just wanted to say thanks for following me, I appreciate the support 🙌"
+                  aria-label="Follow-up message"
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
@@ -1228,6 +1252,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                         Math.max(0, Math.min(1440, Math.floor(Number(e.target.value) || 0)))
                       )
                     }
+                    aria-label="Follow-up delay in minutes"
                     className="w-20 rounded-lg border border-border bg-surface px-2 py-1 text-sm text-foreground focus:border-accent/40 focus:outline-none"
                   />
                   <span className="text-xs text-muted">
