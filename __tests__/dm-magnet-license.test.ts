@@ -346,6 +346,12 @@ describe("DM Magnet workspace license client", () => {
 
     expect(
       licenseErrorToSettingsCode(
+        new DmMagnetLicenseError("limit", "ACCOUNT_LIMIT_REACHED", 409)
+      )
+    ).toBe("account_limit");
+
+    expect(
+      licenseErrorToSettingsCode(
         new DmMagnetLicenseError(
           "down",
           "LICENSE_SERVICE_UNAVAILABLE",
