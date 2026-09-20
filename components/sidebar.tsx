@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -34,9 +34,12 @@ export default function Sidebar({
   workspaceName,
 }: SidebarProps) {
   const pathname = usePathname();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    closeButtonRef.current?.focus();
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -88,6 +91,7 @@ export default function Sidebar({
             ReplyHalo
           </Link>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={closeAndRestoreFocus}
             className="rounded border border-border px-2.5 py-1.5 text-sm text-muted hover:text-foreground lg:hidden"
