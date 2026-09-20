@@ -806,3 +806,25 @@ PR #64 final head `6be3162bdf47c57ae450138868f37cbea8e20aa4` passed CI run `3553
 
 **Result**
 PR #64 merged at `8e64d0b52017495bc0048bc790dfb0bb8eb5acc7`. No deployment, live provider test, or fresh-customer manual walkthrough is claimed. The focused audit continues with Automations-list and Settings customer recovery, then Dashboard regression, mobile/basic accessibility, and email deliverability/resend UX.
+
+---
+
+## 2026-09-20 — Automations list / Settings customer recovery
+
+**Task**
+Close the remaining customer-recovery blockers in the Automations list and Settings.
+
+**Problem**
+Reactivation failures lost the stable reconnect-required reason, account-limit copy contradicted preserved-slot semantics, and Settings reloaded after Disconnect without confirming success.
+
+**Decision**
+Keep the non-destructive backend model and make customer recovery reflect it truthfully.
+
+**Implementation**
+PR #66 maps `INSTAGRAM_RECONNECT_REQUIRED` to reconnect guidance, corrects preserved-slot plan copy, and reloads after Disconnect only when both HTTP and API success are confirmed. Failed disconnects remain visible and retryable. Focused helper tests cover these decisions. Dashboard recovery/empty states were also reviewed and no new blocker requiring code changes was found.
+
+**Test**
+PR #66 head `3320daca236678c39283784489abadb36b10e153` passed CI `35539584486` and Security `35539584447`.
+
+**Result**
+PR #66 merged at `91e90bcd847d14a41fad6686a67aa052aef9e8aa`. No deployment or fresh-customer manual validation is claimed. Next: mobile/basic accessibility, then email deliverability/resend UX.
