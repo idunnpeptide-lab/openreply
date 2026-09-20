@@ -769,3 +769,40 @@ Focused regression coverage verifies: active create rejection on a soft-disconne
 
 **Result**
 PR #62 merged at `fb7f9b954351728456766143f234aa415b7d972e`. No deployment, live provider test, or fresh-customer manual walkthrough is claimed. The audit continues with Custom Builder and the remaining Automations/Settings customer-recovery blockers.
+
+---
+
+## 2026-09-20 — Custom Builder account-readiness and edit-account integrity
+
+**Task**
+Close the remaining Custom Builder launch blockers around connected-account loading, active-save readiness, account-switch post integrity, and existing-campaign account ownership.
+
+**Problem**
+The Custom Builder still had four customer-facing integrity gaps after the server guard landed: a failed account-list request could look like no account was connected; active saves did not preflight the current connection for early recovery; changing accounts for a new campaign could leave stale provider-content state; and edit mode exposed an account selector even though the PATCH API does not migrate `instagramAccountId`, creating a false UI promise that could pair a post from one account with an automation still bound to another.
+
+**Options considered**
+- Add account migration semantics to the PATCH API during launch hardening.
+- Leave the selector in edit mode and rely on server behavior.
+- Keep existing account ownership immutable in this launch stage, make edit binding truthful, and harden loading/preflight/picker recovery without changing runtime semantics.
+
+**Volodymyr's decision**
+Continue the narrow launch audit without introducing silent account migration or weakening the non-destructive account model. Existing automations should remain attached to their original Instagram identity; customers should reconnect that identity when needed, while new campaigns may still choose among connected accounts.
+
+**Implementation**
+PR #64:
+
+- distinguishes account-load failure from a legitimate zero-connected-account state and provides **Try again** / Settings recovery;
+- rechecks the selected connected Instagram account before any save whose resulting state is active, while preserving inactive edits and Stop/Pause after disconnect;
+- maps stable `INSTAGRAM_RECONNECT_REQUIRED` into customer-readable recovery instead of exposing the internal code;
+- clears selected post URL/thumbnail/caption and remounts `PostPicker` when a new campaign changes account;
+- restricts account switching to new campaigns;
+- makes edit mode display the automation's attached account instead of offering unsupported migration UI;
+- avoids provider post reads for a disconnected edit account and points the customer to reconnect before changing provider content or going live;
+- adds a small pure helper for connected-account resolution/error mapping plus focused tests;
+- leaves schema, worker/provider runtime, licensing/control-plane behavior, and TikTok gates unchanged.
+
+**Test**
+PR #64 final head `6be3162bdf47c57ae450138868f37cbea8e20aa4` passed CI run `35538310136` including Prisma validate/generate, TypeScript, lint, tests and production build. Security run `35538309969` passed.
+
+**Result**
+PR #64 merged at `8e64d0b52017495bc0048bc790dfb0bb8eb5acc7`. No deployment, live provider test, or fresh-customer manual walkthrough is claimed. The focused audit continues with Automations-list and Settings customer recovery, then Dashboard regression, mobile/basic accessibility, and email deliverability/resend UX.

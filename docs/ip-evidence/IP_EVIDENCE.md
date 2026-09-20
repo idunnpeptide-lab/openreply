@@ -455,6 +455,26 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no schema migration, provider worker/send behavior, licensing/control-plane change, destructive disconnect behavior, or TikTok execution-gate change was introduced.
 - Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #62.
 
+## Custom Builder readiness evidence — 2026-09-20
+
+### PR #64 — account-readiness and truthful edit-account binding
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/64`
+- Final head SHA: `6be3162bdf47c57ae450138868f37cbea8e20aa4`.
+- Merge SHA: `8e64d0b52017495bc0048bc790dfb0bb8eb5acc7`.
+- CI run: `35538310136` — success.
+- Security run: `35538309969` — success.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, focused readiness-helper tests, existing full test suite, and production build passed before merge.
+- Account-loading evidence: the Custom Builder distinguishes a failed connected-account request from a legitimate zero-account state and exposes retry plus Settings recovery.
+- Active-save evidence: any save whose resulting state is active rechecks the selected connected Instagram account before mutation; the server-side PR #62 guard remains authoritative for stale/alternate callers.
+- Preservation evidence: inactive edits and Stop/Pause remain available after disconnect so a customer is not trapped in an active state.
+- Account-switch integrity evidence: new-campaign account changes clear post ID/URL/thumbnail/caption and remount `PostPicker`, preventing provider content from the prior account from remaining selectable.
+- Edit-binding evidence: edit mode no longer offers unsupported Instagram account migration. It displays the automation's actual attached account and requires reconnect before changing provider content or returning the automation live.
+- Provider-read evidence: a disconnected edit account does not trigger post-picker provider reads while repair is required.
+- Customer-recovery evidence: stable `INSTAGRAM_RECONNECT_REQUIRED` is mapped to customer-readable reconnect guidance instead of shown as an internal code.
+- Scope evidence: no schema migration, provider worker/send behavior, account-migration backend, licensing/control-plane change, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #64.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -466,6 +486,6 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 
 Human validation means an explicit result reported/performed by Volodymyr Rudyi. Screenshots referenced in development chat are not automatically copied into GitHub unless a real repository artifact/path is created. This register records the fact of the human validation without inventing a file path for screenshots that were not committed.
 
-## Current evidence checkpoint — after PR #62
+## Current evidence checkpoint — after PR #64
 
-PR #62 is the latest completed product milestone recorded here. Active automation creation/reactivation now fails closed server-side if the attached Instagram account is soft-disconnected, while inactive drafts/duplicates and Pause remain compatible with preserved account identity/history. The focused audit continues with Custom builder account-loading/account-switch/readiness recovery, then Automations/Settings customer recovery, mobile/basic accessibility launch blockers, and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
+PR #64 is the latest completed product milestone recorded here. Custom Builder now distinguishes account-loading failure from an empty state, rechecks connected-account readiness before active saves, isolates provider-content state across new-account changes, and truthfully keeps edit campaigns attached to their existing Instagram account rather than presenting unsupported migration. Inactive editing and Stop/Pause remain available after disconnect. The focused audit continues with Automations-list and Settings customer recovery, then Dashboard regression, mobile/basic accessibility launch blockers, and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.

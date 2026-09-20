@@ -221,3 +221,25 @@ After every significant completed development stage:
 - append the AI/human contribution record to `docs/ip-evidence/AI_ASSISTANCE_LOG.md`;
 - append verifiable PR/commit/CI/deployment/manual-test evidence to `docs/ip-evidence/IP_EVIDENCE.md`;
 - use a dedicated commit/PR/checkpoint and record real SHAs only.
+
+---
+
+## Launch-readiness update — 2026-09-20 after PR #64
+
+PR #64 hardened the advanced **Custom builder** without changing the proven automation runtime or introducing account migration semantics. New campaigns now distinguish account-load failure from a legitimate zero-account state, offer retry/Settings recovery, remount and clear provider-post state when switching accounts, and recheck the selected connected Instagram account immediately before any save whose resulting state is active. The stable server error `INSTAGRAM_RECONNECT_REQUIRED` is translated into customer-readable reconnect guidance.
+
+Edit mode no longer offers an Instagram account selector that the PATCH API does not support. Existing automations truthfully remain attached to their original provider account; if that account is disconnected, provider-post reads are withheld until reconnect, while inactive edits and **Stop/Pause** remain available. Focused readiness-helper tests were added. PR #64 final head `6be3162bdf47c57ae450138868f37cbea8e20aa4` passed CI run `35538310136` and Security run `35538309969` before merge; merge SHA `8e64d0b52017495bc0048bc790dfb0bb8eb5acc7`.
+
+No deployment or fresh-customer manual staging walkthrough is claimed for PR #64.
+
+### Latest continuation point
+
+Continue in this order:
+
+1. Automations list / Settings: map reconnect-required activation failures into customer-readable recovery, make Disconnect failures visible instead of unconditionally reloading, and align remaining account-limit copy with preserved-slot semantics;
+2. Dashboard regression: retain the already-reviewed recovery/empty states unless a new real blocker is found;
+3. mobile/responsive and basic accessibility only where a real launch usability blocker exists;
+4. email deliverability/domain/resend UX before commercial release;
+5. then deploy staging and perform the fresh-customer walkthrough with Volodymyr Rudyi.
+
+TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
