@@ -574,3 +574,29 @@ No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for
 PR #64, final head SHA `6be3162bdf47c57ae450138868f37cbea8e20aa4`, merge SHA `8e64d0b52017495bc0048bc790dfb0bb8eb5acc7`, CI run `35538310136`, Security run `35538309969`.
 
 No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
+
+---
+
+## 2026-09-20 — Automations / Settings recovery milestone
+
+**Human role — Volodymyr Rudyi**
+
+- required the completed work to be saved before continuing;
+- retained the non-destructive account/history and preserved-slot model;
+- retained final authority over staging/manual validation and commercial release.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- audited Automations-list activation recovery and Settings account-limit/disconnect recovery;
+- mapped `INSTAGRAM_RECONNECT_REQUIRED` to customer-readable reconnect guidance;
+- corrected plan-limit copy so local disconnect is not presented as freeing central capacity;
+- made Settings reload only after successful Disconnect and surface retryable failure otherwise;
+- added focused recovery tests;
+- reviewed Dashboard recovery/empty states and found no new blocker requiring code changes;
+- left backend disconnect semantics, schema, provider runtime, licensing enforcement, and TikTok gates unchanged.
+
+**Repository evidence**
+
+PR #66, head `3320daca236678c39283784489abadb36b10e153`, merge `91e90bcd847d14a41fad6686a67aa052aef9e8aa`, CI `35539584486`, Security `35539584447`.
+
+No deployment or fresh-customer manual validation is claimed.
