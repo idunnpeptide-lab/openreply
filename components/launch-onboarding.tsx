@@ -92,6 +92,33 @@ export default function LaunchOnboarding({
   const planNeedsActivation =
     license?.enabled === true &&
     (!license.configured || license.valid === false);
+  const planCheckFailed = readinessChecked && license === null;
+
+  if (planCheckFailed) {
+    return (
+      <section className="overflow-hidden rounded-2xl border border-warning/30 bg-warning/5 p-5 sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="inline-flex rounded-full bg-warning/10 px-3 py-1 text-xs font-semibold text-warning">
+              Plan check needed
+            </span>
+            <h2 className="mt-3 text-lg font-bold text-foreground sm:text-xl">
+              We could not verify your ReplyHalo plan
+            </h2>
+            <p className="mt-2 max-w-xl text-sm text-muted">
+              Open Settings to check your plan before connecting or reconnecting a social account. Your existing automations and history stay saved.
+            </p>
+          </div>
+          <Link
+            href="/settings"
+            className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-center text-sm font-semibold text-white hover:bg-accent-hover"
+          >
+            Check plan
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   if (setupComplete && needsAttention.length === 0 && !planNeedsActivation) {
     return null;
@@ -178,7 +205,7 @@ export default function LaunchOnboarding({
 
           <div className="mt-5 flex flex-wrap gap-3">
             {connectedAccounts === 0 ? (
-              readinessChecked ? (
+              readinessChecked && license !== null ? (
                 <a
                   href="/api/instagram/connect"
                   className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
