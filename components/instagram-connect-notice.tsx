@@ -36,13 +36,13 @@ const INSTAGRAM_MESSAGES: Record<
     tone: "warning",
     title: "Instagram connection cancelled",
     detail:
-      "You declined the permission prompt on Instagram. Start again and accept all requested permissions.",
+      "You cancelled the Instagram permission step. Start again and approve the requested access to connect the account.",
   },
   invalid: {
     tone: "error",
-    title: "Instagram connection expired",
+    title: "Instagram connection link expired",
     detail:
-      "The login link was missing or older than 10 minutes. Click Connect Instagram to start a fresh attempt.",
+      "The connection session expired. Click Connect Instagram to start a fresh attempt.",
   },
   forbidden: {
     tone: "error",
@@ -54,7 +54,7 @@ const INSTAGRAM_MESSAGES: Record<
     tone: "warning",
     title: "Account already connected",
     detail:
-      "That Instagram account is connected to another workspace. Disconnect it there first, or connect a different account.",
+      "That Instagram account is connected to another ReplyHalo workspace. Disconnect it there first, or connect a different account.",
   },
 };
 
@@ -64,69 +64,69 @@ const LICENSE_MESSAGES: Record<
 > = {
   not_found: {
     tone: "error",
-    title: "DM Magnet license not found",
+    title: "ReplyHalo plan not found",
     detail:
-      "The License Key saved for this workspace is not recognized. Open Settings and enter the correct customer License Key.",
+      "The activation key saved for this workspace is not recognized. Check the key issued for this workspace or contact support.",
   },
   not_configured: {
     tone: "warning",
-    title: "DM Magnet License Key required",
+    title: "ReplyHalo plan activation required",
     detail:
-      "This workspace does not have a License Key yet. Open Settings, activate the customer license, then connect Instagram.",
+      "Activate the ReplyHalo plan for this workspace before connecting Instagram.",
   },
   already_assigned: {
     tone: "warning",
-    title: "License Key already assigned",
+    title: "Activation key already assigned",
     detail:
-      "That License Key belongs to another workspace in this DM Magnet SaaS. Use the key issued for this workspace.",
+      "That key belongs to another ReplyHalo workspace. Use the key issued for this workspace.",
   },
   account_migration_required: {
     tone: "warning",
     title: "Connected accounts must be migrated first",
     detail:
-      "A workspace License Key cannot be changed while social accounts are connected. Contact support for a controlled account migration or reset.",
+      "The workspace plan cannot be changed while social accounts are connected. Contact support for a controlled account migration.",
   },
   suspended: {
     tone: "warning",
-    title: "DM Magnet license suspended",
+    title: "ReplyHalo plan suspended",
     detail:
-      "This license is temporarily suspended. Instagram connections and automated sends are paused until it is reactivated.",
+      "This plan is temporarily suspended. Instagram connections and automated sends are paused until it is reactivated.",
   },
   revoked: {
     tone: "error",
-    title: "DM Magnet license revoked",
+    title: "ReplyHalo plan revoked",
     detail:
-      "This license has been revoked. Contact the license administrator before connecting Instagram.",
+      "This plan has been revoked. Contact support before connecting Instagram.",
   },
   expired: {
     tone: "warning",
-    title: "DM Magnet license expired",
+    title: "ReplyHalo plan expired",
     detail:
-      "The license expiration date has passed. Renew or replace the License Key before continuing.",
+      "The plan expiration date has passed. Renew the plan before continuing.",
   },
   account_limit: {
     tone: "warning",
-    title: "Instagram account limit reached",
+    title: "Connected account limit reached",
     detail:
-      "This License Key has no free Instagram account slots. Reset an old binding or use a plan with more account slots.",
+      "This plan has no free social-account slots. Disconnect an unused account or upgrade the plan.",
   },
   misconfigured: {
     tone: "error",
-    title: "DM Magnet license service is not configured",
+    title: "ReplyHalo plan service unavailable",
     detail:
-      "The shared SaaS deployment is missing DM_MAGNET_LICENSE_URL. Contact the service administrator.",
+      "Plan validation is not available in this environment. Contact support.",
   },
   unavailable: {
     tone: "warning",
-    title: "DM Magnet License Server unavailable",
+    title: "ReplyHalo plan service temporarily unavailable",
     detail:
-      "The license service could not be reached. No new Instagram connection was created. Try again when the service is available.",
+      "The plan service could not be reached, so no new Instagram connection was created. Try again shortly.",
   },
   failed: {
     tone: "error",
-    title: "DM Magnet license check failed",
+    title: "ReplyHalo plan check failed",
     detail:
-      "The license could not be verified. Check the service configuration and operational logs.",
+      "The workspace plan could not be verified. Try again or contact support.",
   },
 };
 
@@ -169,14 +169,14 @@ function InstagramHealthPanel({ accounts }: { accounts: HealthAccount[] }) {
             Instagram connection health
           </h2>
           <p className="mt-1 text-xs text-muted">
-            ReplyHalo checks the connection, authorization lifetime, and automation webhook for you.
+            ReplyHalo checks connection, authorization, and automation readiness for you.
           </p>
         </div>
         <a
           href="/api/instagram/connect"
           className="inline-flex shrink-0 items-center justify-center rounded bg-accent px-3.5 py-2 text-xs font-semibold text-white hover:bg-accent-hover"
         >
-          Reconnect Instagram
+          Connect / Reconnect Instagram
         </a>
       </div>
 
@@ -195,57 +195,55 @@ function InstagramHealthPanel({ accounts }: { accounts: HealthAccount[] }) {
                     : "border-border bg-surface"
               }`}
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-foreground">
-                      @{account.username}
-                    </p>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                        ready
-                          ? "bg-success/10 text-success"
-                          : account.connected
-                            ? "bg-warning/10 text-warning"
-                            : "bg-zinc-500/10 text-muted"
-                      }`}
-                    >
-                      {ready
-                        ? "Ready"
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    @{account.username}
+                  </p>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      ready
+                        ? "bg-success/10 text-success"
                         : account.connected
-                          ? "Needs attention"
-                          : "Disconnected"}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <HealthPill
-                      good={account.connected}
-                      label={account.connected ? "Connected" : "Disconnected"}
-                    />
-                    <HealthPill good={tokenGood} label={tokenLabel(account)} />
-                    <HealthPill
-                      good={account.webhookReady}
-                      label={
-                        account.webhookReady
-                          ? "Automation ready"
-                          : "Automation setup needs attention"
-                      }
-                    />
-                  </div>
-
-                  {account.tokenExpiresAt && account.connected && (
-                    <p className="mt-2 text-[11px] text-muted">
-                      Authorization valid until{" "}
-                      {new Date(account.tokenExpiresAt).toLocaleDateString()}.
-                    </p>
-                  )}
-                  {!ready && account.reasons.length > 0 && (
-                    <p className="mt-2 text-xs text-muted">
-                      {account.reasons[0]}. Reconnecting refreshes authorization; your campaigns and history stay saved.
-                    </p>
-                  )}
+                          ? "bg-warning/10 text-warning"
+                          : "bg-zinc-500/10 text-muted"
+                    }`}
+                  >
+                    {ready
+                      ? "Ready"
+                      : account.connected
+                        ? "Needs attention"
+                        : "Disconnected"}
+                  </span>
                 </div>
+
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <HealthPill
+                    good={account.connected}
+                    label={account.connected ? "Connected" : "Disconnected"}
+                  />
+                  <HealthPill good={tokenGood} label={tokenLabel(account)} />
+                  <HealthPill
+                    good={account.webhookReady}
+                    label={
+                      account.webhookReady
+                        ? "Automation ready"
+                        : "Automation setup needs attention"
+                    }
+                  />
+                </div>
+
+                {account.tokenExpiresAt && account.connected && (
+                  <p className="mt-2 text-[11px] text-muted">
+                    Authorization valid until{" "}
+                    {new Date(account.tokenExpiresAt).toLocaleDateString()}.
+                  </p>
+                )}
+                {!ready && account.reasons.length > 0 && (
+                  <p className="mt-2 text-xs text-muted">
+                    {account.reasons[0]}. Reconnecting refreshes authorization; your campaigns, logs, clicks, and history stay saved.
+                  </p>
+                )}
               </div>
             </article>
           );
@@ -282,38 +280,19 @@ export function InstagramConnectNotice() {
     const status = searchParams.get("instagram");
 
     if (status === "misconfigured") {
-      const missing = (searchParams.get("missing") ?? "")
-        .split(",")
-        .filter(Boolean);
       notice = (
-        <Notice tone="error" title="Instagram app not configured">
+        <Notice tone="error" title="Instagram connection temporarily unavailable">
           <p>
-            The ReplyHalo Instagram app is not fully configured in this environment.
-            Customers should never need to supply these developer credentials themselves.
+            ReplyHalo's Instagram connection is not fully configured in this environment. You do not need to configure any developer settings yourself. Please contact support.
           </p>
-          {missing.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {missing.map((name) => (
-                <li key={name} className="font-mono text-xs">
-                  {name}
-                </li>
-              ))}
-            </ul>
-          )}
         </Notice>
       );
     } else if (status === "failed") {
-      const reason = searchParams.get("reason");
       notice = (
         <Notice tone="error" title="Instagram connection failed">
           <p>
-            Instagram accepted the login but ReplyHalo could not complete the connection. Try Reconnect Instagram. If it repeats, support can review the provider configuration without asking for your password.
+            Instagram accepted the login but ReplyHalo could not complete the connection. Try Connect / Reconnect Instagram again. If it repeats, contact support — you will not be asked for your Instagram password or developer credentials.
           </p>
-          {reason && (
-            <p className="mt-2 font-mono text-xs break-words opacity-80">
-              {reason}
-            </p>
-          )}
         </Notice>
       );
     } else if (status) {
