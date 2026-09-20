@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import PostPicker from "@/components/post-picker";
@@ -10,6 +10,15 @@ import {
   QUICK_AUTOMATION_TEMPLATES,
   type QuickAutomationTemplate,
 } from "@/lib/quick-automation-templates";
+
+async function fetchConnectedInstagramAccounts(): Promise<AccountOption[]> {
+  const response = await fetch("/api/dashboard/stats", { cache: "no-store" });
+  const payload = await response.json();
+  if (!response.ok || !payload.success) {
+    throw new Error("Could not load Instagram accounts");
+  }
+  return (payload.data.instagramAccounts ?? []) as AccountOption[];
+}
 
 export default function QuickAutomationWizard() {
   const router = useRouter();
@@ -44,17 +53,39 @@ export default function QuickAutomationWizard() {
     [selectedTemplateId]
   );
 
-  const loadAccounts = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchConnectedInstagramAccounts()
+      .then((next) => {
+        if (cancelled) return;
+        setAccounts(next);
+        setSelectedAccountId(next[0]?.id ?? "");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAccounts([]);
+        setSelectedAccountId("");
+        setPostId(null);
+        setPostUrl(null);
+        setAccountsError(
+          "ReplyHalo could not load your connected Instagram accounts. Try again before creating an automation."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setAccountsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function retryAccounts() {
     setAccountsLoading(true);
     setAccountsError(null);
     try {
-      const response = await fetch("/api/dashboard/stats", { cache: "no-store" });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
-        throw new Error("Could not load Instagram accounts");
-      }
-
-      const next = (payload.data.instagramAccounts ?? []) as AccountOption[];
+      const next = await fetchConnectedInstagramAccounts();
       setAccounts(next);
       setSelectedAccountId((current) =>
         next.some((account) => account.id === current)
@@ -72,11 +103,7 @@ export default function QuickAutomationWizard() {
     } finally {
       setAccountsLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    void loadAccounts();
-  }, [loadAccounts]);
+  }
 
   function chooseTemplate(next: QuickAutomationTemplate) {
     setSelectedTemplateId(next.id);
@@ -187,7 +214,7 @@ export default function QuickAutomationWizard() {
           <p className="text-sm text-muted">{accountsError}</p>
           <button
             type="button"
-            onClick={() => void loadAccounts()}
+            onClick={() => void retryAccounts()}
             className="mt-4 inline-flex rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
           >
             Try again
