@@ -149,11 +149,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof DmMagnetLicenseError) {
+      // Return only the stable error code required for customer-safe mapping.
+      // Provider/internal error text stays server-side.
       return NextResponse.json(
         {
           success: false,
           error: error.code,
-          message: error.message,
         },
         { status: error.status }
       );
