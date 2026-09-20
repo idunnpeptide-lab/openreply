@@ -828,3 +828,31 @@ PR #66 head `3320daca236678c39283784489abadb36b10e153` passed CI `35539584486` a
 
 **Result**
 PR #66 merged at `91e90bcd847d14a41fad6686a67aa052aef9e8aa`. No deployment or fresh-customer manual validation is claimed. Next: mobile/basic accessibility, then email deliverability/resend UX.
+
+---
+
+## 2026-09-20 — Mobile / basic accessibility launch milestone
+
+**Task**
+Close real mobile/responsive and basic-accessibility launch blockers on the primary ReplyHalo customer journey without redesigning the product or changing automation/provider behavior.
+
+**Problem**
+The audit found that the off-canvas mobile navigation could leave hidden links keyboard-focusable and lacked explicit Close/Escape/focus-return behavior. Primary automation controls also relied on visual-only selection/switch styling or placeholder-only field names in places, making Custom Builder, Automations, and team invitation controls less understandable to keyboard/screen-reader users.
+
+**Decision**
+Keep the existing responsive layout and launch flows. Fix only keyboard/focus safety and programmatic names/states on primary controls; do not expand into a visual redesign, runtime rewrite, schema change, or provider work.
+
+**Implementation**
+PR #69 made the mobile sidebar non-interactive while hidden, added explicit Close and Escape behavior, moved focus into the opened navigation and back to Menu on close, exposed `aria-expanded`/`aria-controls`, labeled the main navigation, and added an accessible name to Instagram post search.
+
+PR #70 added programmatic selection/switch semantics and accessible names across the Custom Builder, Automations list, and Settings team invite controls. It also made automation names keyboard-accessible links, exposed status-filter state, added alert/dialog semantics where appropriate, and preserved existing pointer/card behavior and business logic.
+
+No API payload, schema, automation runtime, Instagram provider behavior, licensing/control-plane behavior, analytics model, or TikTok execution gate changed.
+
+**Test**
+PR #69 final head `3f7c1fe429bf14360f71070fd96d74a252620e0f` passed CI run `35541233027` and Security run `35541232961` before merge; merge SHA `5bcf272d87eec26b810710eeb995d4a427ca8615`.
+
+PR #70 final head `22c1780a5bc3289da647088bb7207f6cd1d0fcf5` passed CI run `35541638010` and Security run `35541638050` before merge; merge SHA `bf9788f036c8180b648e088e02b2eb6aaea369ae`.
+
+**Result**
+The focused mobile/basic-accessibility launch stage is closed in code. No deployment, fresh-customer manual staging walkthrough, or manual accessibility certification is claimed for PR #69/#70. The next launch-readiness stage is email sign-in deliverability/domain/resend UX, followed by staging deployment and the fresh-customer walkthrough. TikTok live provider work remains out of scope and both source-controlled TikTok send gates remain false.
