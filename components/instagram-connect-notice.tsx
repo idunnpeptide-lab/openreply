@@ -283,7 +283,7 @@ export function InstagramConnectNotice() {
       notice = (
         <Notice tone="error" title="Instagram connection temporarily unavailable">
           <p>
-            ReplyHalo's Instagram connection is not fully configured in this environment. You do not need to configure any developer settings yourself. Please contact support.
+            ReplyHalo&apos;s Instagram connection is not fully configured in this environment. You do not need to configure any developer settings yourself. Please contact support.
           </p>
         </Notice>
       );
