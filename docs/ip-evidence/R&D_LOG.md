@@ -316,7 +316,7 @@ PR #35 added `docs/TIKTOK_LIVE_STAGING_RUNBOOK.md` with:
 - current official TikTok API for Business documentation references checked during preparation.
 
 **Test / verification**
-The documented URLs were verified against the actual ReplyHalo routes (`/api/tiktok/callback`, `/api/tiktok/webhook`). Environment-variable names and HMAC secret usage were verified against `lib/env.ts` and `lib/tiktok/webhook.ts`. Current TikTok API for Business documentation was checked for the v1.3 account OAuth/token endpoint, TikTok account webhooks, Business Messaging APIs/webhooks, and Comment-to-Message endpoints. PR #35 CI run `35433279605` and Security run `35433279575` passed.
+The documented URLs were verified against the actual ReplyHalo routes (`/api/tiktok/callback`, `/api/tiktok/webhook`). Environment-variable names and HMAC secret usage were verified against `lib/env.ts` and `lib/tiktok/webhook.ts`. Current TikTok API for Business documentation was checked for the v1.3 TikTok-account OAuth/token endpoint, TikTok account webhooks, Business Messaging direct messages/webhooks, and Comment-to-Message endpoints. PR #35 CI run `35433279605` and Security run `35433279575` passed.
 
 **Result**
 PR #35 merged at `a9100d35ac5c6c513e2ce1d2f0ceedc58ad2d4a4`. The remaining blocker is now external/human: create/configure the real TikTok for Business developer app, supply secrets directly to staging deployment, authorize a dedicated test Business Account, and perform real provider E2E without changing the live-execution gate beforehand.
@@ -451,7 +451,7 @@ Continue code-only preparation while preserving the rule that no live TikTok sen
 **Implementation**
 PR #43 added:
 
-- `TIKTOK_CONTROLLED_STAGING_SEND_ENABLED=false` as a second source-controlled approval gate alongside `TIKTOK_LIVE_EXECUTION_ENABLED=false`;
+- `TIKTOK_CONTROLLED_STAGING_SEND_ENABLED=false` as a second source-controlled approval gate alongside the already-disabled live execution gate;
 - staging-only owner/admin `POST /api/admin/diagnostics/tiktok-execute-match`;
 - exact confirmation phrase `EXECUTE_TIKTOK_STAGING_MATCH`;
 - workspace-scoped match resolution, terminal-state rejection, active-account check, and real signed-webhook readiness requirement before either gate is consulted;
@@ -581,3 +581,41 @@ PR #49 head `4812d60ca790bd508e05e6a826660923073f5fa3` passed CI run `3552495937
 
 **Result**
 PR #49 merged at `3d5a75ba1379f8137997e778ca0369b08ead4eeb`. The immediate empty/error-state and launch-analytics presentation milestone is code-complete. No fresh-customer manual staging walkthrough is claimed by this milestone.
+
+---
+
+## 2026-09-20 — Plan-readiness and customer-facing activation milestone
+
+**Task**
+Close the active pre-launch branch by making ReplyHalo plan readiness a real prerequisite to Instagram onboarding and by removing remaining internal licensing/demo language from the normal customer journey.
+
+**Problem**
+The launch onboarding and connection-health work was already merged, but the next customer-facing layer still had several launch risks: the dashboard could make Instagram connection look like the first action even when workspace plan activation was not ready; login language still leaned toward company users; Quick Automation defaults sounded like technical examples; Settings exposed internal license terminology/error names; and a temporary failure of `/api/license/status` could leave onboarding in a fail-open state after the readiness request completed.
+
+**Options considered**
+- Leave plan activation solely in Settings and rely on documentation/support to tell users to activate first.
+- Rewrite the licensing backend into new customer-facing models before launch.
+- Keep the proven workspace licensing architecture intact, add a thin customer-facing readiness layer, sanitize known error states, and fail closed before provider connection when plan readiness cannot be verified.
+
+**Volodymyr's decision**
+Keep the underlying multi-tenant licensing architecture unchanged, but make the customer journey simple and trustworthy: ReplyHalo activation/plan language for customers, plan readiness before Instagram, no raw internal error names, and no provider connection when readiness verification is unavailable.
+
+**Implementation**
+PR #51, built from the existing `feat/launch-readiness-plan-copy` branch, delivered:
+
+- Dashboard launch onboarding that checks `/api/license/status` in addition to Instagram health;
+- activation/check-plan states before Instagram connection when the workspace plan is missing or invalid;
+- first-time login copy using **Email address**, **Continue with email**, passwordless one-time-link explanation, and automatic workspace creation language;
+- launch-ready customer copy for all four Quick Automation templates;
+- customer-facing **ReplyHalo activation code**, **Connected account slots**, and **Plan renewal** terminology in Settings while leaving internal licensing code/database names untouched;
+- mappings for `LICENSE_SUSPENDED`, `LICENSE_REVOKED`, `LICENSE_EXPIRED`, `ACCOUNT_LIMIT_REACHED`, `LICENSE_NOT_FOUND`, `LICENSE_ALREADY_ASSIGNED`, `LICENSE_ACCOUNT_MIGRATION_REQUIRED`, and `LICENSE_SERVICE_UNAVAILABLE` into understandable customer messages;
+- preserved-work wording during temporary plan-verification problems;
+- a final review fix for a fail-open readiness edge case: if the plan-status request cannot be verified, onboarding now shows **Plan check needed / Check plan** and keeps **Connect Instagram** unavailable rather than treating a completed request as sufficient readiness.
+
+No Instagram worker/provider path, database schema, or TikTok execution gate was changed.
+
+**Test**
+The final PR #51 head `0bf05ea82021bb7b2912ac424df805a20d1ecfe7` passed CI run `35528589277` (Prisma validate/generate, TypeScript, lint, tests and production build) and Security run `35528589275` before merge.
+
+**Result**
+PR #51 merged at `be4417503533e35a516cb070d180192cfbc35531`. The previously active launch plan-readiness/copy branch is closed. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone. The exact next engineering phase is the focused launch-readiness audit, followed only later by deployment and one-step-at-a-time fresh-customer staging validation.
