@@ -452,3 +452,35 @@ PR #51, final head SHA `0bf05ea82021bb7b2912ac424df805a20d1ecfe7`, merge SHA `be
 PR #53, final head SHA `73ac74d3ef9db34c49802577ff20b3703c7ea985`, merge SHA `f39c65320728ceb92abf71c9c1526a97d2666bec`, CI run `35529338503`, Security run `35529338567`.
 
 No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
+
+---
+
+## 2026-09-20 — Account slots / plan limits audit milestone
+
+**Human role — Volodymyr Rudyi**
+
+- set the current source of truth after PR #54 and explicitly directed the launch-readiness audit to continue from account slots / plan limits;
+- required the approved launch order to continue to Quick Automations and the remaining customer journey before staging/manual validation;
+- retained the product rule that preserved account identity/history must not be destroyed merely to work around a plan limit;
+- retained final authority over staging deployment, fresh-customer validation, and commercial release;
+- did not perform or claim manual staging validation for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- audited `openreply` and the central `dm-magnet-system` account-binding paths rather than redesigning the licensing backend;
+- confirmed central standard capacities `SOLO=1`, `CREATOR=3`, `AGENCY=10`;
+- confirmed new bindings fail closed transactionally with `ACCOUNT_LIMIT_REACHED` when capacity is exhausted;
+- confirmed the same `(platform, accountId)` reconnect path is recognized before capacity enforcement and therefore does not consume another slot;
+- confirmed Instagram OAuth performs central binding before local account upsert;
+- confirmed local Instagram disconnect preserves the account row, customer history, and central social-account activation/slot identity;
+- identified the reachable customer-facing blocker: `account_limit` copy incorrectly suggested local disconnect could free capacity;
+- changed only that recovery guidance and added regression coverage for `ACCOUNT_LIMIT_REACHED -> account_limit` safe routing;
+- left central License Server code, plan values, schema, provider runtime, account-deletion behavior, and TikTok gates unchanged;
+- ran PR #55 through CI and Security and merged only after both were green;
+- prepared this separate evidence checkpoint.
+
+**Repository evidence**
+
+PR #55, final head SHA `919305d8e096467fe8a454638d825781322031e7`, merge SHA `b5563d88f079f1773220c44e921c89f1c19539a3`, CI run `35534736487`, Security run `35534736497`.
+
+No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.

@@ -658,3 +658,44 @@ Final PR #53 head `73ac74d3ef9db34c49802577ff20b3703c7ea985` passed CI run `3552
 
 **Result**
 PR #53 merged at `f39c65320728ceb92abf71c9c1526a97d2666bec`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone. The next focused audit stage is account slots / plan limits, followed by Quick Automations regression and the remaining launch-readiness sequence.
+
+---
+
+## 2026-09-20 — Account slots / plan limits launch audit
+
+**Task**
+Verify the commercial account-slot boundary before continuing the launch-readiness audit: standard plan capacities, over-limit behavior, same-account reconnect, and the relationship between non-destructive local disconnect and preserved central social-account identity.
+
+**Problem**
+The backend enforcement was already present, but the reachable customer-facing `account_limit` notice told customers to disconnect an unused account or upgrade. That guidance was misleading because ReplyHalo intentionally preserves the central social-account activation during a local soft disconnect so account identity, automations, analytics, and reconnect history are not destroyed. A customer could therefore disconnect, try a different account, and hit the same limit again.
+
+**Options considered**
+- Change local disconnect to release/delete the central activation and risk breaking preserved identity/history semantics.
+- Redesign the central licensing/control-plane before launch.
+- Keep the correct existing enforcement/preservation model and fix only the customer recovery guidance, with regression coverage for the safe account-limit routing code.
+
+**Volodymyr's decision**
+Continue the launch audit without weakening data preservation. Account limits must be explicit, reconnecting the same account must not consume another slot, and customers must not be told that a local disconnect frees capacity when it intentionally does not.
+
+**Implementation / audit result**
+The audit confirmed in `dm-magnet-system` that:
+
+- standard defaults are `SOLO=1`, `CREATOR=3`, and `AGENCY=10`;
+- new social-account binding runs inside a Serializable transaction and fails with `ACCOUNT_LIMIT_REACHED` when capacity is exhausted;
+- the exact same `(platform, accountId)` is checked before the capacity guard and returns `alreadyBound=true`, so reconnect does not consume a second slot;
+- license validation reports `usedAccounts` and non-negative `availableAccounts` from the preserved activations.
+
+The audit confirmed in `openreply` that:
+
+- Instagram OAuth binds centrally before the local account upsert, so an over-limit new account cannot be silently created locally;
+- local Instagram disconnect is a soft disconnect that preserves the account row, campaigns, DM logs, click analytics, follower history, and the central activation/slot identity;
+- PR #55 changed only the reachable account-limit notice so it now explains same-account reconnect, upgrade/controlled migration for a different account, and the fact that local disconnect keeps the slot reserved;
+- regression coverage now explicitly verifies `ACCOUNT_LIMIT_REACHED -> account_limit` customer-safe routing.
+
+No central License Server code, plan capacities, schema, provider runtime, destructive account behavior, or TikTok gate was changed.
+
+**Test**
+PR #55 final head `919305d8e096467fe8a454638d825781322031e7` passed CI run `35534736487` and Security run `35534736497` before merge.
+
+**Result**
+PR #55 merged at `b5563d88f079f1773220c44e921c89f1c19539a3`. The account slots / plan-limits stage is closed in code. No deployment or fresh-customer manual staging walkthrough is claimed. The next focused audit stage is Quick Automations regression.

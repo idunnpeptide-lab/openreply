@@ -400,6 +400,25 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no schema migration, licensing-backend redesign, Instagram worker/runtime rewrite, provider-permission change, or TikTok gate change was introduced.
 - Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #53.
 
+## Account slots / plan limits evidence — 2026-09-20
+
+### PR #55 — truthful account-limit recovery with preserved identity
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/55`
+- Final head SHA: `919305d8e096467fe8a454638d825781322031e7`.
+- Merge SHA: `b5563d88f079f1773220c44e921c89f1c19539a3`.
+- CI run: `35534736487` — success.
+- Security run: `35534736497` — success.
+- Central-plan evidence: `dm-magnet-system` standard defaults were audited as `SOLO=1`, `CREATOR=3`, `AGENCY=10`.
+- Enforcement evidence: central social-account binding runs in a Serializable transaction and rejects a new account with `ACCOUNT_LIMIT_REACHED` when used capacity reaches `maxAccounts`.
+- Reconnect evidence: the exact existing `(platform, accountId)` binding is resolved before the capacity guard and returns `alreadyBound=true`, so same-account reconnect does not consume another slot.
+- OAuth ordering evidence: the Instagram callback binds the provider account centrally before local account upsert, so a newly selected over-limit account cannot be silently created locally after the central rejection.
+- Preservation evidence: local Instagram disconnect remains non-destructive and intentionally keeps the central social-account activation/slot, local account row, campaigns, DM logs, tracked clicks/CTR history, and follower history available for same-account reconnect.
+- Customer-recovery evidence: PR #55 removed the misleading instruction to disconnect an unused account to free capacity; the notice now explains that same-account reconnect uses the existing slot, while a different account needs available plan capacity, upgrade, or controlled migration/support.
+- Regression evidence: `ACCOUNT_LIMIT_REACHED` is explicitly covered as mapping to the safe Settings query code `account_limit`.
+- Scope evidence: no central License Server code, plan capacities, schema, provider runtime, account-deletion semantics, or TikTok gate changed.
+- Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #55.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -411,6 +430,6 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 
 Human validation means an explicit result reported/performed by Volodymyr Rudyi. Screenshots referenced in development chat are not automatically copied into GitHub unless a real repository artifact/path is created. This register records the fact of the human validation without inventing a file path for screenshots that were not committed.
 
-## Current evidence checkpoint — after PR #53
+## Current evidence checkpoint — after PR #55
 
-PR #53 is the latest completed product milestone recorded here. The authentication/plan/OAuth blocker group found by the focused launch-readiness audit is closed in code with green CI/Security. The focused audit continues with account-slot behavior, Quick Automations, Custom builder/Automations/Dashboard/Settings regression, mobile/basic accessibility launch blockers, and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
+PR #55 is the latest completed product milestone recorded here. The account slots / plan-limits stage is closed in code: standard plan capacities and transactional over-limit enforcement were verified, same-account reconnect reuses the preserved binding, and customer guidance now matches the non-destructive disconnect model. The focused audit continues with Quick Automations regression, then Custom builder/Automations/Dashboard/Settings, mobile/basic accessibility launch blockers, and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
