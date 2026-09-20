@@ -419,6 +419,24 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Scope evidence: no central License Server code, plan capacities, schema, provider runtime, account-deletion semantics, or TikTok gate changed.
 - Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #55.
 
+## Quick Automations regression evidence — 2026-09-20
+
+### PR #58 — fail-closed account recovery and account-switch integrity
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/58`
+- Final head SHA: `fc5e78e508bf2be0eed49c4dc330a891ed868b85`.
+- Merge SHA: `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`.
+- Final CI run: `35535726659` — success.
+- Security run: `35535726701` — success.
+- Development-history evidence: earlier head `3aecead1e5ab41f98c0f4efd071d2ba02adf01f7` failed lint in the account-loading implementation; the flow was refactored without suppressing the rule and the final head was rerun to green.
+- Account-loading evidence: failure of `/api/dashboard/stats` no longer appears as a legitimate zero-connected-account state; the wizard shows customer-safe recovery with **Try again** and a Settings connection-check path.
+- Activation-readiness evidence: the selected Instagram account is rechecked against current connected Dashboard state immediately before the automation POST; an unavailable check or disconnected account fails closed instead of activating against a stale local row.
+- Account-switch integrity evidence: `PostPicker` is remounted on `selectedAccountId`, while parent selection is cleared on account change, preventing stale prior-account posts from remaining selectable during the next account refresh.
+- Tracked-link evidence: the existing `{link}` token requirement remains; malformed and non-HTTPS destination values are rejected in the wizard before submission while server-side validation remains authoritative.
+- Template/runtime evidence: all four launch templates, Follow Gate/follow-up payload behavior, and the existing `/api/automations` runtime are preserved.
+- Scope evidence: no schema migration, Instagram worker/provider change, licensing backend/control-plane change, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed as a fresh-customer staging walkthrough**. No deployment, manual success, or screenshot artifact is claimed by PR #58.
+
 ## Documentation checkpoint evidence
 
 - `docs/TIKTOK_INTEGRATION.md` was updated during the TikTok foundation checkpoint.
@@ -430,6 +448,6 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 
 Human validation means an explicit result reported/performed by Volodymyr Rudyi. Screenshots referenced in development chat are not automatically copied into GitHub unless a real repository artifact/path is created. This register records the fact of the human validation without inventing a file path for screenshots that were not committed.
 
-## Current evidence checkpoint — after PR #55
+## Current evidence checkpoint — after PR #58
 
-PR #55 is the latest completed product milestone recorded here. The account slots / plan-limits stage is closed in code: standard plan capacities and transactional over-limit enforcement were verified, same-account reconnect reuses the preserved binding, and customer guidance now matches the non-destructive disconnect model. The focused audit continues with Quick Automations regression, then Custom builder/Automations/Dashboard/Settings, mobile/basic accessibility launch blockers, and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.
+PR #58 is the latest completed product milestone recorded here. The Quick Automations regression stage is closed in code: account-loading failures are recoverable rather than presented as zero accounts, selected account readiness is rechecked immediately before activation, account switching cannot reuse stale post-picker content, and tracked-link destination errors fail early while the existing four templates/runtime remain unchanged. The focused audit continues with Custom builder/Automations/Dashboard/Settings regression, then mobile/basic accessibility launch blockers and email deliverability/domain/resend UX. The combined fresh-customer launch journey has not yet been manually staging-validated and no deployment/manual success is claimed. TikTok remains separately doubly locked pending the later real-provider session.

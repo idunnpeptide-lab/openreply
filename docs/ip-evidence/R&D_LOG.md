@@ -699,3 +699,38 @@ PR #55 final head `919305d8e096467fe8a454638d825781322031e7` passed CI run `3553
 
 **Result**
 PR #55 merged at `b5563d88f079f1773220c44e921c89f1c19539a3`. The account slots / plan-limits stage is closed in code. No deployment or fresh-customer manual staging walkthrough is claimed. The next focused audit stage is Quick Automations regression.
+
+---
+
+## 2026-09-20 — Quick Automations regression audit
+
+**Task**
+Audit the launch Quick Automations path end-to-end in code: template selection, connected-account loading, account/post switching, keyword/public reply/private DM fields, Follow Gate, tracked link, follow-up configuration, activation, and `{link}` integrity.
+
+**Problem**
+The four existing templates and runtime were structurally sound, but the customer-facing wizard had three launch-relevant recovery/integrity gaps: an account-list request failure was presented as though no Instagram account was connected; a selected account was not rechecked immediately before activation; and the post picker could briefly retain the prior account's posts while a new account was loading. Tracked-link destination validity also reached server validation only after submission instead of failing early in the wizard.
+
+**Options considered**
+- Redesign Quick Automations or introduce a new runtime.
+- Leave transient account/recovery cases for manual support.
+- Keep the proven templates/runtime and harden only account readiness, picker state isolation, and customer-side URL validation.
+
+**Volodymyr's decision**
+Continue the narrow launch-readiness audit. Preserve the existing four templates and proven runtime, fail closed when connection readiness cannot be confirmed, and fix only real customer-journey blockers before staging validation.
+
+**Implementation**
+PR #58:
+
+- separates an account-list request/API failure from a legitimate zero-connected-accounts state;
+- adds a customer-safe **Try again** action and Settings recovery link when connected accounts cannot be loaded;
+- rechecks the selected Instagram account against current connected Dashboard state immediately before activation and fails closed if the connection changed;
+- refreshes account state and clears the selected post when the chosen account is no longer connected;
+- remounts `PostPicker` on `selectedAccountId` changes so stale posts from the previous account cannot remain selectable while the next account loads;
+- retains the existing `{link}` token guard and adds early malformed/non-HTTPS destination rejection for tracked-link templates;
+- leaves all four existing template payloads, Follow Gate/follow-up behavior, `/api/automations` runtime, schema, provider worker, licensing backend, and TikTok gates unchanged.
+
+**Test**
+The first PR #58 head `3aecead1e5ab41f98c0f4efd071d2ba02adf01f7` passed TypeScript but failed lint in the account-loading implementation. The data-loading pattern was refactored without suppressing the lint rule. Final head `fc5e78e508bf2be0eed49c4dc330a891ed868b85` passed CI run `35535726659` including Prisma validate/generate, TypeScript, lint, tests and production build. Security run `35535726701` passed.
+
+**Result**
+PR #58 merged at `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`. The Quick Automations regression stage is closed in code. No deployment or fresh-customer manual staging walkthrough is claimed. The next focused audit stage is Custom builder / Automations list / Dashboard / Settings regression.

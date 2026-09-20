@@ -484,3 +484,33 @@ No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for
 PR #55, final head SHA `919305d8e096467fe8a454638d825781322031e7`, merge SHA `b5563d88f079f1773220c44e921c89f1c19539a3`, CI run `35534736487`, Security run `35534736497`.
 
 No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
+
+---
+
+## 2026-09-20 — Quick Automations regression audit milestone
+
+**Human role — Volodymyr Rudyi**
+
+- explicitly set the post-PR #54 source-of-truth roadmap and required the launch audit to proceed through account slots and then Quick Automations before the remaining customer journey;
+- required customer-facing provider complexity to stay hidden and retained the existing one-click/Quick Automation launch philosophy;
+- retained final authority over staging deployment, fresh-customer validation, and commercial release;
+- did not perform or claim manual staging validation for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- audited the existing four Quick Automation templates, payload builder, connected-account source, post picker, Instagram posts API, and `/api/automations` creation boundary;
+- confirmed the four launch templates, Follow Gate/follow-up payloads, `{link}` semantics, and existing runtime should be preserved rather than redesigned;
+- identified that account-list request failure was being misrepresented as a legitimate zero-account state;
+- identified that selected account connection state was not rechecked immediately before activation;
+- identified that `PostPicker` could retain stale prior-account posts while the newly selected account was refreshing;
+- added customer-safe account-load recovery, a fail-closed pre-activation connection check, and post-picker remounting on account switch;
+- added early malformed/non-HTTPS tracked-link validation while retaining the server-side guard and `{link}` requirement;
+- encountered an initial PR #58 lint failure on head `3aecead1e5ab41f98c0f4efd071d2ba02adf01f7`, refactored the loading pattern without suppressing the rule, and reran the final head to green;
+- left schema, provider runtime, licensing architecture, and TikTok execution gates unchanged;
+- merged only after final CI and Security succeeded and prepared this separate evidence checkpoint.
+
+**Repository evidence**
+
+PR #58, final head SHA `fc5e78e508bf2be0eed49c4dc330a891ed868b85`, merge SHA `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`, CI run `35535726659`, Security run `35535726701`.
+
+No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
