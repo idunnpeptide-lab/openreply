@@ -514,3 +514,31 @@ No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for
 PR #58, final head SHA `fc5e78e508bf2be0eed49c4dc330a891ed868b85`, merge SHA `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`, CI run `35535726659`, Security run `35535726701`.
 
 No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
+
+---
+
+## 2026-09-20 — Server-side automation connection guard milestone
+
+**Human role — Volodymyr Rudyi**
+
+- explicitly asked ChatGPT to preserve the work completed so far before continuing the current launch-readiness audit;
+- retained the established requirement that Instagram launch behavior fail closed without destroying preserved account identity/history;
+- retained final authority over staging deployment, fresh-customer validation, and commercial release;
+- did not perform or claim manual staging validation for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- first saved the exact continuation state in documentation PR #61 and merged it only after CI/Security passed;
+- resumed from that saved main SHA and confirmed `/api/automations` could resolve a preserved soft-disconnected Instagram row for active POST creation and could PATCH an automation into/remain in an active state without a server-side connection recheck;
+- implemented a server-side active-state guard returning stable `INSTAGRAM_RECONNECT_REQUIRED` / HTTP 409;
+- preserved inactive draft/duplicate attachment to the account row and preserved the ability to Pause after disconnect;
+- added four focused regression cases covering active create, inactive preservation, reactivation rejection, and Pause;
+- audited bulk import and confirmed it already required a connected account through `getWorkspaceInstagramAccount()`;
+- left schema, worker/provider execution, licensing/control-plane behavior, and TikTok execution gates unchanged;
+- merged PR #62 only after final CI and Security were green.
+
+**Repository evidence**
+
+Checkpoint PR #61 merge SHA `53253e3f3f9b6cf061744d789b5087bc5ad4c16a`. Product PR #62 head SHA `bb1b039ef7a9b33a8b55d47d98ad0f207cb8ba2e`, merge SHA `fb7f9b954351728456766143f234aa415b7d972e`, CI run `35537552869`, Security run `35537552791`.
+
+No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for this milestone.
