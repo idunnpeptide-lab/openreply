@@ -25,16 +25,23 @@ Important fixes from that QA and launch work:
 - PR #45 — launch onboarding, Instagram connection-health API/model, four Quick Automations, and connected-only account counting; merge SHA `8883da17b8d435755263a53137aa6373d112b084`.
 - PR #47 — customer-facing Instagram connection-health and self-service reconnect UX; merge SHA `d2fa7a671e1ce6f7b1541e4c089559bad8295741`.
 - PR #49 — launch-first Automations empty/error states and tighter Dashboard/Campaign analytics presentation; merge SHA `3d5a75ba1379f8137997e778ca0369b08ead4eeb`.
+- PR #51 — ReplyHalo plan-readiness before Instagram connect, first-time login and template copy polish, customer-facing activation language/error sanitization, and fail-closed plan verification; merge SHA `be4417503533e35a516cb070d180192cfbc35531`.
 
-Human validation evidence from the earlier Instagram staging session includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully. PR #45/#47/#49 launch UX changes have automated CI evidence but have **not yet** been manually staging-validated as a fresh customer flow; no new live provider test is claimed for those milestones.
+Human validation evidence from the earlier Instagram staging session includes Volodymyr confirming that, after reconnect, the public comment reply, first private message, and subsequent configured message arrived successfully. PR #45/#47/#49/#51 launch UX changes have automated CI evidence but have **not yet** been manually staging-validated as a fresh customer flow; no new live provider test is claimed for those milestones.
 
 ### Launch UX / pre-launch readiness
 
-PR #45 moved ReplyHalo's first-run experience toward the intended SaaS model where provider complexity stays on ReplyHalo's side rather than the customer's side. PR #47 made connection repair customer-readable instead of developer-facing. PR #49 then made Quick Automations the primary creation path and tightened launch analytics/error handling without introducing a second analytics subsystem.
+PR #45 moved ReplyHalo's first-run experience toward the intended SaaS model where provider complexity stays on ReplyHalo's side rather than the customer's side. PR #47 made connection repair customer-readable instead of developer-facing. PR #49 then made Quick Automations the primary creation path and tightened launch analytics/error handling without introducing a second analytics subsystem. PR #51 added plan-readiness as a prerequisite to Instagram connection and removed remaining internal licensing language from the normal customer path.
 
 Current launch path now includes:
 
-- Dashboard **Connect Instagram** as the first action when no active Instagram connection exists;
+- first-time login copy aimed at creators and individual users rather than company-only language;
+- passwordless sign-in explained as a secure one-time email link and automatic workspace creation for new users;
+- ReplyHalo plan-readiness checked before exposing Instagram connection as the next customer action;
+- a fail-closed plan-check state that sends the customer to Settings instead of exposing Connect Instagram when plan verification cannot be completed;
+- customer-facing **ReplyHalo activation code**, **Connected account slots**, and **Plan renewal** terminology while preserving the internal licensing architecture;
+- normalized customer messages for suspended, revoked, expired, already-assigned, account-limit, migration-required, not-found and temporary service failures rather than raw licensing error codes;
+- Dashboard **Connect Instagram** as the first provider action after plan readiness when no active Instagram connection exists;
 - reuse of the existing ReplyHalo-owned Instagram OAuth route instead of asking customers to create Meta developer apps or provide developer secrets;
 - a three-step onboarding path: connect account → choose automation → activate;
 - workspace-scoped Instagram health reporting for connection state, token expiry, and webhook subscription without returning token material;
@@ -49,6 +56,7 @@ Current launch path now includes:
   - Comment → Follow Gate → DM;
   - Comment → Tracked Link;
   - Comment → Link → Follow-up;
+- launch-oriented default template copy written as normal creator/customer flows rather than technical demos;
 - reuse of the existing official Instagram post picker and existing `/api/automations` creation/runtime path;
 - the full Campaign Builder retained as an explicit **Custom builder** secondary path;
 - tracked-link `{link}` integrity guard;
@@ -66,6 +74,8 @@ PR #45 final head `d521fa5b48b55c59a66637b75bc68ca6bb0b609a` passed CI run `3552
 PR #47 final head `9b814eb580c8bb44ca33df47d2fa2ef0185c3372` passed CI run `35523019203` and Security run `35523019202` before merge. Its earlier head `b82b3376e3b17175c9659f9bde724a39cc8878fc` failed lint on one unescaped apostrophe, which was corrected without suppressing the rule.
 
 PR #49 head `4812d60ca790bd508e05e6a826660923073f5fa3` passed CI run `35524959374` and Security run `35524959433` before merge. The change reused the existing Dashboard and per-automation analytics data rather than adding schema, provider, or worker complexity.
+
+PR #51 final head `0bf05ea82021bb7b2912ac424df805a20d1ecfe7` passed CI run `35528589277` and Security run `35528589275` before merge. During review, a fail-open edge case was found in launch onboarding: a failed `/api/license/status` request could otherwise leave the Instagram connect path available after the readiness request finished. The same branch was corrected so failed plan verification now blocks provider connection and points the customer to Settings without exposing raw internals.
 
 ### TikTok provider
 
@@ -129,6 +139,8 @@ TikTok disconnect remains evidence-preserving in code: the provider account row,
 - Instagram and TikTok account/automation paths remain additive and isolated.
 - Instagram launch onboarding reuses existing OAuth/runtime infrastructure; no customer developer credentials are introduced.
 - Instagram health output is workspace-scoped, `no-store`, and does not expose the stored access token.
+- ReplyHalo plan verification now fails closed before first Instagram connect if plan status cannot be confirmed.
+- Customer-facing activation/plan failures are translated to ReplyHalo language rather than raw internal licensing codes.
 - Instagram customer-facing reconnect notices no longer expose deployment configuration names or raw provider failure reasons.
 - Quick Automations reuse the proven Instagram automation runtime rather than creating a second worker or provider path.
 - Launch analytics presentation reuses already persisted Dashboard/campaign data; PR #49 added no schema or background processing.
@@ -146,35 +158,31 @@ TikTok disconnect remains evidence-preserving in code: the provider account row,
 - No scraping/private endpoint fallback is part of the TikTok implementation.
 - Secrets must never be committed into project documentation or evidence logs.
 
-## Exact continuation point
+## Exact continuation point — 2026-09-20 after PR #51
 
-### Pre-launch Instagram product work
+### Focused launch-readiness audit
 
-The launch onboarding, self-service connection-health/reconnect, first-run empty/error states, and launch KPI presentation are complete in code. The next useful code-only work is:
+PR #51 closed the previously active `feat/launch-readiness-plan-copy` stage. The next code-only work is a focused audit of the customer journey, not a new large feature.
 
-1. review/polish the four Quick Automation template defaults and microcopy only where it reduces first-run friction without changing proven runtime semantics;
-2. run a focused launch-readiness audit over authentication/sign-up, plan/license activation, account-slot handling, and the path from a newly created workspace into Connect Instagram so customer-facing setup does not leak internal terminology;
-3. fix only launch-blocking gaps found by that audit rather than expanding product scope;
-4. after deployment, perform a human staging walkthrough of the new flow: fresh user/dashboard → Connect Instagram → health state → Quick Automation → choose controlled Reel/post → activate → confirm automation appears and existing delivery behavior still works;
-5. record that manual staging evidence only after Volodymyr Rudyi actually performs/confirms it.
+Audit in this order:
 
-A large visual flow builder, AI manager, CRM, team/agency mode and broad omnichannel expansion remain intentionally outside the immediate launch blocker list.
+1. authentication/sign-up: new user, existing user, magic link, workspace auto-create, verify-request/resend/delivery UX and any remaining company-only or developer language;
+2. plan activation: no code, valid, invalid, already assigned, expired, suspended, revoked, temporary service unavailable, account-limit and migration-required paths; confirm no raw internal errors leak;
+3. Dashboard first-run: plan readiness must precede Connect Instagram and every failed readiness check must fail closed;
+4. Instagram OAuth: connect, deny/cancel, callback failure/success and connection health, while preserving provider complexity on ReplyHalo's side;
+5. account slots: SOLO 1, CREATOR 3, AGENCY 10; no silent over-limit and no destructive release of preserved social identity on local disconnect;
+6. Quick Automations: template selection, account/post picker, keyword/public reply/DM/Follow Gate/tracked link/follow-up, activation, account switching and `{link}` integrity;
+7. Custom builder / Automations list / Dashboard / Settings: confirm no launch regression and recoverable empty/error/loading states;
+8. mobile/responsive and basic accessibility only where a real launch usability blocker exists;
+9. email deliverability/domain/resend UX before commercial release, without exposing provider internals.
+
+For any blocker found, create a small dedicated branch, add focused tests when behavior changes, require CI + Security green before merge, and then record a separate evidence checkpoint. Do not expand into the deferred visual-flow/AI/CRM/localization roadmap during this audit.
+
+After the code audit and any blocker fixes are complete, deploy staging and perform the **fresh-customer** manual walkthrough one step at a time with Volodymyr Rudyi. The combined PR #45/#47/#49/#51 first-run journey has **not yet** been manually staging-validated and no deployment/manual success is claimed here.
 
 ### TikTok provider work
 
-Further meaningful TikTok progress still requires human/provider participation:
-
-1. create/open the dedicated ReplyHalo TikTok for Business developer app;
-2. request/verify the Organic API and Business Messaging products/permissions available to the test Business Account;
-3. configure the exact staging OAuth callback and deployment environment values directly in TikTok/Railway without posting secret values in GitHub/chat;
-4. connect a real test TikTok Business Account through ReplyHalo OAuth;
-5. verify actual scopes/capabilities/token refresh and owned-video reads in `/tiktok`;
-6. configure/read back `COMMENT` and `DIRECT_MESSAGE` webhooks;
-7. trigger a real supported signed event and confirm runtime readiness;
-8. validate inert routing/dedupe and safe disconnect/reconnect;
-9. only after those checks pass, Volodymyr Rudyi may explicitly approve a separate reviewed gate-enabling change for the tiny controlled-send test.
-
-No TikTok send gate should be changed before the real provider setup and human staging validation above.
+Further meaningful TikTok progress still requires human/provider participation and remains after stable Instagram commercial readiness. Both source-controlled TikTok send gates remain false. No TikTok live provider setup/send should start during the current Instagram launch-readiness audit.
 
 ## Evidence discipline
 
