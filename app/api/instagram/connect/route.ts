@@ -27,14 +27,13 @@ export async function GET() {
   }
 
   // getAuthorizationUrl and createOAuthState call requireEnv, which throws.
-  // Without this check an incomplete .env surfaces as a 500 on a plain <a>
-  // navigation, which reads to the user as the button doing nothing at all.
+  // Without this check an incomplete deployment surfaces as a 500 on a plain
+  // navigation. Keep the customer redirect sanitized: environment-variable
+  // names belong in server diagnostics, not in the browser URL.
   const missingEnv = getMissingInstagramOAuthEnv();
   if (missingEnv.length > 0) {
     return NextResponse.redirect(
-      `${getBaseUrl()}/settings?instagram=misconfigured&missing=${encodeURIComponent(
-        missingEnv.join(",")
-      )}`
+      `${getBaseUrl()}/settings?instagram=misconfigured`
     );
   }
 
