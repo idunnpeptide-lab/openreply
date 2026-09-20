@@ -600,3 +600,34 @@ No deployment, fresh-customer walkthrough, or screenshot artifact is claimed for
 PR #66, head `3320daca236678c39283784489abadb36b10e153`, merge `91e90bcd847d14a41fad6686a67aa052aef9e8aa`, CI `35539584486`, Security `35539584447`.
 
 No deployment or fresh-customer manual validation is claimed.
+
+---
+
+## 2026-09-20 — Mobile / basic accessibility launch milestone
+
+**Human role — Volodymyr Rudyi**
+
+- instructed ChatGPT to save completed work before continuing the launch-readiness sequence;
+- retained the narrow launch rule: fix real usability blockers without expanding into redesign or deferred roadmap work;
+- retained final authority over staging/manual validation and commercial release;
+- did not perform or claim manual accessibility certification or a fresh-customer staging walkthrough for this milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- saved a pre-audit continuation checkpoint in PR #68 before making new product changes;
+- audited the dashboard shell, Sidebar/TopBar, login/verify-request, Quick Automations, Custom Builder, Automations, Settings, and primary mobile layouts;
+- found the core responsive layout already launch-safe and avoided unnecessary redesign;
+- identified the hidden off-canvas mobile navigation keyboard/focus blocker and fixed it in PR #69 with hidden-state interaction suppression, Close/Escape handling, focus entry/return, and menu state semantics;
+- added an accessible name to Instagram post search without changing post-picker behavior;
+- identified visual-only selection/switch states and placeholder-only names on primary Custom Builder/Automations/Settings controls;
+- fixed those semantics in PR #70 with programmatic pressed/switch states, explicit accessible names, keyboard-accessible automation links, filter state, and basic alert/dialog semantics;
+- preserved all API payloads, automation runtime, provider behavior, licensing/control-plane behavior, analytics, and TikTok execution gates;
+- inspected final PR patches and merged each product PR only after CI and Security succeeded.
+
+**Repository evidence**
+
+PR #69, final head `3f7c1fe429bf14360f71070fd96d74a252620e0f`, merge `5bcf272d87eec26b810710eeb995d4a427ca8615`, CI `35541233027`, Security `35541232961`.
+
+PR #70, final head `22c1780a5bc3289da647088bb7207f6cd1d0fcf5`, merge `bf9788f036c8180b648e088e02b2eb6aaea369ae`, CI `35541638010`, Security `35541638050`.
+
+No deployment, fresh-customer walkthrough, screenshot artifact, or manual accessibility certification is claimed for this milestone. Next: email sign-in deliverability/domain/resend UX, then staging deployment and fresh-customer validation.
