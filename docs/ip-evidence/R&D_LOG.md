@@ -505,3 +505,40 @@ Automated coverage was added for Instagram connection-health states, workspace s
 
 **Result**
 PR #45 merged at `8883da17b8d435755263a53137aa6373d112b084`. The launch onboarding/Quick Automations milestone is code-complete. No new live Instagram provider QA or production customer activation is claimed by this code milestone; manual staging validation of the new first-run UX remains a later human test step.
+
+---
+
+## 2026-09-20 — Customer-facing Instagram health and reconnect UX
+
+**Task**
+Make Instagram connection repair understandable to a normal ReplyHalo customer without exposing deployment or provider implementation details.
+
+**Problem**
+The health API introduced in PR #45 existed, but Settings still primarily showed technical token-expiry/webhook text. OAuth error notices could expose environment-variable names and raw provider failure reasons. That is useful for developers but creates unnecessary friction and support burden for customers.
+
+**Options considered**
+- Leave Settings technical and document the repair steps separately.
+- Add provider API debugging details directly to the customer UI.
+- Reuse the sanitized health API and translate it into customer-facing connection/authorization/automation readiness with one obvious reconnect action while preserving detailed developer diagnostics elsewhere.
+
+**Volodymyr's decision**
+Keep provider complexity on ReplyHalo's side. Customers should see a clear account state and repair action, not Meta/TikTok developer terminology.
+
+**Implementation**
+PR #47 updated the customer-facing Instagram Settings/notice surface to:
+
+- show per-account Connection, Authorization and Automation readiness;
+- summarize each account as `Ready`, `Needs attention`, or `Disconnected`;
+- provide one **Connect / Reconnect Instagram** action using the existing official OAuth route;
+- explain that campaigns, logs, clicks and history remain saved during repair;
+- add a friendly `?instagram=connected` success notice;
+- remove environment-variable names and raw provider failure reasons from customer-facing OAuth errors;
+- replace remaining internal `DM Magnet` wording in this customer-facing notice surface with ReplyHalo plan language.
+
+No provider token/secret was added to browser responses, safe disconnect behavior was unchanged, and TikTok paths/gates were untouched.
+
+**Test**
+The first PR #47 head `b82b3376e3b17175c9659f9bde724a39cc8878fc` passed typecheck but failed lint on one unescaped apostrophe. The text was corrected without suppressing the lint rule. Final head `9b814eb580c8bb44ca33df47d2fa2ef0185c3372` passed CI run `35523019203` (Prisma validate/generate, TypeScript, lint, tests, production build) and Security run `35523019202`.
+
+**Result**
+PR #47 merged at `d2fa7a671e1ce6f7b1541e4c089559bad8295741`. The self-service Instagram health/reconnect milestone is code-complete. No fresh-customer live OAuth/reconnect walkthrough is claimed yet; that remains a human staging validation step after deployment.
