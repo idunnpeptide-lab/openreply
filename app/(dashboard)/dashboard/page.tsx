@@ -3,10 +3,12 @@
 /**
  * Dashboard Home Page
  *
- * Overview cards, 7-day chart, and recent activity feed.
+ * Launch-oriented overview: onboarding, core funnel metrics, 7-day delivery
+ * trend, keyword performance and recent activity.
  */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import LaunchOnboarding from "@/components/launch-onboarding";
 import StatCard from "@/components/stat-card";
@@ -44,37 +46,61 @@ interface DashboardStats {
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState("all");
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     const params = new URLSearchParams();
     if (selectedAccountId !== "all") {
       params.set("instagramAccountId", selectedAccountId);
     }
 
-    fetch(`/api/dashboard/stats${params.size ? `?${params}` : ""}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setStats(data.data);
+    fetch(`/api/dashboard/stats${params.size ? `?${params}` : ""}`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok || !payload.success) throw new Error("dashboard_failed");
+        if (!cancelled) {
+          setStats(payload.data);
+          setLoadError(false);
+        }
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [selectedAccountId]);
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAccountId, retryKey]);
 
   function handleAccountChange(accountId: string) {
     setLoading(true);
+    setLoadError(false);
     setSelectedAccountId(accountId);
   }
 
-  if (loading) {
+  function retryDashboard() {
+    setLoading(true);
+    setLoadError(false);
+    setRetryKey((value) => value + 1);
+  }
+
+  if (loading && !stats) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="panel rounded p-5 h-32">
-              <div className="w-10 h-10 rounded bg-surface-hover" />
-              <div className="mt-4 h-6 w-16 bg-surface-hover rounded" />
-              <div className="mt-2 h-4 w-24 bg-surface-hover/60 rounded" />
+            <div key={i} className="panel h-32 rounded p-5">
+              <div className="h-10 w-10 rounded bg-surface-hover" />
+              <div className="mt-4 h-6 w-16 rounded bg-surface-hover" />
+              <div className="mt-2 h-4 w-24 rounded bg-surface-hover/60" />
             </div>
           ))}
         </div>
@@ -82,30 +108,57 @@ export default function DashboardPage() {
     );
   }
 
-  const maxDM = Math.max(...(stats?.dailyDMs.map((d) => d.count) ?? [1]), 1);
-  const connectedCount = stats?.instagramAccounts.length ?? 0;
+  if (!stats) {
+    return (
+      <div className="mx-auto max-w-xl panel rounded-xl p-6 text-center sm:p-8">
+        <h1 className="text-xl font-semibold text-foreground">
+          We could not load your dashboard
+        </h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+          Your automations and history are still saved. Retry the dashboard, or
+          check the Instagram connection if the problem continues.
+        </p>
+        <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={retryDashboard}
+            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
+          >
+            Retry dashboard
+          </button>
+          <Link
+            href="/settings"
+            className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-hover"
+          >
+            Check connection
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const maxDM = Math.max(...stats.dailyDMs.map((d) => d.count), 1);
+  const connectedCount = stats.instagramAccounts.length;
 
   return (
     <div className="space-y-8">
-      {/* Greeting header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Hello, {stats?.userName ?? "there"}!
+            Hello, {stats.userName ?? "there"}!
           </h1>
           <p className="mt-1 text-sm text-muted">
             {connectedCount} connected{" "}
             {connectedCount === 1 ? "account" : "accounts"}
             {" · "}
-            {stats?.contactsCount ?? 0}{" "}
-            {stats?.contactsCount === 1 ? "contact" : "contacts"}
+            {stats.contactsCount} {stats.contactsCount === 1 ? "contact" : "contacts"}
             {" · "}
-            <a href="/logs" className="text-accent hover:underline">
+            <Link href="/logs" className="text-accent hover:underline">
               See activity
-            </a>
+            </Link>
           </p>
         </div>
-        {stats && stats.instagramAccounts.length > 1 && (
+        {stats.instagramAccounts.length > 1 && (
           <AccountSelect
             accounts={stats.instagramAccounts}
             value={selectedAccountId}
@@ -114,53 +167,95 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {loadError && (
+        <div className="flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Could not refresh the latest numbers
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              The last loaded dashboard is still shown below.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={retryDashboard}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       <LaunchOnboarding
         connectedAccounts={connectedCount}
-        activeAutomations={stats?.activeAutomations ?? 0}
+        activeAutomations={stats.activeAutomations}
       />
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-        <StatCard
-          label="Active Campaigns"
-          value={stats?.activeAutomations ?? 0}
-        />
-        <StatCard label="DMs Sent" value={stats?.dmsSentMonth ?? 0} />
-        <StatCard label="Skipped" value={stats?.dmsSkippedMonth ?? 0} />
-        <StatCard label="Failed" value={stats?.dmsFailedMonth ?? 0} />
-        <StatCard label="Clicks" value={stats?.clicksThisMonth ?? 0} />
-        <StatCard label="CTR" value={`${stats?.ctrThisMonth ?? 0}%`} />
-      </div>
-
-      {/* Chart + Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 sm:gap-6">
-        {/* 7-Day Chart */}
-        <div className="lg:col-span-3 panel rounded p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-6">DMs — Last 7 Days</h2>
-          <div className="flex items-end gap-1.5 h-40 sm:gap-2">
-            {stats?.dailyDMs.map((day) => (
-              <div key={day.date} className="min-w-0 flex-1 flex flex-col items-center gap-2">
-                <span className="text-xs text-muted font-medium">{day.count}</span>
-                <div
-                  className="w-full rounded-sm bg-accent min-h-[4px]"
-                  style={{ height: `${Math.max((day.count / maxDM) * 100, 4)}%` }}
-                />
-                <span className="w-full truncate text-center text-[10px] text-zinc-500">
-                  {day.date}
-                </span>
-              </div>
-            ))}
+      <section>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Launch performance</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Delivery and link activity for the current month.
+            </p>
           </div>
+          {connectedCount > 0 && (
+            <Link href="/campaigns/quick" className="text-xs font-medium text-accent hover:underline">
+              New quick automation
+            </Link>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          <StatCard label="Active Automations" value={stats.activeAutomations} />
+          <StatCard label="DMs Sent" value={stats.dmsSentMonth} />
+          <StatCard label="Link Clicks" value={stats.clicksThisMonth} />
+          <StatCard label="CTR" value={`${stats.ctrThisMonth}%`} />
+          <StatCard label="Failed" value={stats.dmsFailedMonth} />
+          <StatCard label="Skipped" value={stats.dmsSkippedMonth} />
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-6">
+        <div className="panel rounded p-4 sm:p-6 lg:col-span-3">
+          <h2 className="mb-6 text-sm font-semibold text-foreground">DMs — Last 7 Days</h2>
+          {stats.dailyDMs.every((day) => day.count === 0) ? (
+            <div className="flex h-40 flex-col items-center justify-center text-center">
+              <p className="text-sm font-medium text-foreground">No DMs sent yet</p>
+              <p className="mt-1 max-w-xs text-xs text-muted">
+                Once your first automation starts sending, the 7-day trend will appear here.
+              </p>
+              {connectedCount > 0 && stats.totalAutomations === 0 && (
+                <Link href="/campaigns/quick" className="mt-3 text-xs font-medium text-accent hover:underline">
+                  Create your first automation
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="flex h-40 items-end gap-1.5 sm:gap-2">
+              {stats.dailyDMs.map((day) => (
+                <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                  <span className="text-xs font-medium text-muted">{day.count}</span>
+                  <div
+                    className="min-h-[4px] w-full rounded-sm bg-accent"
+                    style={{ height: `${Math.max((day.count / maxDM) * 100, 4)}%` }}
+                  />
+                  <span className="w-full truncate text-center text-[10px] text-zinc-500">
+                    {day.date}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Top Keywords */}
-        <div className="lg:col-span-1 panel rounded p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Top Keywords</h2>
+        <div className="panel rounded p-4 sm:p-6 lg:col-span-1">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">Top Keywords</h2>
           <div className="space-y-3">
-            {stats?.topKeywords.length === 0 && (
-              <p className="text-sm text-muted py-8">No keyword matches yet</p>
+            {stats.topKeywords.length === 0 && (
+              <p className="py-8 text-sm text-muted">No keyword matches yet</p>
             )}
-            {stats?.topKeywords.map((keyword) => (
+            {stats.topKeywords.map((keyword) => (
               <div key={keyword.keyword} className="flex items-center justify-between gap-3">
                 <span className="truncate text-sm font-medium text-foreground">
                   {keyword.keyword}
@@ -171,26 +266,35 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 panel rounded p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Recent Activity</h2>
-          <div className="space-y-3 max-h-60 overflow-y-auto">
-            {stats?.recentLogs.length === 0 && (
-              <p className="text-sm text-muted text-center py-8">No activity yet</p>
+        <div className="panel rounded p-4 sm:p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
+            {stats.recentLogs.length > 0 && (
+              <Link href="/logs" className="text-xs font-medium text-accent hover:underline">
+                View all
+              </Link>
             )}
-            {stats?.recentLogs.map((log) => (
+          </div>
+          <div className="max-h-60 space-y-3 overflow-y-auto">
+            {stats.recentLogs.length === 0 && (
+              <div className="py-8 text-center">
+                <p className="text-sm font-medium text-foreground">No activity yet</p>
+                <p className="mt-1 text-xs text-muted">
+                  Matches and delivery events will appear here after your automation goes live.
+                </p>
+              </div>
+            )}
+            {stats.recentLogs.map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between gap-3 py-2 border-b border-border last:border-0"
+                className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">
+                  <p className="truncate text-sm font-medium text-foreground">
                     @{log.commenterName ?? "unknown"}
                   </p>
-                  <p className="text-xs text-muted truncate">
-                    {log.instagramAccount
-                      ? `@${log.instagramAccount.username} · `
-                      : ""}
+                  <p className="truncate text-xs text-muted">
+                    {log.instagramAccount ? `@${log.instagramAccount.username} · ` : ""}
                     {log.commentText}
                   </p>
                 </div>
