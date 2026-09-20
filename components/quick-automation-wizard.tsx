@@ -44,9 +44,11 @@ export default function QuickAutomationWizard() {
     [selectedTemplateId]
   );
 
-  const loadAccounts = useCallback(async () => {
-    setAccountsLoading(true);
-    setAccountsError(null);
+  const loadAccounts = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setAccountsLoading(true);
+      setAccountsError(null);
+    }
 
     try {
       const response = await fetch("/api/dashboard/stats", { cache: "no-store" });
@@ -72,7 +74,7 @@ export default function QuickAutomationWizard() {
   }, []);
 
   useEffect(() => {
-    void loadAccounts();
+    void loadAccounts(false);
   }, [loadAccounts]);
 
   function chooseTemplate(next: QuickAutomationTemplate) {
@@ -422,6 +424,7 @@ export default function QuickAutomationWizard() {
           </p>
           <div className="mt-4">
             <PostPicker
+              key={selectedAccountId}
               selectedPostId={postId}
               instagramAccountId={selectedAccountId}
               onSelect={(id, url) => {
