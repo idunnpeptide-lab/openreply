@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -33,34 +34,74 @@ export default function Sidebar({
   workspaceName,
 }: SidebarProps) {
   const pathname = usePathname();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    closeButtonRef.current?.focus();
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      onClose();
+      window.requestAnimationFrame(() => {
+        document.getElementById("dashboard-menu-button")?.focus();
+      });
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
+  function closeAndRestoreFocus() {
+    onClose();
+    window.requestAnimationFrame(() => {
+      document.getElementById("dashboard-menu-button")?.focus();
+    });
+  }
 
   return (
     <>
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={onClose}
+          onClick={closeAndRestoreFocus}
+          aria-hidden="true"
         />
       )}
 
       <aside
+        id="dashboard-sidebar"
         className={`
           fixed top-0 left-0 z-50 h-dvh w-64 max-w-[85vw] shrink-0 bg-surface border-r border-border flex flex-col
           transition-transform duration-200 ease-out
-          lg:h-full lg:translate-x-0 lg:static lg:z-auto
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:h-full lg:translate-x-0 lg:static lg:z-auto lg:visible lg:pointer-events-auto
+          ${
+            isOpen
+              ? "visible translate-x-0 pointer-events-auto"
+              : "invisible -translate-x-full pointer-events-none"
+          }
         `}
       >
         <div
-          className="px-6 py-5 border-b border-border"
+          className="flex items-center justify-between gap-3 px-6 py-5 border-b border-border"
           style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}
         >
           <Link href="/dashboard" className="text-base font-semibold">
             ReplyHalo
           </Link>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={closeAndRestoreFocus}
+            className="rounded border border-border px-2.5 py-1.5 text-sm text-muted hover:text-foreground lg:hidden"
+            aria-label="Close navigation"
+          >
+            Close
+          </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Main navigation">
           {navItems.map((item) => {
             const isActive = item.exact
               ? pathname === item.href

@@ -20,12 +20,14 @@ const pageTitles: Record<string, string> = {
 };
 
 interface TopBarProps {
+  sidebarOpen: boolean;
   onMenuClick: () => void;
   instagramUsername: string | null;
   instagramAccountCount: number;
 }
 
 export default function TopBar({
+  sidebarOpen,
   onMenuClick,
   instagramUsername,
   instagramAccountCount,
@@ -46,9 +48,13 @@ export default function TopBar({
     >
       <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <button
+          id="dashboard-menu-button"
+          type="button"
           onClick={onMenuClick}
           className="lg:hidden shrink-0 px-2.5 py-1.5 rounded border border-border text-sm text-muted hover:text-foreground"
-          aria-label="Toggle sidebar"
+          aria-label="Open navigation"
+          aria-expanded={sidebarOpen}
+          aria-controls="dashboard-sidebar"
         >
           Menu
         </button>

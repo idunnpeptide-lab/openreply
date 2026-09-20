@@ -31,6 +31,7 @@ export default function DashboardShell({
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar
+          sidebarOpen={sidebarOpen}
           onMenuClick={() => setSidebarOpen(true)}
           instagramUsername={instagramUsername}
           instagramAccountCount={instagramAccountCount}
