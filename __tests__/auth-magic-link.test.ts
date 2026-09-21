@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAuthCallbackPath,
+  getAuthCallbackActionPath,
   parsePreviewSafeMagicLink,
   toPreviewSafeMagicLink,
 } from "../lib/auth-magic-link";
@@ -62,6 +63,15 @@ describe("preview-safe magic links", () => {
         "resend"
       )
     ).toBeNull();
+  });
+
+  it("builds a provider-scoped GET form action without token data", () => {
+    expect(getAuthCallbackActionPath("resend")).toBe(
+      "/api/auth/callback/resend"
+    );
+    expect(getAuthCallbackActionPath("provider/name")).toBe(
+      "/api/auth/callback/provider%2Fname"
+    );
   });
 
   it("reconstructs the real callback only after confirmation", () => {

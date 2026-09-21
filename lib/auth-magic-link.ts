@@ -60,8 +60,17 @@ export function parsePreviewSafeMagicLink(
 }
 
 /**
- * Builds the real Auth.js callback as a relative path so the browser performs
- * the token-consuming GET only after a deliberate confirmation POST.
+ * Returns only the Auth.js callback action path. The confirmation form supplies
+ * the one-time token, email, and optional callbackUrl as normal GET fields so the
+ * browser performs the token-consuming request only after an explicit submit.
+ */
+export function getAuthCallbackActionPath(provider: string): string {
+  return `${AUTH_CALLBACK_PREFIX}${encodeURIComponent(provider)}`;
+}
+
+/**
+ * Builds the real Auth.js callback as a relative path. Kept as a pure helper for
+ * regression coverage of the callback parameter contract.
  */
 export function buildAuthCallbackPath(link: PreviewSafeMagicLink): string {
   const params = new URLSearchParams();
@@ -71,5 +80,5 @@ export function buildAuthCallbackPath(link: PreviewSafeMagicLink): string {
   params.set("token", link.token);
   params.set("email", link.email);
 
-  return `${AUTH_CALLBACK_PREFIX}${encodeURIComponent(link.provider)}?${params.toString()}`;
+  return `${getAuthCallbackActionPath(link.provider)}?${params.toString()}`;
 }
