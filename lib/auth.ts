@@ -4,6 +4,7 @@ import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/client";
 import { getAuthEmailConfig } from "@/lib/auth-email-config";
+import { toPreviewSafeMagicLink } from "@/lib/auth-magic-link";
 import { ensureWorkspaceForUser, getPrimaryWorkspace } from "@/lib/workspace";
 
 type AdapterPrismaClient = Parameters<typeof PrismaAdapter>[0];
@@ -19,16 +20,30 @@ const emailConfig = getAuthEmailConfig();
  */
 export const EMAIL_PROVIDER_ID = emailConfig.providerId;
 
+const baseEmailProvider =
+  emailConfig.transport === "smtp"
+    ? Nodemailer({ server: emailConfig.server, from: emailConfig.from })
+    : Resend({
+        apiKey: emailConfig.apiKey,
+        from: emailConfig.from,
+      });
+
+const defaultSendVerificationRequest = baseEmailProvider.sendVerificationRequest;
+const previewSafeEmailProvider = {
+  ...baseEmailProvider,
+  async sendVerificationRequest(
+    params: Parameters<typeof defaultSendVerificationRequest>[0]
+  ) {
+    return defaultSendVerificationRequest({
+      ...params,
+      url: toPreviewSafeMagicLink(params.url),
+    });
+  },
+};
+
 export const authConfig = {
   adapter: PrismaAdapter(prisma as unknown as AdapterPrismaClient),
-  providers: [
-    emailConfig.transport === "smtp"
-      ? Nodemailer({ server: emailConfig.server, from: emailConfig.from })
-      : Resend({
-          apiKey: emailConfig.apiKey,
-          from: emailConfig.from,
-        }),
-  ],
+  providers: [previewSafeEmailProvider],
   callbacks: {
     async session({ session, user }) {
       if (session.user) {
