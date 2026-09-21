@@ -539,3 +539,27 @@ PR #66 is the latest completed product milestone recorded here. Automations reac
 ## Current evidence checkpoint — after PR #70
 
 PR #69 and PR #70 close the focused mobile/responsive/basic-accessibility code stage. The responsive shell/login/verify-request/Quick Automation layouts were reviewed and no broader redesign blocker was found; product changes stayed limited to confirmed keyboard/focus and programmatic-control semantics. Both product PRs passed CI and Security before merge. No new deployment, fresh-customer manual walkthrough, or accessibility certification is claimed. The next launch-readiness stage is email sign-in deliverability/domain/resend UX, followed by staging deployment and the one-step-at-a-time fresh-customer walkthrough with Volodymyr Rudyi. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+## Email sign-in readiness evidence — 2026-09-21
+
+### PR #72 — fail-closed email transport configuration
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/72`
+- Final head SHA: `b3f5c103c5ba3ca4f00a8a963b97f80a621b4ffe`.
+- Merge SHA: `5dd78018e80207e9492bf65aafdff5c51179e859`.
+- Initial CI run: `35574331028` — failed TypeScript because partial email-config test fixtures were cast to the repository's stricter `NodeJS.ProcessEnv` type.
+- Final CI run: `35574464223` — success.
+- Security run: `35574464026` — success.
+- Configuration evidence: Auth.js no longer has the fallback `ReplyHalo <login@example.com>` or `missing-resend-api-key`; an explicit non-placeholder sender plus either Resend credentials or a valid SMTP URL is required.
+- Placeholder evidence: checked-in `example.com`, `example.org`, and `example.net` sender domains are rejected so a placeholder deployment cannot appear email-ready.
+- SMTP/Resend evidence: SMTP selection does not require a Resend key; otherwise Resend credentials are required. Focused tests cover both paths and malformed SMTP input.
+- Health evidence: `/api/health` includes sanitized sign-in-email readiness/transport and degrades when email config is invalid without returning sender addresses, API keys, SMTP URLs, or environment-variable details.
+- Customer-recovery evidence: Auth.js errors return to the branded `/login` page, which displays generic retry/support guidance instead of provider/internal error text; `/verify-request` retains spam/junk guidance and the **Send a new sign-in link** recovery path.
+- Development-history evidence: the initial CI typing failure was fixed by narrowing the pure helper's environment input to the keys it consumes; no validator rule or type check was suppressed.
+- Provider-boundary evidence: source code cannot prove that the configured Resend sender domain is verified or that an email reaches an external inbox; those remain real staging/provider checks.
+- Scope evidence: no schema, session model, workspace-creation behavior, Instagram automation/provider runtime, licensing/control-plane, analytics, or TikTok execution-gate change was introduced.
+- Human validation: **not yet performed** for real sender-domain verification or magic-link delivery. No deployment/manual success is claimed by PR #72.
+
+## Current evidence checkpoint — after PR #72
+
+PR #72 closes the code-level email-auth readiness stage. The code-only launch-readiness audit is now complete through authentication/plan recovery, account slots, Quick Automations, server active-state guards, Custom Builder, Automations/Settings recovery, Dashboard regression, mobile/basic accessibility, and email transport configuration. The next step is real staging validation: verify the actual sender/transport configuration and provider domain status, complete one real magic-link sign-in, then perform the one-step-at-a-time fresh-customer walkthrough through workspace creation, activation, Instagram connection, Quick Automation, real comment/DM/link/follow-up behavior, and Dashboard/Logs/CTR. No staging/deployment/manual success is claimed here. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
