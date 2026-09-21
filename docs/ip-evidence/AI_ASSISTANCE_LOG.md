@@ -688,3 +688,34 @@ No deployment, real magic-link delivery, sender-domain verification, screenshot 
 Current source-of-truth `main` is `fcc9650aa716e0d8a65e30da1ea164e18c8d09c4`. Current Railway `openreply-web` deployment `74b4edc5-7132-4251-917d-577f09fef101` is `SUCCESS`; the corresponding worker deployment is also `SUCCESS`. Provider/domain evidence is recorded without secret values or recipient identifiers.
 
 A fresh post-PR #72 magic-link request and successful click/sign-in remain unperformed and are the next exact manual validation step.
+
+---
+
+## 2026-09-21 — Fresh magic-link E2E milestone
+
+**Human role — Volodymyr Rudyi**
+
+- requested a fresh passwordless sign-in email on the deployed ReplyHalo service and performed the real browser clicks;
+- supplied screenshots of the initial `Verification` failure, the preview-safe confirmation page, the post-confirmation login return that exposed the second blocker, and the final authenticated Dashboard;
+- repeated the sign-in test after each reviewed fix rather than treating code/CI success as sufficient manual evidence;
+- confirmed the final fresh workspace/dashboard entry and retains final authority over continuing the Instagram/fresh-customer walkthrough and commercial release.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- inspected the fresh Resend delivery event and Railway HTTP/runtime evidence without exposing the recipient address or secrets;
+- diagnosed the first real blocker from Railway request order: an automatic Telegram link-preview client reached the token-consuming Auth.js callback before the customer's browser;
+- preserved one-time token semantics rather than making verification tokens reusable;
+- implemented PR #75 so emailed links terminate first at inert `/auth/confirm`, automatic previews cannot consume the token, and `Verification` recovery copy is accurate;
+- used the post-#75 Railway retest to prove preview safety and diagnose the second blocker: `POST /auth/confirm -> 200` from the Next server action with no subsequent callback GET/session creation;
+- implemented PR #76 using a normal browser GET form to the validated Auth.js callback after explicit confirmation;
+- required final CI + Security green before each merge and verified successful Railway deployments before asking for the next human retest;
+- verified the final runtime chain `GET /auth/confirm -> 200`, `GET /api/auth/callback/resend -> 302`, `GET /dashboard -> 200`, followed by authenticated 200 responses from Dashboard stats, license status, and Instagram health;
+- did not claim fresh Instagram OAuth, automation activation, or live provider behavior beyond the authenticated workspace-entry boundary.
+
+**Repository evidence**
+
+PR #75 final head `793f9641700cbd29092aa3482ec4eca186e406c6`, CI `35581464612`, Security `35581464605`, merge `ef8b1549dd4cbe28464c7a8dd9fc2aace2e5fa35`; Railway web deployment `4ea2c4c4-38c9-4922-baab-b679b0f70c8d` succeeded.
+
+PR #76 final head `10ad30cbd872104c61c0d27443bb71c5791debae`, CI `35583177511`, Security `35583177496`, merge `ab2dbb81741d6398ab9ef429dd1d866f3af04498`; Railway web deployment `a2676a8c-2e3f-40ed-9ba8-b0bc1f63f652` and worker deployment `d1ffebfe-f53b-447a-98b6-0ac2878a5448` succeeded.
+
+Human validation passed for fresh passwordless authentication and workspace/Dashboard entry. The next manual stage is the visible **Connect Instagram** action; no later fresh-provider success is claimed here.
