@@ -13,10 +13,12 @@ export default async function LoginPage({
     checkEmail?: string;
     callbackUrl?: string;
     template?: string;
+    error?: string;
   }>;
 }) {
   const params = await searchParams;
   const checkEmail = params.checkEmail === "1";
+  const authError = Boolean(params.error);
   const selectedTemplate = getCampaignTemplate(params.template);
   const templateCallbackUrl = selectedTemplate
     ? `/campaigns/new?template=${selectedTemplate.slug}`
@@ -54,6 +56,16 @@ export default async function LoginPage({
               <p className="mt-2 text-sm font-semibold text-foreground">
                 {selectedTemplate.title}
               </p>
+            </div>
+          )}
+
+          {authError && !checkEmail && (
+            <div
+              role="alert"
+              className="mb-5 rounded border border-error/20 bg-error/10 p-4 text-sm text-error"
+            >
+              We could not send your sign-in link. Check the email address and try
+              again. If the problem continues, please contact ReplyHalo support.
             </div>
           )}
 

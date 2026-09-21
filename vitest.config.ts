@@ -6,6 +6,10 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["__tests__/**/*.test.ts"],
+    env: {
+      RESEND_API_KEY: "re_test",
+      EMAIL_FROM: "ReplyHalo <login@tests.replyhalo.test>",
+    },
   },
   resolve: {
     alias: {
