@@ -303,3 +303,15 @@ No production/staging sender-domain verification or real magic-link delivery is 
 The code-only launch-readiness audit is now complete through email auth configuration. Next, verify the actual staging email transport/sender domain and perform one real magic-link sign-in, then continue the staged **fresh-customer walkthrough** from workspace creation → plan activation → Instagram connection → Quick Automation → real comment/DM/link/follow-up → Dashboard/Logs/CTR. Record only real deployment/manual evidence.
 
 TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## Staging email provider readiness — 2026-09-21
+
+Railway now provides direct deployment evidence for the email-readiness code. The PR #72 product merge `5dd78018e80207e9492bf65aafdff5c51179e859` deployed successfully to `openreply-web`. After the additive PR #73 evidence merge, current `main` is `fcc9650aa716e0d8a65e30da1ea164e18c8d09c4`; Railway deployment `74b4edc5-7132-4251-917d-577f09fef101` for `openreply-web` and the matching worker deployment both completed successfully. The web build compiled, TypeScript completed, all routes were generated, Prisma reported no pending migrations, and Next.js reached `Ready`. Service configuration exposes the required email variable names `EMAIL_FROM` and `RESEND_API_KEY`; connector access does not expose their secret values, so no value-level claim is made.
+
+Resend independently confirms that sending domain `auth.traffictiktok.com` is **verified**, sending is enabled in `eu-west-1`, and its DKIM plus both SPF records are verified. Provider metrics for the verified domain show two historical transactional sends, both delivered, with zero failed and zero bounced deliveries (100% delivery rate). Both historical messages were passwordless sign-in emails, but they predate PR #72 and therefore do **not** prove a fresh post-change sign-in.
+
+This closes the deployment/domain/provider-readiness checkpoint without overstating manual QA. A fresh post-PR #72 magic-link request and successful click/sign-in have not yet been performed. The exact next step is to request a new sign-in link to an explicitly approved test address, verify that new event in Resend, click the link, and then continue the fresh-customer walkthrough through workspace creation, plan activation, Instagram connection, Quick Automation, live comment/DM/link/follow-up behavior, and Dashboard/Logs/CTR.
+
+TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.

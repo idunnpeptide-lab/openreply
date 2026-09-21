@@ -563,3 +563,22 @@ PR #69 and PR #70 close the focused mobile/responsive/basic-accessibility code s
 ## Current evidence checkpoint — after PR #72
 
 PR #72 closes the code-level email-auth readiness stage. The code-only launch-readiness audit is now complete through authentication/plan recovery, account slots, Quick Automations, server active-state guards, Custom Builder, Automations/Settings recovery, Dashboard regression, mobile/basic accessibility, and email transport configuration. The next step is real staging validation: verify the actual sender/transport configuration and provider domain status, complete one real magic-link sign-in, then perform the one-step-at-a-time fresh-customer walkthrough through workspace creation, activation, Instagram connection, Quick Automation, real comment/DM/link/follow-up behavior, and Dashboard/Logs/CTR. No staging/deployment/manual success is claimed here. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+## Staging email provider readiness evidence — 2026-09-21
+
+- Source-of-truth `main`: `fcc9650aa716e0d8a65e30da1ea164e18c8d09c4` after additive PR #73 evidence merge.
+- Railway source evidence: `openreply-web` is connected to `idunnpeptide-lab/openreply` on branch `main`.
+- PR #72 deployment evidence: product merge `5dd78018e80207e9492bf65aafdff5c51179e859` has a successful Railway web deployment.
+- Current deployment evidence: `openreply-web` deployment `74b4edc5-7132-4251-917d-577f09fef101` is `SUCCESS`; the corresponding worker deployment is also `SUCCESS`.
+- Build/start evidence: Next.js production build compiled, TypeScript completed, static/dynamic routes were generated, Prisma reported 22 migrations with no pending migrations, and the web service reached `Ready`.
+- Configuration-presence evidence: Railway exposes the required email variable names `EMAIL_FROM` and `RESEND_API_KEY`; their values are not exposed or recorded here.
+- Sending-domain evidence: Resend reports `auth.traffictiktok.com` as verified, sending enabled, region `eu-west-1`.
+- DNS-authentication evidence: DKIM is verified and both SPF records are verified. DNS record values/key material are intentionally not copied into this register.
+- Provider-delivery evidence: aggregate metrics for the verified domain show 2 sent, 2 delivered, 0 failed, 0 bounced, delivery rate 100%. Recipient identifiers are intentionally excluded.
+- Historical-boundary evidence: the two delivered messages were sign-in emails dated before PR #72. They prove historical provider delivery, not a fresh post-change magic-link E2E.
+- Fresh validation status: **not yet performed**. No new post-PR #72 sign-in link has been requested/clicked in this checkpoint.
+- Scope evidence: this verification changed no app code, schema, provider runtime, licensing/control-plane behavior, analytics, or TikTok execution gates.
+
+## Current evidence checkpoint — after external email readiness verification
+
+The code, current Railway deployment, verified Resend sending domain, DNS authentication, and historical provider delivery are now all independently evidenced. The remaining authentication validation is deliberately narrow and human-visible: request a fresh magic link to an explicitly approved test address, confirm the new delivery event in Resend, click the link, and confirm the resulting sign-in/workspace flow. Only after that should the fresh-customer walkthrough continue through activation, Instagram connection, Quick Automation, live comment/DM/link/follow-up behavior, and Dashboard/Logs/CTR. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.

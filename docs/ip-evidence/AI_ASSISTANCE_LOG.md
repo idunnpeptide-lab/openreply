@@ -661,3 +661,30 @@ No deployment, fresh-customer walkthrough, screenshot artifact, or manual access
 PR #72 final head `b3f5c103c5ba3ca4f00a8a963b97f80a621b4ffe`, merge `5dd78018e80207e9492bf65aafdff5c51179e859`, final CI `35574464223`, Security `35574464026`. Initial CI `35574331028` failed only on test-fixture `NodeJS.ProcessEnv` typing and is retained as truthful development history.
 
 No deployment, real magic-link delivery, sender-domain verification, screenshot artifact, or fresh-customer manual validation is claimed for this milestone.
+
+---
+
+## 2026-09-21 — Railway / Resend provider-readiness verification
+
+**Human role — Volodymyr Rudyi**
+
+- connected the Railway and Resend integrations so external deployment/provider state could be checked directly without sharing secrets in chat;
+- retained final authority over the fresh sign-in click, fresh-customer walkthrough, and commercial release;
+- has not yet performed or claimed the new post-PR #72 magic-link click/sign-in.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- inspected Railway project/service status, source branch, non-secret variable names, deployment history, build/start logs, database-migration output, and current service domain;
+- confirmed the PR #72 product merge and the current post-PR #73 `main` both have successful Railway web deployments; the current worker deployment is also successful;
+- verified the deployed service has the required email environment-variable names without reading or recording their secret values;
+- inspected the connected Resend domain and confirmed `auth.traffictiktok.com` is verified, sending is enabled, and DKIM plus both SPF records are verified;
+- inspected aggregate domain delivery metrics: 2 sent, 2 delivered, 0 failed, 0 bounced;
+- confirmed those two provider events are historical sign-in emails that predate PR #72 and therefore deliberately did **not** label them as a fresh post-change E2E;
+- did not expose recipient addresses, API keys, SMTP URLs, environment values, or DNS key material in repository evidence;
+- made no application-code change during this provider-readiness verification.
+
+**Repository evidence**
+
+Current source-of-truth `main` is `fcc9650aa716e0d8a65e30da1ea164e18c8d09c4`. Current Railway `openreply-web` deployment `74b4edc5-7132-4251-917d-577f09fef101` is `SUCCESS`; the corresponding worker deployment is also `SUCCESS`. Provider/domain evidence is recorded without secret values or recipient identifiers.
+
+A fresh post-PR #72 magic-link request and successful click/sign-in remain unperformed and are the next exact manual validation step.
