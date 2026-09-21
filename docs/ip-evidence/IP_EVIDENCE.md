@@ -245,7 +245,7 @@ This register points to verifiable repository/deployment/manual-test evidence. I
 - Merge SHA: `7ee473003d132aad79b35e2612e5d5371bc2d481`.
 - CI run: `35433666350` — success.
 - Security run: `35433666428` — success.
-- Automated evidence: Prisma validation/generation, TypeScript, lint, focused webhook-readiness regression tests, existing full test suite, and production build passed before merge.
+- Automated evidence: Prisma validation/generation, TypeScript, lint, focused webhook-readiness regression tests, existing full test suite, and production build passed.
 - Implementation evidence: readiness confirmation is restricted to supported events (`comment.update`, `im_receive_msg`, `im_receive_msg_eu`) and runs only after the existing signature-verification boundary plus successful provider-specific queue handoff.
 - Idempotency evidence: the readiness update is constrained to accounts with `webhookConfigured=false`, so later supported deliveries do not churn the account's timestamp.
 - Safety evidence: invalid signatures, unsupported event names, and failed queue handoffs cannot confirm readiness; `TIKTOK_LIVE_EXECUTION_ENABLED=false`; no TikTok send wiring or Comment-to-Message execution was added; Instagram code paths were unchanged.
