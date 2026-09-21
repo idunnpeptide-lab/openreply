@@ -14,6 +14,8 @@ export type AuthEmailConfig =
       server: string;
     };
 
+type EmailEnvironment = Readonly<Record<string, string | undefined>>;
+
 const PLACEHOLDER_DOMAINS = new Set(["example.com", "example.org", "example.net"]);
 const PLACEHOLDER_RESEND_KEYS = new Set(["re_...", "missing-resend-api-key"]);
 
@@ -62,7 +64,7 @@ function parseSmtpServer(value: string): string {
 }
 
 export function getAuthEmailConfig(
-  env: NodeJS.ProcessEnv = process.env
+  env: EmailEnvironment = process.env
 ): AuthEmailConfig {
   const { from, senderDomain } = parseSenderAddress(env.EMAIL_FROM ?? "");
   const smtpServer = env.EMAIL_SERVER?.trim();
