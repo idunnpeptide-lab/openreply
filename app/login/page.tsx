@@ -18,6 +18,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const checkEmail = params.checkEmail === "1";
+  const verificationError = params.error === "Verification";
   const authError = Boolean(params.error);
   const selectedTemplate = getCampaignTemplate(params.template);
   const templateCallbackUrl = selectedTemplate
@@ -64,8 +65,9 @@ export default async function LoginPage({
               role="alert"
               className="mb-5 rounded border border-error/20 bg-error/10 p-4 text-sm text-error"
             >
-              We could not send your sign-in link. Check the email address and try
-              again. If the problem continues, please contact ReplyHalo support.
+              {verificationError
+                ? "This sign-in link is no longer valid. It may have expired or already been used. Request a new link below and use the newest ReplyHalo email."
+                : "We could not start your sign-in. Check the email address and try again. If the problem continues, please contact ReplyHalo support."}
             </div>
           )}
 
