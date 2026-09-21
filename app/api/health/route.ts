@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { getAuthEmailConfig } from "@/lib/auth-email-config";
 import { getDMQueue, getRedisConnection } from "@/lib/queue/client";
 import { getWorkerHealth } from "@/lib/ops/worker-health";
 
@@ -56,7 +57,19 @@ async function checkQueue(): Promise<HealthCheck & { counts?: unknown }> {
   }
 }
 
+function checkAuthEmail(): HealthCheck & { transport?: "resend" | "smtp" } {
+  try {
+    const config = getAuthEmailConfig();
+    return { status: "ok", transport: config.transport };
+  } catch {
+    // Health is public deployment status. Do not expose API keys, SMTP URLs,
+    // sender addresses, or environment-variable details in its response.
+    return { status: "error", detail: "Sign-in email configuration is invalid" };
+  }
+}
+
 export async function GET() {
+  const email = checkAuthEmail();
   const [database, redis, queue, worker] = await Promise.all([
     checkDatabase(),
     checkRedis(),
@@ -70,6 +83,7 @@ export async function GET() {
   ]);
 
   const healthy =
+    email.status === "ok" &&
     database.status === "ok" &&
     redis.status === "ok" &&
     queue.status === "ok" &&
@@ -79,6 +93,7 @@ export async function GET() {
     {
       status: healthy ? "ok" : "degraded",
       checks: {
+        email,
         database,
         redis,
         queue,
