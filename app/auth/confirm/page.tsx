@@ -46,9 +46,11 @@ export default async function AuthConfirmPage({
     );
   }
 
+  const confirmedMagicLink = magicLink;
+
   async function continueSignIn() {
     "use server";
-    redirect(buildAuthCallbackPath(magicLink));
+    redirect(buildAuthCallbackPath(confirmedMagicLink));
   }
 
   return (
