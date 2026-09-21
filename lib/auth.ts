@@ -3,29 +3,30 @@ import Nodemailer from "next-auth/providers/nodemailer";
 import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/client";
+import { getAuthEmailConfig } from "@/lib/auth-email-config";
 import { ensureWorkspaceForUser, getPrimaryWorkspace } from "@/lib/workspace";
 
 type AdapterPrismaClient = Parameters<typeof PrismaAdapter>[0];
 
-const emailFrom = process.env.EMAIL_FROM ?? "ReplyHalo <login@example.com>";
-// Setting EMAIL_SERVER switches magic links to a configured SMTP server.
-// Resend stays the default when SMTP is not configured.
-const smtpServer = process.env.EMAIL_SERVER;
+// Authentication is email-link only, so a broken sender configuration must not
+// silently fall back to fake credentials and fail only after a customer tries
+// to sign in. This validates the selected transport when Auth.js is created.
+const emailConfig = getAuthEmailConfig();
 
 /**
  * Provider id the login form has to sign in with. It differs per transport,
- * so it is derived here rather than hardcoded at the call site.
+ * so it is derived from the validated email configuration.
  */
-export const EMAIL_PROVIDER_ID = smtpServer ? "nodemailer" : "resend";
+export const EMAIL_PROVIDER_ID = emailConfig.providerId;
 
 export const authConfig = {
   adapter: PrismaAdapter(prisma as unknown as AdapterPrismaClient),
   providers: [
-    smtpServer
-      ? Nodemailer({ server: smtpServer, from: emailFrom })
+    emailConfig.transport === "smtp"
+      ? Nodemailer({ server: emailConfig.server, from: emailConfig.from })
       : Resend({
-          apiKey: process.env.RESEND_API_KEY ?? "missing-resend-api-key",
-          from: emailFrom,
+          apiKey: emailConfig.apiKey,
+          from: emailConfig.from,
         }),
   ],
   callbacks: {
@@ -46,6 +47,7 @@ export const authConfig = {
   pages: {
     signIn: "/login",
     verifyRequest: "/verify-request",
+    error: "/login",
   },
   session: {
     strategy: "database",
