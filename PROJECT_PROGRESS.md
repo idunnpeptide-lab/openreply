@@ -92,9 +92,9 @@ PR #45 final head `d521fa5b48b55c59a66637b75bc68ca6bb0b609a` passed CI run `3552
 
 PR #47 final head `9b814eb580c8bb44ca33df47d2fa2ef0185c3372` passed CI run `35523019203` and Security run `35523019202` before merge. Its earlier head `b82b3376e3b17175c9659f9bde724a39cc8878fc` failed lint on one unescaped apostrophe, which was corrected without suppressing the rule.
 
-PR #49 head `4812d60ca790bd508e05e6a826660923073f5fa3` passed CI run `35524959374` and Security run `35524959433` before merge. The change reused the existing Dashboard and per-automation analytics data rather than adding schema, provider, or worker complexity.
+PR #49 head `4812d60ca790bd508e05e6a826660923073f5fa3` passed CI run `35524959374` including Prisma validate/generate, TypeScript, lint, full tests and production build. Security run `35524959433` passed.
 
-PR #51 final head `0bf05ea82021bb7b2912ac424df805a20d1ecfe7` passed CI run `35528589277` and Security run `35528589275` before merge. During review, a fail-open edge case was found in launch onboarding: a failed `/api/license/status` request could otherwise leave the Instagram connect path available after the readiness request finished. The same branch was corrected so failed plan verification now blocks provider connection and points the customer to Settings without exposing raw internals.
+PR #51 final head `0bf05ea82021bb7b2912ac424df805a20d1ecfe7` passed CI run `35528589277` (Prisma validate/generate, TypeScript, lint, tests and production build) and Security run `35528589275` before merge.
 
 PR #53 final head `73ac74d3ef9db34c49802577ff20b3703c7ea985` passed CI run `35529338503` and Security run `35529338567` before merge. It merged at `f39c65320728ceb92abf71c9c1526a97d2666bec`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone.
 
@@ -102,7 +102,7 @@ PR #55 final head `919305d8e096467fe8a454638d825781322031e7` passed CI run `3553
 
 PR #58 final head `fc5e78e508bf2be0eed49c4dc330a891ed868b85` passed CI run `35535726659` and Security run `35535726701` before merge. An earlier head `3aecead1e5ab41f98c0f4efd071d2ba02adf01f7` failed lint; the account-loading implementation was refactored without suppressing the rule and the final head was rerun to green. PR #58 merged at `e9f4f09d44f1ce4b07b5ec54781ab68abb79673f`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone.
 
-PR #62 head `bb1b039ef7a9b33a8b55d47d98ad0f207cb8ba2e` passed CI run `35537552869` and Security run `35537552791` before merge. Focused regression tests cover active create rejection, inactive draft preservation, disconnected-account reactivation rejection, and Pause after disconnect. PR #62 merged at `fb7f9b954351728456766143f234aa415b7d972e`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone.
+PR #62 head `bb1b039ef7a9b33a8b55d47d98ad0f207cb8ba2e` passed CI run `35537552869` (Prisma validate/generate, TypeScript, lint, tests and production build) and Security run `35537552791` before merge. PR #62 merged at `fb7f9b954351728456766143f234aa415b7d972e`. No deployment or fresh-customer manual staging walkthrough is claimed for this milestone.
 
 ### TikTok provider
 
@@ -283,5 +283,23 @@ No deployment or fresh-customer manual staging walkthrough is claimed for PR #69
 ### Latest continuation point after PR #70
 
 Continue with the focused **email login deliverability/domain/resend UX** audit before commercial release. Keep provider and email-service internals out of customer-facing errors, verify the production sender/domain assumptions and resend/recovery path, and fix only real launch blockers. After that code stage is complete and evidenced, deploy staging and perform the fresh-customer walkthrough with Volodymyr Rudyi.
+
+TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## Launch-readiness update — 2026-09-21 after PR #72
+
+PR #72 closed the code-level sign-in email readiness blocker. ReplyHalo no longer silently falls back to `login@example.com` or a fake Resend key: Auth.js now requires an explicit sender plus either validly shaped Resend credentials or an SMTP URL, and the checked-in `example.com` sender is deliberately rejected until it is replaced. The public health endpoint includes only a sanitized email readiness state/transport and never exposes sender addresses, API keys, SMTP URLs, or environment-variable details.
+
+Auth.js errors return to the branded ReplyHalo login page, where customers receive generic retry/support guidance rather than provider/internal error text. The existing verify-request page continues to offer spam/junk guidance plus **Send a new sign-in link** recovery. Focused tests cover missing/placeholder sender, missing Resend credentials, SMTP selection without a Resend key, and malformed SMTP configuration.
+
+The initial PR #72 CI run `35574331028` failed TypeScript only because the first test fixtures cast partial objects to the repository's stricter `NodeJS.ProcessEnv` type. The helper input was narrowed to the environment keys it actually consumes; no validation rule was suppressed. Final head `b3f5c103c5ba3ca4f00a8a963b97f80a621b4ffe` passed CI run `35574464223` and Security run `35574464026` before merge; merge SHA `5dd78018e80207e9492bf65aafdff5c51179e859`.
+
+No production/staging sender-domain verification or real magic-link delivery is claimed by PR #72. Current Resend guidance still requires user-facing mail to come from a domain verified in the Resend account; that provider/deployment fact must be verified during staging rather than inferred from source code.
+
+### Latest continuation point after PR #72
+
+The code-only launch-readiness audit is now complete through email auth configuration. Next, verify the actual staging email transport/sender domain and perform one real magic-link sign-in, then continue the staged **fresh-customer walkthrough** from workspace creation → plan activation → Instagram connection → Quick Automation → real comment/DM/link/follow-up → Dashboard/Logs/CTR. Record only real deployment/manual evidence.
 
 TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
