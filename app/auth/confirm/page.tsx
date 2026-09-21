@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { EMAIL_PROVIDER_ID } from "@/lib/auth";
 import {
-  buildAuthCallbackPath,
+  getAuthCallbackActionPath,
   parsePreviewSafeMagicLink,
 } from "@/lib/auth-magic-link";
 
@@ -46,13 +45,6 @@ export default async function AuthConfirmPage({
     );
   }
 
-  const confirmedMagicLink = magicLink;
-
-  async function continueSignIn() {
-    "use server";
-    redirect(buildAuthCallbackPath(confirmedMagicLink));
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md text-center">
@@ -70,7 +62,20 @@ export default async function AuthConfirmPage({
             Continue only if you requested this ReplyHalo sign-in email.
           </p>
 
-          <form action={continueSignIn} className="mt-6">
+          <form
+            action={getAuthCallbackActionPath(magicLink.provider)}
+            method="get"
+            className="mt-6"
+          >
+            {magicLink.callbackUrl ? (
+              <input
+                type="hidden"
+                name="callbackUrl"
+                value={magicLink.callbackUrl}
+              />
+            ) : null}
+            <input type="hidden" name="token" value={magicLink.token} />
+            <input type="hidden" name="email" value={magicLink.email} />
             <button
               type="submit"
               className="inline-flex w-full items-center justify-center rounded bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-indigo-500/25 transition-all hover:shadow-indigo-500/30"
