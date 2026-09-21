@@ -315,3 +315,25 @@ Resend independently confirms that sending domain `auth.traffictiktok.com` is **
 This closes the deployment/domain/provider-readiness checkpoint without overstating manual QA. A fresh post-PR #72 magic-link request and successful click/sign-in have not yet been performed. The exact next step is to request a new sign-in link to an explicitly approved test address, verify that new event in Resend, click the link, and then continue the fresh-customer walkthrough through workspace creation, plan activation, Instagram connection, Quick Automation, live comment/DM/link/follow-up behavior, and Dashboard/Logs/CTR.
 
 TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## Fresh-customer authentication staging — 2026-09-21 after PR #76
+
+A new post-PR #72 sign-in link was requested from the production Railway deployment and Resend reported the new message as delivered. The first click exposed a real launch blocker that code-only review could not reproduce: Railway HTTP evidence showed an automatic Telegram link-preview client reached the token-consuming Auth.js callback before the customer's browser, so the browser later landed on `?error=Verification` with an already-used one-time token.
+
+PR #75 changed the emailed URL to an inert `/auth/confirm` page so link previews can inspect the message without consuming the verification token. It also made the `Verification` login error copy accurately describe an invalid/expired/already-used link instead of incorrectly claiming the email could not be sent. Final head `793f9641700cbd29092aa3482ec4eca186e406c6` passed CI `35581464612` and Security `35581464605`; merge SHA `ef8b1549dd4cbe28464c7a8dd9fc2aace2e5fa35`. Railway web deployment `4ea2c4c4-38c9-4922-baab-b679b0f70c8d` and the corresponding worker deployment both reached `SUCCESS`.
+
+The first post-#75 retest proved the preview protection itself: the new message opened `/auth/confirm` and no automatic `/api/auth/callback/resend` request consumed the token. That retest exposed a second launch blocker: the confirmation button used a Next server-action redirect. Railway recorded `POST /auth/confirm -> 200` but no browser GET to the Auth.js callback, so no session was established and the customer returned to login.
+
+PR #76 replaced the server-action redirect with a normal browser GET form targeted at the validated Auth.js provider callback, with token/email/callbackUrl carried as hidden fields only after the user explicitly presses **Continue to ReplyHalo**. Final head `10ad30cbd872104c61c0d27443bb71c5791debae` passed CI `35583177511` and Security `35583177496`; merge SHA `ab2dbb81741d6398ab9ef429dd1d866f3af04498`. Railway web deployment `a2676a8c-2e3f-40ed-9ba8-b0bc1f63f652` and worker deployment `d1ffebfe-f53b-447a-98b6-0ac2878a5448` both reached `SUCCESS`; the web service reached Next.js `Ready` with no pending Prisma migrations.
+
+Volodymyr Rudyi then repeated the fresh sign-in flow. Railway HTTP evidence recorded `GET /auth/confirm -> 200`, followed only after the explicit confirmation by `GET /api/auth/callback/resend -> 302` and `GET /dashboard -> 200`. The authenticated dashboard subsequently loaded `/api/dashboard/stats`, `/api/license/status`, and `/api/instagram/health` with HTTP 200. Volodymyr supplied a screenshot showing the fresh ReplyHalo workspace/dashboard with zero connected accounts and the intended **Connect Instagram → Choose a Quick Automation → Activate** onboarding path.
+
+This closes the fresh passwordless-authentication/workspace-entry stage as manually validated. It does **not** yet claim Instagram OAuth, automation activation, live comment/DM/link/follow-up delivery, or the final Dashboard/Logs/CTR pass for this fresh workspace.
+
+### Latest continuation point after successful fresh auth
+
+Continue the fresh-customer walkthrough from the visible **Connect Instagram** action. Validate the real Instagram OAuth/connection-health path first, then choose a Quick Automation, activate it, exercise the approved live comment/DM/link/follow-up scenario, and verify Dashboard/Logs/CTR. Record each manual result truthfully before moving to the next stage.
+
+TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
