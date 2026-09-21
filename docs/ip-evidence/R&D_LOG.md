@@ -758,7 +758,7 @@ PR #62:
 
 - rejects active POST creation against a soft-disconnected requested Instagram account with stable `INSTAGRAM_RECONNECT_REQUIRED` / HTTP 409;
 - when no account ID is requested for an active create, resolves only a currently connected Instagram account;
-- on PATCH, verifies the attached workspace Instagram account still has a non-empty access token whenever the resulting state is active;
+- on PATCH, verifies the attached workspace Instagram account still has a non-empty access token whenever the resulting automation state is active;
 - allows inactive drafts/duplicates to stay attached to the preserved Instagram account row;
 - allows an active automation to be paused after disconnect instead of trapping the customer in an active state;
 - leaves schema, worker/provider execution, licensing/control-plane behavior, and TikTok gates unchanged;
