@@ -285,3 +285,21 @@ No deployment or fresh-customer manual staging walkthrough is claimed for PR #69
 Continue with the focused **email login deliverability/domain/resend UX** audit before commercial release. Keep provider and email-service internals out of customer-facing errors, verify the production sender/domain assumptions and resend/recovery path, and fix only real launch blockers. After that code stage is complete and evidenced, deploy staging and perform the fresh-customer walkthrough with Volodymyr Rudyi.
 
 TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## Launch-readiness update — 2026-09-21 after PR #72
+
+PR #72 closed the code-level sign-in email readiness blocker. ReplyHalo no longer silently falls back to `login@example.com` or a fake Resend key: Auth.js now requires an explicit sender plus either validly shaped Resend credentials or an SMTP URL, and the checked-in `example.com` sender is deliberately rejected until it is replaced. The public health endpoint includes only a sanitized email readiness state/transport and never exposes sender addresses, API keys, SMTP URLs, or environment-variable details.
+
+Auth.js errors return to the branded ReplyHalo login page, where customers receive generic retry/support guidance rather than provider/internal error text. The existing verify-request page continues to offer spam/junk guidance plus **Send a new sign-in link** recovery. Focused tests cover missing/placeholder sender, missing Resend credentials, SMTP selection without a Resend key, and malformed SMTP configuration.
+
+The initial PR #72 CI run `35574331028` failed TypeScript only because the first test fixtures cast partial objects to the repository's stricter `NodeJS.ProcessEnv` type. The helper input was narrowed to the environment keys it actually consumes; no validation rule was suppressed. Final head `b3f5c103c5ba3ca4f00a8a963b97f80a621b4ffe` passed CI run `35574464223` and Security run `35574464026` before merge; merge SHA `5dd78018e80207e9492bf65aafdff5c51179e859`.
+
+No production/staging sender-domain verification or real magic-link delivery is claimed by PR #72. Current Resend guidance still requires user-facing mail to come from a domain verified in the Resend account; that provider/deployment fact must be verified during staging rather than inferred from source code.
+
+### Latest continuation point after PR #72
+
+The code-only launch-readiness audit is now complete through email auth configuration. Next, verify the actual staging email transport/sender domain and perform one real magic-link sign-in, then continue the staged **fresh-customer walkthrough** from workspace creation → plan activation → Instagram connection → Quick Automation → real comment/DM/link/follow-up → Dashboard/Logs/CTR. Record only real deployment/manual evidence.
+
+TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.

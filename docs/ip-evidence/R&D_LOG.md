@@ -856,3 +856,25 @@ PR #70 final head `22c1780a5bc3289da647088bb7207f6cd1d0fcf5` passed CI run `3554
 
 **Result**
 The focused mobile/basic-accessibility launch stage is closed in code. No deployment, fresh-customer manual staging walkthrough, or manual accessibility certification is claimed for PR #69/#70. The next launch-readiness stage is email sign-in deliverability/domain/resend UX, followed by staging deployment and the fresh-customer walkthrough. TikTok live provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## 2026-09-21 — Email sign-in readiness and fail-closed transport configuration
+
+**Task**
+Close the remaining code-level launch blocker in the passwordless email sign-in path before staging validation.
+
+**Problem**
+`lib/auth.ts` could silently build with fallback `ReplyHalo <login@example.com>` and `missing-resend-api-key`, while the general environment validator and `/api/health` did not cover the email transport. A deployment could therefore look healthy until the first customer requested a magic link. Provider-side sender-domain verification also cannot be proven from source code alone.
+
+**Decision**
+Keep the existing Auth.js email-link model and Resend-or-SMTP choice, but fail closed on missing/placeholder sender configuration, expose only sanitized readiness in health, and keep send failures customer-safe. Treat real sender-domain verification and real magic-link delivery as staging evidence, not code evidence.
+
+**Implementation**
+PR #72 adds a pure email-auth configuration validator, requires an explicit non-placeholder `EMAIL_FROM`, requires `RESEND_API_KEY` unless a valid `smtp://`/`smtps://` `EMAIL_SERVER` is configured, removes fake fallbacks from Auth.js, and reports only sanitized email transport readiness through `/api/health`. Auth.js errors return to the branded `/login` page, which shows generic retry/support guidance rather than provider/internal error text. `.env.example` now states that its `example.com` sender is intentionally rejected and must be replaced with a real verified sender for Resend.
+
+**Test**
+Focused tests cover missing/placeholder sender, missing Resend credentials, valid Resend configuration, SMTP without a Resend key, and malformed SMTP configuration. Initial CI run `35574331028` failed only on overly broad `NodeJS.ProcessEnv` casts in test fixtures; the helper signature was narrowed to the environment keys it consumes instead of suppressing type safety. Final head `b3f5c103c5ba3ca4f00a8a963b97f80a621b4ffe` passed CI `35574464223` and Security `35574464026` including production build.
+
+**Result**
+PR #72 merged at `5dd78018e80207e9492bf65aafdff5c51179e859`. No staging/production sender-domain verification, real magic-link delivery, deployment, or fresh-customer walkthrough is claimed. The next step is real staging transport/domain verification and one real email sign-in, then the broader fresh-customer walkthrough. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.

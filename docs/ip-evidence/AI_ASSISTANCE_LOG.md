@@ -631,3 +631,33 @@ PR #69, final head `3f7c1fe429bf14360f71070fd96d74a252620e0f`, merge `5bcf272d87
 PR #70, final head `22c1780a5bc3289da647088bb7207f6cd1d0fcf5`, merge `bf9788f036c8180b648e088e02b2eb6aaea369ae`, CI `35541638010`, Security `35541638050`.
 
 No deployment, fresh-customer walkthrough, screenshot artifact, or manual accessibility certification is claimed for this milestone. Next: email sign-in deliverability/domain/resend UX, then staging deployment and fresh-customer validation.
+
+---
+
+## 2026-09-21 — Email sign-in readiness milestone
+
+**Human role — Volodymyr Rudyi**
+
+- directed the launch-readiness sequence to continue from the exact post-PR #71 checkpoint;
+- retained the rule that provider/internal details must stay out of normal customer errors and that evidence must distinguish code readiness from real staging/provider validation;
+- retained final authority over staging email/domain validation, the fresh-customer walkthrough, and commercial release;
+- did not perform or claim a real magic-link delivery or sender-domain verification for this code milestone.
+
+**AI assistance — ChatGPT (OpenAI)**
+
+- audited the actual Auth.js, Resend/SMTP selection, login, verify-request, health, environment-example, CI, and test paths;
+- identified that Auth.js could silently fall back to `login@example.com` and `missing-resend-api-key`, while deployment health did not cover email transport readiness;
+- implemented a pure fail-closed email configuration validator for explicit sender plus Resend credentials or SMTP URL;
+- deliberately rejected checked-in `example.com` sender placeholders so a misconfigured deployment cannot appear email-ready;
+- exposed only sanitized email transport readiness through `/api/health`, without sender addresses, API keys, SMTP URLs, or environment details;
+- routed Auth.js errors back to the branded login page and added customer-safe retry/support guidance;
+- preserved the existing verify-request resend/recovery path;
+- checked current provider guidance and kept real sender-domain verification as a staging/provider fact rather than fabricating it from code;
+- recorded the initial TypeScript-only CI failure `35574331028`, narrowed the pure helper's environment input instead of suppressing type safety, and reran final CI/Security to green;
+- changed no schema, session model, workspace creation behavior, Instagram automation/provider runtime, licensing/control-plane behavior, analytics, or TikTok execution gates.
+
+**Repository evidence**
+
+PR #72 final head `b3f5c103c5ba3ca4f00a8a963b97f80a621b4ffe`, merge `5dd78018e80207e9492bf65aafdff5c51179e859`, final CI `35574464223`, Security `35574464026`. Initial CI `35574331028` failed only on test-fixture `NodeJS.ProcessEnv` typing and is retained as truthful development history.
+
+No deployment, real magic-link delivery, sender-domain verification, screenshot artifact, or fresh-customer manual validation is claimed for this milestone.
