@@ -758,7 +758,7 @@ PR #62:
 
 - rejects active POST creation against a soft-disconnected requested Instagram account with stable `INSTAGRAM_RECONNECT_REQUIRED` / HTTP 409;
 - when no account ID is requested for an active create, resolves only a currently connected Instagram account;
-- on PATCH, verifies the attached workspace Instagram account still has a non-empty access token whenever the resulting automation state is active;
+- on PATCH, verifies the attached workspace Instagram account still has a non-empty access token whenever the resulting state is active;
 - allows inactive drafts/duplicates to stay attached to the preserved Instagram account row;
 - allows an active automation to be paused after disconnect instead of trapping the customer in an active state;
 - leaves schema, worker/provider execution, licensing/control-plane behavior, and TikTok gates unchanged;
@@ -878,3 +878,24 @@ Focused tests cover missing/placeholder sender, missing Resend credentials, vali
 
 **Result**
 PR #72 merged at `5dd78018e80207e9492bf65aafdff5c51179e859`. No staging/production sender-domain verification, real magic-link delivery, deployment, or fresh-customer walkthrough is claimed. The next step is real staging transport/domain verification and one real email sign-in, then the broader fresh-customer walkthrough. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## 2026-09-21 — Staging email provider/deployment readiness
+
+**Task**
+Verify the external deployment and mail-provider assumptions that source code alone could not prove after PR #72.
+
+**Problem**
+The code now fails closed on invalid email configuration, but code evidence cannot establish that the deployed service actually built/started with its current environment, that the sending domain is verified at the provider, or that the provider has demonstrated delivery. Conversely, historical delivered mail must not be misrepresented as a fresh post-PR #72 sign-in test.
+
+**Decision**
+Use the connected Railway and Resend accounts as authoritative external evidence. Record only non-secret deployment/provider facts, keep environment values and recipient addresses out of GitHub, distinguish historical delivery from a new magic-link E2E, and make the fresh link request/click the next human validation boundary.
+
+**Verification**
+Railway confirms PR #72 merge `5dd78018e80207e9492bf65aafdff5c51179e859` deployed successfully. After PR #73, current `main` `fcc9650aa716e0d8a65e30da1ea164e18c8d09c4` also deployed successfully: `openreply-web` deployment `74b4edc5-7132-4251-917d-577f09fef101` and the corresponding worker deployment completed with `SUCCESS`; the web build compiled, TypeScript completed, Prisma found no pending migrations, and Next.js reached `Ready`. The service has `EMAIL_FROM` and `RESEND_API_KEY` variable names configured, but their values are not exposed or recorded.
+
+Resend confirms `auth.traffictiktok.com` is verified with sending enabled in `eu-west-1`; DKIM and both SPF records report verified. Aggregate metrics for the verified domain show 2 sent, 2 delivered, 0 failed and 0 bounced messages. The two historical messages were sign-in emails and predate PR #72.
+
+**Result**
+Deployment and provider/domain readiness are now externally evidenced through the pre-send boundary. This is not a fresh post-change authentication E2E. The remaining exact test is a new magic-link request to an explicitly approved test address, confirmation of the new provider delivery event, and a successful click/sign-in before proceeding into the fresh-customer product walkthrough. No app code changed in this verification stage. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
