@@ -582,3 +582,38 @@ PR #72 closes the code-level email-auth readiness stage. The code-only launch-re
 ## Current evidence checkpoint — after external email readiness verification
 
 The code, current Railway deployment, verified Resend sending domain, DNS authentication, and historical provider delivery are now all independently evidenced. The remaining authentication validation is deliberately narrow and human-visible: request a fresh magic link to an explicitly approved test address, confirm the new delivery event in Resend, click the link, and confirm the resulting sign-in/workspace flow. Only after that should the fresh-customer walkthrough continue through activation, Instagram connection, Quick Automation, live comment/DM/link/follow-up behavior, and Dashboard/Logs/CTR. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+## Fresh passwordless-authentication staging evidence — 2026-09-21
+
+### PR #75 — prevent automatic preview consumption
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/75`
+- Final head SHA: `793f9641700cbd29092aa3482ec4eca186e406c6`.
+- CI run: `35581464612` — success.
+- Security run: `35581464605` — success.
+- Merge SHA: `ef8b1549dd4cbe28464c7a8dd9fc2aace2e5fa35`.
+- Fresh-provider evidence: a new post-PR #72 passwordless sign-in message was delivered by Resend.
+- Failure evidence before the fix: Railway request order showed an automatic Telegram link-preview client reaching `/api/auth/callback/resend` before the customer's browser, consuming the one-time Auth.js verification token; the later browser request landed on `/login?error=Verification`.
+- Implementation evidence: the emailed URL is rewritten to inert `/auth/confirm`, which validates the expected provider/token/email/callback parameters but does not consume the token on GET. `Verification` copy now describes invalid/expired/already-used links instead of claiming email send failure.
+- Deployment evidence: Railway web deployment `4ea2c4c4-38c9-4922-baab-b679b0f70c8d` reached `SUCCESS`; the corresponding worker deployment also reached `SUCCESS`.
+- First post-fix retest: `/auth/confirm` loaded successfully and no automatic `/api/auth/callback/resend` request consumed the token before the customer.
+- Second blocker discovered during that retest: pressing **Continue to ReplyHalo** produced `POST /auth/confirm -> 200` but no browser GET to the Auth.js callback, so the session was not established and the customer returned to login.
+
+### PR #76 — direct browser GET after explicit confirmation
+
+- PR: `https://github.com/idunnpeptide-lab/openreply/pull/76`
+- Final head SHA: `10ad30cbd872104c61c0d27443bb71c5791debae`.
+- CI run: `35583177511` — success.
+- Security run: `35583177496` — success.
+- Merge SHA: `ab2dbb81741d6398ab9ef429dd1d866f3af04498`.
+- Implementation evidence: the confirmation surface uses a normal HTML GET form targeted at the validated Auth.js provider callback, carrying the required token/email/callbackUrl fields only after the customer explicitly submits **Continue to ReplyHalo**. Automatic link previews still terminate safely at `/auth/confirm`.
+- Deployment evidence: Railway web deployment `a2676a8c-2e3f-40ed-9ba8-b0bc1f63f652` and worker deployment `d1ffebfe-f53b-447a-98b6-0ac2878a5448` both reached `SUCCESS`; Next.js reached `Ready`, and Prisma reported no pending migrations.
+- Human validation: Volodymyr Rudyi repeated the fresh sign-in flow and reached the authenticated ReplyHalo Dashboard.
+- Runtime evidence: Railway recorded `GET /auth/confirm -> 200`, then after explicit confirmation `GET /api/auth/callback/resend -> 302`, followed by `GET /dashboard -> 200`.
+- Authenticated follow-up evidence: `/api/dashboard/stats`, `/api/license/status`, and `/api/instagram/health` returned HTTP 200 on the authenticated Dashboard.
+- Screenshot evidence boundary: Volodymyr supplied a chat screenshot showing the fresh ReplyHalo workspace/dashboard with zero connected accounts and the **Connect Instagram → Choose a Quick Automation → Activate** onboarding. The screenshot is not claimed as a repository artifact because no GitHub file path was created for it.
+- Scope boundary: this validates fresh passwordless authentication and workspace/Dashboard entry only. It does not yet prove fresh Instagram OAuth, Quick Automation activation, live comment/DM/link/follow-up delivery, or final Dashboard/Logs/CTR behavior.
+
+## Current evidence checkpoint — after successful fresh authentication
+
+The fresh passwordless-authentication boundary is now manually validated after two staging-discovered launch blockers were fixed in PR #75 and PR #76. One-time token semantics remain intact, automatic link previews no longer consume the token, and explicit customer confirmation now reaches the Auth.js callback and authenticated Dashboard. The next fresh-customer step is the visible **Connect Instagram** action, followed by connection-health validation, Quick Automation activation, the approved live comment/DM/link/follow-up scenario, and final Dashboard/Logs/CTR verification. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.

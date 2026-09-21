@@ -899,3 +899,35 @@ Resend confirms `auth.traffictiktok.com` is verified with sending enabled in `eu
 
 **Result**
 Deployment and provider/domain readiness are now externally evidenced through the pre-send boundary. This is not a fresh post-change authentication E2E. The remaining exact test is a new magic-link request to an explicitly approved test address, confirmation of the new provider delivery event, and a successful click/sign-in before proceeding into the fresh-customer product walkthrough. No app code changed in this verification stage. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+---
+
+## 2026-09-21 — Fresh magic-link staging blockers and successful E2E
+
+**Task**
+Complete one real post-PR #72 passwordless sign-in from email request through authenticated Dashboard entry, while keeping one-time tokens safe from automatic link-preview clients.
+
+**Problem**
+The first real fresh sign-in uncovered two launch blockers that source review and unit tests did not expose. First, Railway showed an automatic Telegram link-preview client opening the direct Auth.js callback before the customer's browser, consuming the one-time token and leaving the browser with `Verification`. After introducing a safe confirmation page, the first retest exposed a second issue: the confirmation button used a Next server-action redirect that returned `POST /auth/confirm -> 200` without issuing a browser GET to `/api/auth/callback/resend`, so no session was created.
+
+**Options considered**
+- Accept preview consumption as an email-client limitation and tell customers to request another link.
+- Make verification tokens reusable, weakening one-time semantics.
+- Keep one-time Auth.js tokens, route email links through an inert confirmation page, and invoke the real callback only after an explicit user action.
+- For the second issue, keep the server-action redirect or use a simple HTML GET form that lets the browser perform the exact callback request directly.
+
+**Decision**
+Preserve one-time token semantics and fix the customer journey rather than weakening authentication. Automatic previews may safely GET `/auth/confirm`, but only an explicit customer confirmation should issue the token-consuming callback. Use a normal browser GET form for the final transition instead of relying on server-action redirect behavior.
+
+**Implementation**
+PR #75 rewrote the emailed one-time URL to `/auth/confirm`, validated provider/token/email/callback parameters before rendering the confirmation surface, and changed the `Verification` recovery copy so it accurately describes an invalid/expired/already-used link. Final head `793f9641700cbd29092aa3482ec4eca186e406c6` passed CI `35581464612` and Security `35581464605`; merge SHA `ef8b1549dd4cbe28464c7a8dd9fc2aace2e5fa35`.
+
+The post-#75 retest confirmed preview safety but exposed the server-action transition gap. PR #76 replaced that transition with a normal GET form targeted at the validated Auth.js callback and carried only the required token/email/callbackUrl values after explicit confirmation. Final head `10ad30cbd872104c61c0d27443bb71c5791debae` passed CI `35583177511` and Security `35583177496`; merge SHA `ab2dbb81741d6398ab9ef429dd1d866f3af04498`.
+
+**Test**
+Railway deployed PR #75 merge successfully as web deployment `4ea2c4c4-38c9-4922-baab-b679b0f70c8d` with corresponding worker success. After PR #76, web deployment `a2676a8c-2e3f-40ed-9ba8-b0bc1f63f652` and worker deployment `d1ffebfe-f53b-447a-98b6-0ac2878a5448` both reached `SUCCESS`.
+
+Human retest by Volodymyr Rudyi then recorded the expected sequence in Railway: `GET /auth/confirm -> 200`, explicit-confirmation `GET /api/auth/callback/resend -> 302`, and authenticated `GET /dashboard -> 200`. The authenticated page subsequently loaded `/api/dashboard/stats`, `/api/license/status`, and `/api/instagram/health` with HTTP 200. Volodymyr supplied a screenshot of the fresh ReplyHalo workspace/dashboard showing zero connected accounts and the intended Connect Instagram onboarding.
+
+**Result**
+Fresh passwordless sign-in and workspace/Dashboard entry are now manually validated after the two staging-discovered fixes. This does not yet validate Instagram OAuth, automation activation, live comment/DM/link/follow-up delivery, or final Dashboard/Logs/CTR behavior for the fresh workspace. Next step: continue the fresh-customer walkthrough from **Connect Instagram**. TikTok work remains out of scope and both source-controlled TikTok send gates remain false.
