@@ -4,6 +4,8 @@ import { decryptSecret, encryptSecret } from "@/lib/secret-crypto";
 
 const INSTAGRAM_OAUTH_URL = "https://api.instagram.com/oauth/authorize";
 const INSTAGRAM_TOKEN_URL = "https://api.instagram.com/oauth/access_token";
+const INSTAGRAM_LONG_LIVED_TOKEN_URL =
+  "https://graph.instagram.com/access_token";
 const STATE_MAX_AGE_MS = 10 * 60 * 1000;
 
 interface OAuthStatePayload {
@@ -103,6 +105,38 @@ export async function exchangeCodeForToken(
   return {
     accessToken: data.access_token,
     userId: String(data.user_id),
+  };
+}
+
+export async function exchangeShortLivedTokenForLongLived(
+  shortLivedToken: string
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const url = new URL(INSTAGRAM_LONG_LIVED_TOKEN_URL);
+  url.searchParams.set("grant_type", "ig_exchange_token");
+  url.searchParams.set("client_secret", requireEnv("INSTAGRAM_APP_SECRET"));
+  url.searchParams.set("access_token", shortLivedToken);
+
+  const response = await fetch(url.toString(), { method: "GET" });
+  const data = (await response.json()) as {
+    access_token?: string;
+    expires_in?: number;
+    error_message?: string;
+    error?: { message?: string };
+  };
+
+  if (!response.ok || !data.access_token) {
+    throw new Error(
+      `Long-lived token exchange failed: ${
+        data.error?.message ??
+        data.error_message ??
+        `HTTP ${response.status}`
+      }`
+    );
+  }
+
+  return {
+    accessToken: data.access_token,
+    expiresIn: data.expires_in ?? 5184000,
   };
 }
 
