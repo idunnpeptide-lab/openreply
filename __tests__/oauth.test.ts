@@ -4,6 +4,7 @@ import {
   decryptToken,
   encryptToken,
   exchangeShortLivedTokenForLongLived,
+  getAuthorizationUrl,
   verifyOAuthState,
 } from "../lib/meta/oauth";
 
@@ -11,6 +12,7 @@ beforeEach(() => {
   vi.unstubAllGlobals();
   vi.resetAllMocks();
   vi.stubEnv("NEXTAUTH_SECRET", "test-secret-with-enough-length");
+  vi.stubEnv("INSTAGRAM_APP_ID", "test-instagram-app-id");
   vi.stubEnv("INSTAGRAM_APP_SECRET", "test-instagram-app-secret");
   vi.stubEnv(
     "ENCRYPTION_KEY",
@@ -42,6 +44,24 @@ describe("OAuth state and token encryption", () => {
   it("rejects tampered OAuth state", () => {
     const state = createOAuthState("workspace_123");
     expect(verifyOAuthState(`${state}tampered`)).toBeNull();
+  });
+
+  it("requests only the Instagram permissions used by ReplyHalo", () => {
+    const authorizationUrl = new URL(
+      getAuthorizationUrl(
+        "https://replyhalo.example/api/instagram/callback",
+        "signed-state"
+      )
+    );
+
+    expect(authorizationUrl.searchParams.get("scope")?.split(",")).toEqual([
+      "instagram_business_basic",
+      "instagram_business_manage_messages",
+      "instagram_business_manage_comments",
+    ]);
+    expect(authorizationUrl.searchParams.get("scope")).not.toContain(
+      "instagram_business_manage_insights"
+    );
   });
 
   it("exchanges a short-lived token at the unversioned Instagram token endpoint", async () => {
