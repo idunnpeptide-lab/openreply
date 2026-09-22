@@ -1,13 +1,17 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createOAuthState,
   decryptToken,
   encryptToken,
+  exchangeShortLivedTokenForLongLived,
   verifyOAuthState,
 } from "../lib/meta/oauth";
 
 beforeEach(() => {
+  vi.unstubAllGlobals();
+  vi.resetAllMocks();
   vi.stubEnv("NEXTAUTH_SECRET", "test-secret-with-enough-length");
+  vi.stubEnv("INSTAGRAM_APP_SECRET", "test-instagram-app-secret");
   vi.stubEnv(
     "ENCRYPTION_KEY",
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -38,5 +42,41 @@ describe("OAuth state and token encryption", () => {
   it("rejects tampered OAuth state", () => {
     const state = createOAuthState("workspace_123");
     expect(verifyOAuthState(`${state}tampered`)).toBeNull();
+  });
+
+  it("exchanges a short-lived token at the unversioned Instagram token endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: "long-lived-token",
+          token_type: "bearer",
+          expires_in: 5184000,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await exchangeShortLivedTokenForLongLived(
+      "short-lived-token"
+    );
+
+    expect(result).toEqual({
+      accessToken: "long-lived-token",
+      expiresIn: 5184000,
+    });
+
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(url.origin).toBe("https://graph.instagram.com");
+    expect(url.pathname).toBe("/access_token");
+    expect(url.pathname).not.toContain("/v25.0/");
+    expect(url.searchParams.get("grant_type")).toBe("ig_exchange_token");
+    expect(url.searchParams.get("client_secret")).toBe(
+      "test-instagram-app-secret"
+    );
+    expect(url.searchParams.get("access_token")).toBe("short-lived-token");
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.method).toBe("GET");
   });
 });
