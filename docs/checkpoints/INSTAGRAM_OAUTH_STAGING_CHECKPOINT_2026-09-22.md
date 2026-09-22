@@ -107,6 +107,43 @@ During this session:
 - invitation was accepted;
 - after refresh, Meta Developers shows `genp23t` as Instagram Tester without the pending status.
 
+## Historical review result from the previous working chat
+
+The previous chat reviewed the handoff, GitHub history, the earlier working QA path, upstream OpenReply, Railway evidence, and current Meta guidance.
+
+Key correction:
+- the earlier successful test account `@traffictiktok11` was already an **Instagram Tester**;
+- therefore that success did **not** prove that a fresh external customer account could connect under Standard Access;
+- this was the missing distinction in the earlier handoff.
+
+The historical review concluded that the intended commercial journey remains correct:
+
+`Activation -> Connect Instagram -> Instagram/Meta OAuth -> connected`
+
+A customer must **not** be required to:
+- enter Meta Developers;
+- be manually added as an Instagram Tester;
+- accept a developer/tester invite as part of normal paid onboarding;
+- manage scopes, webhooks, app secrets, or developer configuration.
+
+For the current Instagram Login architecture, Standard Access is sufficient for app-role/tester accounts, while third-party customers require the appropriate App Review / Advanced Access for the requested Instagram permissions. The repository already contains `META_APP_REVIEW.md` covering this production-readiness path and the relevant permissions, including:
+- `instagram_business_basic`
+- `instagram_business_manage_comments`
+- `instagram_business_manage_messages`
+
+The current implementation uses **Instagram API with Instagram Login**, so a linked Facebook Page should not be introduced as a normal customer requirement merely to solve this staging issue.
+
+## Revised interpretation of PR #81
+
+PR #81 is merged and deployed, but it is **not yet proven to be the root-cause fix**.
+
+Reason:
+- the older Sep-18 reconnect path also used GET for the long-lived token exchange;
+- the same error persisted after PR #81 while `genp23t` still lacked tester access;
+- therefore the token error may have been an access/app-role symptom rather than proof that the HTTP method itself was wrong.
+
+Do **not** revert PR #81 blindly, but do **not** treat it as validated root-cause resolution either.
+
 ## Important product conclusion
 
 Do **not** redesign the SaaS around manually adding every customer as an Instagram Tester.
@@ -119,6 +156,12 @@ Target production journey remains:
 No manual owner intervention should be required per customer.
 
 Tester access is currently only a staging/development variable to validate, not a production architecture decision.
+
+Hard rule for future chats:
+
+**Tester-only success != commercial OAuth readiness.**
+
+If a fresh external account only works after being added as a Tester, stop rebuilding OAuth and verify App Review / Advanced Access readiness instead.
 
 ## License architecture note
 
@@ -134,50 +177,37 @@ In this fresh workspace:
 - `/api/instagram/connect` redirects to Instagram with 307;
 - OAuth starts successfully.
 
-So current evidence does **not** show the new license gate itself as the callback failure. However, the older known-working version must still be compared against current main to determine what changed around the time plan gating was introduced.
+So current evidence does **not** show the new license gate itself as the callback failure. The staging key being separate from production is expected because staging License Server / DB are isolated from production.
 
-## Required historical comparison before more code changes
+## What must happen next
 
-Find the last genuinely confirmed version where Instagram connected through `Connect Instagram` without manually adding the account as a new tester, then compare against current main:
+No more OAuth code changes and no more tester additions before the control test.
 
-1. `app/api/instagram/connect/route.ts`
-2. `app/api/instagram/callback/route.ts`
-3. `lib/meta/oauth.ts`
-4. short-lived -> long-lived token endpoint
-5. HTTP method and query/body params
-6. scopes / permissions
-7. Instagram App ID / Meta app configuration
-8. whether the previously working test Instagram account already had Admin/Tester role
-9. when `validateDmMagnetWorkspaceLicense()` was introduced before Connect
-10. whether licensing changes touched only the preflight guard or also OAuth/token/callback logic
-11. whether the integration previously used a different Instagram/Facebook login flow.
+The next action is now a single controlled retest:
 
-Do not assume the older flow truly worked for an unrelated third-party account until role status is verified historically.
+1. Open staging ReplyHalo Settings.
+2. Click `Connect Instagram`.
+3. Authorize specifically as `genp23t`, which now has accepted Instagram Tester access.
+4. Observe the page ReplyHalo returns to.
+5. Inspect Railway callback logs immediately after the attempt.
 
-## Do not do until comparison/retest
+Interpretation:
+- **If success:** tester/app access was materially involved in the blocker. The next commercial-readiness phase is Meta App Review / Advanced Access so real customers can connect without tester roles.
+- **If failure:** tester-access hypothesis is not sufficient; use the fresh Railway trace to continue debugging the technical OAuth/token path.
+
+## Do not do until the retest
 
 - Do not touch production `@online.robota.affiliate`.
 - Do not change production Meta app settings.
 - Do not remove/alter License Server architecture without evidence.
 - Do not revert PR #81 blindly.
 - Do not implement automatic Instagram Tester creation as a production solution.
-- Do not claim tester access fixed the issue before the post-accept retest.
-- Do not make further OAuth code changes until the old working flow is compared.
+- Do not add more Tester accounts.
+- Do not make further OAuth code changes before the controlled `genp23t` retest.
+- Do not claim tester access fixed the issue until the post-accept retest succeeds.
 
 ## Exact resume action
 
-There are two valid next actions, depending on what the historical comparison shows:
+**Run `Connect Instagram` once for `genp23t` now that its tester invitation is accepted, then inspect Railway.**
 
-### A. Historical comparison first — current preferred path
-Identify the last known-working Instagram Connect implementation and explain the exact diff/reason before any more changes.
-
-### B. Controlled retest after comparison
-Repeat `Connect Instagram` for `genp23t` now that tester invite is accepted, then inspect Railway callback evidence.
-
-Interpretation:
-- if success: tester access materially changed the result, but production/App Review/access model still needs separate resolution;
-- if failure: tester hypothesis is disproven and debugging continues from token/app-flow differences.
-
-## Product-owner context
-
-The product owner recalls that an earlier ReplyHalo version could connect Instagram directly. Later work added the requirement that Instagram Connect is allowed only after a paid/activated ReplyHalo key. The key question now is whether a later change accidentally altered the previously working OAuth behavior, or whether prior successful tests used an account that already had app role access.
+That is the exact resume point. No Meta Developers changes should be made before this test.
