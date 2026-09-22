@@ -9,13 +9,13 @@ import {
 import { getBaseUrl } from "@/lib/env";
 import { canConnectInstagramAccount } from "@/lib/instagram-accounts";
 import {
-  getLongLivedToken,
   getUserInfo,
   subscribeInstagramAccountToWebhooks,
 } from "@/lib/meta/client";
 import {
   encryptToken,
   exchangeCodeForToken,
+  exchangeShortLivedTokenForLongLived,
   verifyOAuthState,
 } from "@/lib/meta/oauth";
 import { canManageWorkspace } from "@/lib/workspace-access";
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       redirectUri
     );
     const { accessToken: longLivedToken, expiresIn } =
-      await getLongLivedToken(shortLivedToken);
+      await exchangeShortLivedTokenForLongLived(shortLivedToken);
     const userInfo = await getUserInfo(longLivedToken);
 
     // Webhooks and the messaging API key off the professional account ID
