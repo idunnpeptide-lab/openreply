@@ -13,7 +13,7 @@ function formatNumber(value: number) {
 
 export default function TikTokReviewDemo() {
   const [connected, setConnected] = useState(false);
-  const [selectedVideoId, setSelectedVideoId] = useState(
+  const [selectedVideoId, setSelectedVideoId] = useState<string>(
     TIKTOK_REVIEW_DEMO_VIDEOS[0].id
   );
   const [keyword, setKeyword] = useState("INFO");
