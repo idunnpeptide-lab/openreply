@@ -6,7 +6,9 @@ import {
 import {
   buildTikTokBusinessAuthorizationUrl,
   getTikTokBusinessConfig,
+  REPLYHALO_TIKTOK_COMMENT_STAGING_SCOPES,
   REPLYHALO_TIKTOK_DESIRED_SCOPES,
+  REPLYHALO_TIKTOK_MESSAGING_SCOPES,
   TIKTOK_SHORT_TERM_TOKEN_ENDPOINT,
 } from "../lib/tiktok/config";
 
@@ -60,7 +62,7 @@ describe("TikTok provider foundation", () => {
     ).toBeNull();
   });
 
-  it("uses the desired scope baseline when an override is not provided", () => {
+  it("uses the least-privilege comment staging baseline by default", () => {
     const config = getTikTokBusinessConfig({
       TIKTOK_BUSINESS_APP_ID: "app_123",
       TIKTOK_BUSINESS_APP_SECRET: "secret_123",
@@ -70,8 +72,34 @@ describe("TikTok provider foundation", () => {
     });
 
     expect(config?.scopes).toEqual([...REPLYHALO_TIKTOK_DESIRED_SCOPES]);
+    expect(REPLYHALO_TIKTOK_DESIRED_SCOPES).toEqual([
+      ...REPLYHALO_TIKTOK_COMMENT_STAGING_SCOPES,
+    ]);
+    for (const scope of REPLYHALO_TIKTOK_MESSAGING_SCOPES) {
+      expect(config?.scopes).not.toContain(scope);
+    }
     expect(TIKTOK_SHORT_TERM_TOKEN_ENDPOINT).toBe(
       "https://business-api.tiktok.com/open_api/v1.3/tt_user/oauth2/token/"
     );
+  });
+
+  it("allows approved extra scopes only through an explicit override", () => {
+    const config = getTikTokBusinessConfig({
+      TIKTOK_BUSINESS_APP_ID: "app_123",
+      TIKTOK_BUSINESS_APP_SECRET: "secret_123",
+      TIKTOK_BUSINESS_REDIRECT_URI:
+        "https://replyhalo.example/api/tiktok/callback",
+      TIKTOK_BUSINESS_SCOPES:
+        "user.info.basic,video.list,comment.list,comment.list.manage,message.list.read,message.list.send",
+    });
+
+    expect(config?.scopes).toEqual([
+      "user.info.basic",
+      "video.list",
+      "comment.list",
+      "comment.list.manage",
+      "message.list.read",
+      "message.list.send",
+    ]);
   });
 });
