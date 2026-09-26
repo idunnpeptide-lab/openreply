@@ -252,7 +252,7 @@ export default function TikTokReviewDemo() {
             <h2 className="mt-1 text-base font-semibold">Scheduled publishing</h2>
             <p className="mt-1 text-sm text-muted">
               ReplyHalo will let an authorized account owner choose content and a
-              publish time. ReplyHalo's scheduler will call the provider only at
+              publish time. The ReplyHalo scheduler will call the provider only at
               the user-selected time and only for that authorized account.
             </p>
           </div>
