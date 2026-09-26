@@ -11,15 +11,28 @@ export const TIKTOK_REFRESH_TOKEN_ENDPOINT =
 export const TIKTOK_REVOKE_TOKEN_ENDPOINT =
   `${TIKTOK_BUSINESS_API_BASE_URL}/${TIKTOK_BUSINESS_API_VERSION}/tt_user/oauth2/revoke/`;
 
-export const REPLYHALO_TIKTOK_DESIRED_SCOPES = [
+// Phase 1 keeps TikTok staging focused on owned videos + comments/public replies.
+// Business Messaging remains available through an explicit env scope override
+// after the comment flow passes real provider staging QA.
+export const REPLYHALO_TIKTOK_COMMENT_STAGING_SCOPES = [
   "user.info.basic",
   "user.info.username",
   "video.list",
   "comment.list",
   "comment.list.manage",
+] as const;
+
+export const REPLYHALO_TIKTOK_MESSAGING_SCOPES = [
   "message.list.read",
   "message.list.send",
   "message.list.manage",
+] as const;
+
+// Preserve the existing export used by provider setup/tests. Its default is now
+// the least-privilege Phase 1 baseline. TIKTOK_BUSINESS_SCOPES can still opt in
+// to additional approved scopes without changing code.
+export const REPLYHALO_TIKTOK_DESIRED_SCOPES = [
+  ...REPLYHALO_TIKTOK_COMMENT_STAGING_SCOPES,
 ] as const;
 
 type TikTokBusinessEnv = Record<string, string | undefined>;
