@@ -17,6 +17,7 @@ const POLL_INTERVAL_MS = Number(
 );
 
 console.log("[DM Worker] Started");
+console.log("[DM Worker] Instagram token auto-refresh enabled");
 console.log("[TikTok Ingress] Started");
 
 async function heartbeat() {
