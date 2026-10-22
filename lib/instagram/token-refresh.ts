@@ -3,6 +3,7 @@ import { refreshLongLivedToken } from "@/lib/meta/client";
 import { decryptToken, encryptToken } from "@/lib/meta/oauth";
 
 export const INSTAGRAM_TOKEN_REFRESH_WINDOW_DAYS = 10;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type InstagramTokenRefreshResult = {
   instagramAccountId: string;
@@ -18,9 +19,7 @@ export async function refreshExpiringInstagramTokens(options?: {
   const now = options?.now ?? new Date();
   const daysBeforeExpiry =
     options?.daysBeforeExpiry ?? INSTAGRAM_TOKEN_REFRESH_WINDOW_DAYS;
-  const cutoffDate = new Date(
-    now.getTime() + daysBeforeExpiry * 24 * 60 * 60 * 1000
-  );
+  const cutoffDate = new Date(now.getTime() + daysBeforeExpiry * DAY_MS);
 
   const accountsToRefresh = await prisma.instagramAccount.findMany({
     where: {
