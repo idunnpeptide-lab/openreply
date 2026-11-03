@@ -111,17 +111,12 @@ export async function exchangeCodeForToken(
 export async function exchangeShortLivedTokenForLongLived(
   shortLivedToken: string
 ): Promise<{ accessToken: string; expiresIn: number }> {
-  const body = new URLSearchParams({
-    grant_type: "ig_exchange_token",
-    client_secret: requireEnv("INSTAGRAM_APP_SECRET"),
-    access_token: shortLivedToken,
-  });
+  const url = new URL(INSTAGRAM_LONG_LIVED_TOKEN_URL);
+  url.searchParams.set("grant_type", "ig_exchange_token");
+  url.searchParams.set("client_secret", requireEnv("INSTAGRAM_APP_SECRET"));
+  url.searchParams.set("access_token", shortLivedToken);
 
-  const response = await fetch(INSTAGRAM_LONG_LIVED_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+  const response = await fetch(url.toString(), { method: "GET" });
   const data = (await response.json()) as {
     access_token?: string;
     expires_in?: number;
