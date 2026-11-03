@@ -28,8 +28,6 @@ describe("OAuth state and token encryption", () => {
   });
 
   it("decrypts tokens written by the legacy AES-256-GCM format", () => {
-    // Fixture produced by the pre-refactor encryptToken layout:
-    // 16-byte IV + 16-byte auth tag + ciphertext, base64 encoded.
     const legacyCiphertext =
       "ABEiM0RVZneImaq7zN3u/z0bRH7r8Qn5Tb2Biiua0lcvfN8naIQgTNX07FIDi/2Q9BUZZVVZig==";
 
@@ -64,7 +62,7 @@ describe("OAuth state and token encryption", () => {
     );
   });
 
-  it("exchanges a short-lived token at the unversioned Instagram token endpoint using POST", async () => {
+  it("exchanges a short-lived token at the unversioned Instagram token endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -90,17 +88,13 @@ describe("OAuth state and token encryption", () => {
     expect(url.origin).toBe("https://graph.instagram.com");
     expect(url.pathname).toBe("/access_token");
     expect(url.pathname).not.toContain("/v25.0/");
-    expect(url.search).toBe("");
+    expect(url.searchParams.get("grant_type")).toBe("ig_exchange_token");
+    expect(url.searchParams.get("client_secret")).toBe(
+      "test-instagram-app-secret"
+    );
+    expect(url.searchParams.get("access_token")).toBe("short-lived-token");
 
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.method).toBe("POST");
-    expect(init.headers).toEqual({
-      "Content-Type": "application/x-www-form-urlencoded",
-    });
-
-    const body = new URLSearchParams(String(init.body));
-    expect(body.get("grant_type")).toBe("ig_exchange_token");
-    expect(body.get("client_secret")).toBe("test-instagram-app-secret");
-    expect(body.get("access_token")).toBe("short-lived-token");
+    expect(init.method).toBe("GET");
   });
 });
