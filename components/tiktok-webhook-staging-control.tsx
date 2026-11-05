@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/components/locale-provider";
 
 type ManagedEventType = "COMMENT" | "DIRECT_MESSAGE";
 
@@ -20,15 +21,23 @@ type WebhookPayload = {
   statuses: WebhookStatus[];
 };
 
-function eventLabel(eventType: ManagedEventType) {
-  return eventType === "COMMENT" ? "Comment webhook" : "Business Messaging webhook";
+function eventLabel(
+  eventType: ManagedEventType,
+  t: (key: string) => string
+) {
+  return eventType === "COMMENT"
+    ? t("Comment webhook")
+    : t("Business Messaging webhook");
 }
 
-function statusLabel(status: WebhookStatus) {
-  if (status.callbackMatchesExpected) return "Provider readback matches";
-  if (!status.providerReachable) return "Provider readback unavailable";
-  if (status.configured) return "Different callback configured";
-  return "Not configured";
+function statusLabel(
+  status: WebhookStatus,
+  t: (key: string) => string
+) {
+  if (status.callbackMatchesExpected) return t("Provider readback matches");
+  if (!status.providerReachable) return t("Provider readback unavailable");
+  if (status.configured) return t("Different callback configured");
+  return t("Not configured");
 }
 
 export default function TikTokWebhookStagingControl({
@@ -38,6 +47,7 @@ export default function TikTokWebhookStagingControl({
   canManage: boolean;
   expectedCallbackUrl: string;
 }) {
+  const { t, locale } = useLocale();
   const [busy, setBusy] = useState<"read" | "configure" | null>(null);
   const [data, setData] = useState<WebhookPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,12 +63,12 @@ export default function TikTokWebhookStagingControl({
       });
       const payload = await response.json();
       if (!payload.success) {
-        setError(payload.error ?? "Could not read TikTok webhook configuration");
+        setError(t(payload.error ?? "Could not read TikTok webhook configuration"));
         return;
       }
       setData(payload.data);
     } catch {
-      setError("Could not read TikTok webhook configuration");
+      setError(t("Could not read TikTok webhook configuration"));
     } finally {
       setBusy(null);
     }
@@ -67,7 +77,9 @@ export default function TikTokWebhookStagingControl({
   async function configureAndVerify() {
     if (
       !window.confirm(
-        "Configure the staging TikTok developer app to send COMMENT and DIRECT_MESSAGE webhooks to this ReplyHalo staging callback? This does not enable live reply/DM execution."
+        locale === "uk"
+          ? "Налаштувати staging TikTok developer app для надсилання webhook COMMENT і DIRECT_MESSAGE на цей staging callback ReplyHalo? Це не вмикає live reply/DM виконання."
+          : "Configure the staging TikTok developer app to send COMMENT and DIRECT_MESSAGE webhooks to this ReplyHalo staging callback? This does not enable live reply/DM execution."
       )
     ) {
       return;
@@ -88,11 +100,11 @@ export default function TikTokWebhookStagingControl({
       if (!payload.success) {
         setError(
           payload.error ??
-            "TikTok did not confirm the requested webhook configuration"
+            t("TikTok did not confirm the requested webhook configuration")
         );
       }
     } catch {
-      setError("Could not configure TikTok staging webhooks");
+      setError(t("Could not configure TikTok staging webhooks"));
     } finally {
       setBusy(null);
     }
@@ -107,17 +119,17 @@ export default function TikTokWebhookStagingControl({
         <div className="max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold text-foreground">
-              TikTok webhook setup
+              {t("TikTok webhook setup")}
             </h2>
             <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
-              Staging only
+              {t("Staging only")}
             </span>
           </div>
           <p className="mt-2 text-sm text-muted">
-            Read the provider configuration or configure the COMMENT and Business Messaging webhook families without copying app secrets into the browser. Provider readback is separate from runtime webhook readiness.
+            {t("Read the provider configuration or configure the COMMENT and Business Messaging webhook families without copying app secrets into the browser. Provider readback is separate from runtime webhook readiness.")}
           </p>
           <div className="mt-3 rounded border border-border bg-background/40 p-3">
-            <p className="text-xs font-medium text-foreground">Expected callback</p>
+            <p className="text-xs font-medium text-foreground">{t("Expected callback")}</p>
             <code className="mt-1 block break-all text-xs text-muted">{callback}</code>
           </div>
         </div>
@@ -129,7 +141,7 @@ export default function TikTokWebhookStagingControl({
             disabled={busy !== null}
             className="rounded border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-foreground disabled:opacity-50"
           >
-            {busy === "read" ? "Reading…" : "Read provider config"}
+            {busy === "read" ? t("Reading…") : t("Read provider config")}
           </button>
           <button
             type="button"
@@ -137,14 +149,14 @@ export default function TikTokWebhookStagingControl({
             disabled={busy !== null}
             className="rounded bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
           >
-            {busy === "configure" ? "Configuring…" : "Configure + verify"}
+            {busy === "configure" ? t("Configuring…") : t("Configure + verify")}
           </button>
         </div>
       </div>
 
       {data?.missingConfiguration && data.missingConfiguration.length > 0 && (
         <div className="mt-4 rounded border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
-          Missing staging configuration: {data.missingConfiguration.join(", ")}
+          {t("Missing staging configuration")}: {data.missingConfiguration.join(", ")}
         </div>
       )}
 
@@ -155,9 +167,9 @@ export default function TikTokWebhookStagingControl({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {eventLabel(status.eventType)}
+                    {eventLabel(status.eventType, t)}
                   </p>
-                  <p className="mt-1 text-xs text-muted">{statusLabel(status)}</p>
+                  <p className="mt-1 text-xs text-muted">{statusLabel(status, t)}</p>
                 </div>
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -166,7 +178,7 @@ export default function TikTokWebhookStagingControl({
                       : "bg-warning/10 text-warning"
                   }`}
                 >
-                  {status.callbackMatchesExpected ? "Verified" : "Needs attention"}
+                  {status.callbackMatchesExpected ? t("Verified") : t("Needs attention")}
                 </span>
               </div>
               {status.callbackUrl && (
@@ -175,7 +187,7 @@ export default function TikTokWebhookStagingControl({
                 </code>
               )}
               {status.errorCode && (
-                <p className="mt-3 text-xs text-error">Provider code: {status.errorCode}</p>
+                <p className="mt-3 text-xs text-error">{t("Provider code")}: {status.errorCode}</p>
               )}
             </div>
           ))}
@@ -184,7 +196,7 @@ export default function TikTokWebhookStagingControl({
 
       {data?.providerConfigured && (
         <div className="mt-4 rounded border border-success/20 bg-success/10 p-3 text-sm text-success">
-          PASS — TikTok provider readback points both staging webhook families to the expected ReplyHalo callback. Runtime webhook readiness still stays unconfirmed until a real signed supported event reaches ReplyHalo.
+          {locale === "uk" ? "PASS — provider readback TikTok спрямовує обидва staging webhook-сімейства на очікуваний callback ReplyHalo. Runtime-готовність webhook залишатиметься непідтвердженою, доки ReplyHalo не отримає реальну підписану підтримувану подію." : "PASS — TikTok provider readback points both staging webhook families to the expected ReplyHalo callback. Runtime webhook readiness still stays unconfirmed until a real signed supported event reaches ReplyHalo."}
         </div>
       )}
 
@@ -195,7 +207,7 @@ export default function TikTokWebhookStagingControl({
       )}
 
       <p className="mt-4 text-xs text-muted">
-        This control does not change <code>TIKTOK_LIVE_EXECUTION_ENABLED</code>, does not send a TikTok reply/DM, and does not set account webhook readiness by itself.
+        {locale === "uk" ? "Цей контроль не змінює " : "This control does not change "}<code>TIKTOK_LIVE_EXECUTION_ENABLED</code>{locale === "uk" ? ", не надсилає TikTok reply/DM і самостійно не встановлює готовність webhook акаунта." : ", does not send a TikTok reply/DM, and does not set account webhook readiness by itself."}
       </p>
     </section>
   );
