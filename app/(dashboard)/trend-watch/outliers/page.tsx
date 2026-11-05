@@ -2,6 +2,7 @@ import TrendWatchOutlierGrid, {
   type TrendWatchOutlier,
 } from "@/components/trend-watch-outlier-grid";
 import TrendWatchServiceState from "@/components/trend-watch-service-state";
+import LocalizedText from "@/components/localized-text";
 import {
   isTrendWatchConfigured,
   trendWatchRequest,
@@ -40,12 +41,12 @@ export default async function TrendWatchOutliersPage() {
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Outliers</h2>
+          <h2 className="text-base font-semibold text-foreground"><LocalizedText text="Outliers" /></h2>
           <p className="mt-1 text-sm text-muted">
-            Filter high-performing Reels by period, outlier multiple and momentum.
+            <LocalizedText text="Filter high-performing Reels by period, outlier multiple and momentum." />
           </p>
         </div>
-        <span className="text-sm text-muted">{items.length} candidates loaded</span>
+        <span className="text-sm text-muted">{items.length} <LocalizedText text="candidates loaded" /></span>
       </div>
 
       <TrendWatchOutlierGrid initialItems={items} />
