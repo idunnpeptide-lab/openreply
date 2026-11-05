@@ -1,4 +1,6 @@
 import Link from "next/link";
+import LanguageSwitcher from "@/components/language-switcher";
+import LocalizedText from "@/components/localized-text";
 import { EMAIL_PROVIDER_ID } from "@/lib/auth";
 import {
   getAuthCallbackActionPath,
@@ -25,19 +27,21 @@ export default async function AuthConfirmPage({
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="w-full max-w-md text-center">
+        <div className="mb-5 ml-auto w-40 text-left"><LanguageSwitcher compact /></div>
+          <div className="mb-5 ml-auto w-40 text-left"><LanguageSwitcher compact /></div>
           <h1 className="text-2xl font-semibold text-foreground">ReplyHalo</h1>
           <div className="panel mt-8 rounded p-8 shadow-black/40">
             <h2 className="text-lg font-semibold text-foreground">
-              This sign-in link is incomplete
+              <LocalizedText text="This sign-in link is incomplete" />
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Request a new sign-in link and use the newest email from ReplyHalo.
+              <LocalizedText text="Request a new sign-in link and use the newest email from ReplyHalo." />
             </p>
             <Link
               href="/login"
               className="mt-6 inline-flex w-full items-center justify-center rounded bg-accent px-6 py-3.5 text-sm font-semibold text-white"
             >
-              Request a new link
+              <LocalizedText text="Request a new link" />
             </Link>
           </div>
         </div>
@@ -50,16 +54,15 @@ export default async function AuthConfirmPage({
       <div className="w-full max-w-md text-center">
         <h1 className="text-2xl font-semibold text-foreground">ReplyHalo</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          One more step keeps your one-time sign-in link safe from automatic link
-          previews.
+          <LocalizedText text="One more step keeps your one-time sign-in link safe from automatic link previews." />
         </p>
 
         <div className="panel mt-8 rounded p-8 shadow-black/40">
           <h2 className="text-lg font-semibold text-foreground">
-            Confirm sign-in
+            <LocalizedText text="Confirm sign-in" />
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Continue only if you requested this ReplyHalo sign-in email.
+            <LocalizedText text="Continue only if you requested this ReplyHalo sign-in email." />
           </p>
 
           <form
@@ -80,12 +83,12 @@ export default async function AuthConfirmPage({
               type="submit"
               className="inline-flex w-full items-center justify-center rounded bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-indigo-500/25 transition-all hover:shadow-indigo-500/30"
             >
-              Continue to ReplyHalo
+              <LocalizedText text="Continue to ReplyHalo" />
             </button>
           </form>
 
           <p className="mt-4 text-xs leading-5 text-muted">
-            If you did not request this sign-in, you can close this page safely.
+            <LocalizedText text="If you did not request this sign-in, you can close this page safely." />
           </p>
         </div>
       </div>
