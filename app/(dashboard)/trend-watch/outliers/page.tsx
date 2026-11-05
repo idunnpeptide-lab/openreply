@@ -1,13 +1,9 @@
-import TrendWatchOutlierGrid, {
-  type TrendWatchOutlier,
-} from "@/components/trend-watch-outlier-grid";
+import TrendWatchOutlierGrid, { type TrendWatchOutlier } from "@/components/trend-watch-outlier-grid";
 import TrendWatchServiceState from "@/components/trend-watch-service-state";
-import LocalizedText from "@/components/localized-text";
-import {
-  isTrendWatchConfigured,
-  trendWatchRequest,
-} from "@/lib/trend-watch/server";
+import { isTrendWatchConfigured, trendWatchRequest } from "@/lib/trend-watch/server";
 import { getCurrentWorkspaceContext } from "@/lib/workspace-access";
+
+type Niche = { id: string | number; name: string };
 
 export default async function TrendWatchOutliersPage() {
   const context = await getCurrentWorkspaceContext();
@@ -16,40 +12,27 @@ export default async function TrendWatchOutliersPage() {
     return <TrendWatchServiceState />;
   }
 
-  let items: TrendWatchOutlier[] = [];
-
   try {
-    const response = await trendWatchRequest<{ items: TrendWatchOutlier[] }>(
-      context.workspaceId,
-      "/v1/outliers?period=90d&min_outlier=2&sort=score"
+    const [outliers, niches] = await Promise.all([
+      trendWatchRequest<{ items: TrendWatchOutlier[] }>(
+        context.workspaceId,
+        "/v1/outliers?period=all&min_outlier=0&sort=score"
+      ),
+      trendWatchRequest<{ items: Niche[] }>(context.workspaceId, "/v1/niches"),
+    ]);
+
+    return (
+      <TrendWatchOutlierGrid
+        initialItems={outliers.items ?? []}
+        niches={niches.items ?? []}
+      />
     );
-    items = response.items ?? [];
   } catch (error) {
     return (
       <TrendWatchServiceState
         title="Trend Watch collector is temporarily unavailable"
-        description={
-          error instanceof Error
-            ? error.message
-            : "Could not load outliers from the Trend Watch service."
-        }
+        description={error instanceof Error ? error.message : "Could not load Trend Watch data."}
       />
     );
   }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-foreground"><LocalizedText text="Outliers" /></h2>
-          <p className="mt-1 text-sm text-muted">
-            <LocalizedText text="Filter high-performing Reels by period, outlier multiple and momentum." />
-          </p>
-        </div>
-        <span className="text-sm text-muted">{items.length} <LocalizedText text="candidates loaded" /></span>
-      </div>
-
-      <TrendWatchOutlierGrid initialItems={items} />
-    </div>
-  );
 }
