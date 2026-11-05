@@ -20,7 +20,7 @@ export default async function TrendWatchOutliersPage() {
   try {
     const response = await trendWatchRequest<{ items: TrendWatchOutlier[] }>(
       context.workspaceId,
-      "/v1/outliers?period=30d&min_outlier=3&sort=score"
+      "/v1/outliers?period=90d&min_outlier=2&sort=score"
     );
     items = response.items ?? [];
   } catch (error) {
@@ -42,10 +42,10 @@ export default async function TrendWatchOutliersPage() {
         <div>
           <h2 className="text-base font-semibold text-foreground">Outliers</h2>
           <p className="mt-1 text-sm text-muted">
-            Reels performing at least 3× above the creator&apos;s normal baseline.
+            Filter high-performing Reels by period, outlier multiple and momentum.
           </p>
         </div>
-        <span className="text-sm text-muted">{items.length} found</span>
+        <span className="text-sm text-muted">{items.length} candidates loaded</span>
       </div>
 
       <TrendWatchOutlierGrid initialItems={items} />
