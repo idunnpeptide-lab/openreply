@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type TrendWatchOutlier = {
   code: string;
@@ -13,6 +13,8 @@ export type TrendWatchOutlier = {
   outlier?: number | null;
   velocity?: number | null;
   score?: number | null;
+  er?: number | null;
+  published_at?: string | null;
   saved?: boolean | null;
 };
 
@@ -28,6 +30,29 @@ export default function TrendWatchOutlierGrid({
 }) {
   const [items, setItems] = useState(initialItems);
   const [busyCode, setBusyCode] = useState<string | null>(null);
+  const [periodDays, setPeriodDays] = useState(30);
+  const [minOutlier, setMinOutlier] = useState(3);
+  const [sortBy, setSortBy] = useState<"score" | "outlier" | "plays" | "velocity">("score");
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  const visibleItems = useMemo(() => {
+    const cutoff = Date.now() - periodDays * 24 * 60 * 60 * 1000;
+    return items
+      .filter((item) => {
+        if ((item.outlier ?? 0) < minOutlier) return false;
+        if (!item.published_at) return true;
+        const published = new Date(item.published_at).getTime();
+        return Number.isNaN(published) || published >= cutoff;
+      })
+      .sort((a, b) => {
+        const left = a[sortBy] ?? 0;
+        const right = b[sortBy] ?? 0;
+        return Number(right) - Number(left);
+      });
+  }, [items, minOutlier, periodDays, sortBy]);
 
   async function toggleSaved(item: TrendWatchOutlier) {
     setBusyCode(item.code);
@@ -63,8 +88,65 @@ export default function TrendWatchOutlierGrid({
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {items.map((item) => (
+    <div className="space-y-4">
+      <div className="panel flex flex-wrap items-end gap-3 rounded p-3">
+        <label className="text-xs text-muted">
+          <span className="mb-1 block">Period</span>
+          <select
+            value={periodDays}
+            onChange={(event) => setPeriodDays(Number(event.target.value))}
+            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
+          >
+            <option value={7}>7 days</option>
+            <option value={30}>30 days</option>
+            <option value={90}>90 days</option>
+          </select>
+        </label>
+
+        <label className="text-xs text-muted">
+          <span className="mb-1 block">Minimum outlier</span>
+          <select
+            value={minOutlier}
+            onChange={(event) => setMinOutlier(Number(event.target.value))}
+            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
+          >
+            <option value={2}>×2+</option>
+            <option value={3}>×3+</option>
+            <option value={5}>×5+</option>
+            <option value={10}>×10+</option>
+          </select>
+        </label>
+
+        <label className="text-xs text-muted">
+          <span className="mb-1 block">Sort by</span>
+          <select
+            value={sortBy}
+            onChange={(event) =>
+              setSortBy(
+                event.target.value as "score" | "outlier" | "plays" | "velocity"
+              )
+            }
+            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
+          >
+            <option value="score">Score</option>
+            <option value="outlier">Outlier ×</option>
+            <option value="plays">Views</option>
+            <option value="velocity">Velocity</option>
+          </select>
+        </label>
+
+        <span className="ml-auto pb-2 text-sm text-muted">
+          {visibleItems.length} shown
+        </span>
+      </div>
+
+      {visibleItems.length === 0 ? (
+        <div className="panel rounded p-8 text-center text-sm text-muted">
+          No Reels match these filters.
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {visibleItems.map((item) => (
         <article key={item.code} className="panel overflow-hidden rounded">
           {item.thumb && (
             <img
@@ -135,6 +217,8 @@ export default function TrendWatchOutlierGrid({
           </div>
         </article>
       ))}
+        </div>
+      )}
     </div>
   );
 }
