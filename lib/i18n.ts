@@ -276,7 +276,6 @@ const uk: Record<string, string> = {
   "Add the private message.": "Додайте приватне повідомлення.",
   "Could not create automation": "Не вдалося створити автоматизацію",
   "Could not create automation. Please try again.": "Не вдалося створити автоматизацію. Спробуйте ще раз.",
-  "Sent": "Надіслано",
   "after the link.": "після посилання.",
 };
 
