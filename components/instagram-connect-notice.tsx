@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "@/components/locale-provider";
 
 type Tone = "error" | "warning" | "success";
 
@@ -151,14 +152,15 @@ function HealthPill({
   );
 }
 
-function tokenLabel(account: HealthAccount) {
-  if (account.token === "HEALTHY") return "Authorization healthy";
-  if (account.token === "EXPIRING_SOON") return "Authorization expires soon";
-  if (account.token === "EXPIRED") return "Authorization expired";
-  return "Authorization needs check";
+function tokenLabel(account: HealthAccount, t: (key: string) => string) {
+  if (account.token === "HEALTHY") return t("Authorization healthy");
+  if (account.token === "EXPIRING_SOON") return t("Authorization expires soon");
+  if (account.token === "EXPIRED") return t("Authorization expired");
+  return t("Authorization needs check");
 }
 
 function InstagramHealthPanel({ accounts }: { accounts: HealthAccount[] }) {
+  const { t, locale } = useLocale();
   if (accounts.length === 0) return null;
 
   return (
@@ -166,17 +168,17 @@ function InstagramHealthPanel({ accounts }: { accounts: HealthAccount[] }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold text-foreground">
-            Instagram connection health
+            {t("Instagram connection health")}
           </h2>
           <p className="mt-1 text-xs text-muted">
-            ReplyHalo checks connection, authorization, and automation readiness for you.
+            {t("ReplyHalo checks connection, authorization, and automation readiness for you.")}
           </p>
         </div>
         <a
           href="/api/instagram/connect"
           className="inline-flex shrink-0 items-center justify-center rounded bg-accent px-3.5 py-2 text-xs font-semibold text-white hover:bg-accent-hover"
         >
-          Connect / Reconnect Instagram
+          {t("Connect / Reconnect Instagram")}
         </a>
       </div>
 
@@ -210,33 +212,33 @@ function InstagramHealthPanel({ accounts }: { accounts: HealthAccount[] }) {
                     }`}
                   >
                     {ready
-                      ? "Ready"
+                      ? t("Ready")
                       : account.connected
-                        ? "Needs attention"
-                        : "Disconnected"}
+                        ? t("Needs attention")
+                        : t("Disconnected")}
                   </span>
                 </div>
 
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <HealthPill
                     good={account.connected}
-                    label={account.connected ? "Connected" : "Disconnected"}
+                    label={account.connected ? t("Connected") : t("Disconnected")}
                   />
-                  <HealthPill good={tokenGood} label={tokenLabel(account)} />
+                  <HealthPill good={tokenGood} label={tokenLabel(account, t)} />
                   <HealthPill
                     good={account.webhookReady}
                     label={
                       account.webhookReady
-                        ? "Automation ready"
-                        : "Automation setup needs attention"
+                        ? t("Automation ready")
+                        : t("Automation setup needs attention")
                     }
                   />
                 </div>
 
                 {account.tokenExpiresAt && account.connected && (
                   <p className="mt-2 text-[11px] text-muted">
-                    Authorization valid until{" "}
-                    {new Date(account.tokenExpiresAt).toLocaleDateString()}.
+                    {t("Authorization valid until")}{" "}
+                    {new Date(account.tokenExpiresAt).toLocaleDateString(locale === "uk" ? "uk-UA" : "en-US")}.
                   </p>
                 )}
                 {!ready && account.reasons.length > 0 && (
@@ -255,6 +257,7 @@ function InstagramHealthPanel({ accounts }: { accounts: HealthAccount[] }) {
 
 export function InstagramConnectNotice() {
   const searchParams = useSearchParams();
+  const { t, locale } = useLocale();
   const [healthAccounts, setHealthAccounts] = useState<HealthAccount[]>([]);
 
   useEffect(() => {
@@ -272,8 +275,8 @@ export function InstagramConnectNotice() {
   if (licenseStatus) {
     const knownLicense = LICENSE_MESSAGES[licenseStatus] ?? LICENSE_MESSAGES.failed;
     notice = (
-      <Notice tone={knownLicense.tone} title={knownLicense.title}>
-        <p>{knownLicense.detail}</p>
+      <Notice tone={knownLicense.tone} title={t(knownLicense.title)}>
+        <p>{t(knownLicense.detail)}</p>
       </Notice>
     );
   } else {
@@ -281,17 +284,17 @@ export function InstagramConnectNotice() {
 
     if (status === "misconfigured") {
       notice = (
-        <Notice tone="error" title="Instagram connection temporarily unavailable">
+        <Notice tone="error" title={t("Instagram connection temporarily unavailable")}>
           <p>
-            ReplyHalo&apos;s Instagram connection is not fully configured in this environment. You do not need to configure any developer settings yourself. Please contact support.
+            {locale === "uk" ? "Підключення Instagram у ReplyHalo ще не повністю налаштоване в цьому середовищі. Вам не потрібно самостійно налаштовувати developer settings. Зверніться до підтримки." : "ReplyHalo’s Instagram connection is not fully configured in this environment. You do not need to configure any developer settings yourself. Please contact support."}
           </p>
         </Notice>
       );
     } else if (status === "failed") {
       notice = (
-        <Notice tone="error" title="Instagram connection failed">
+        <Notice tone="error" title={t("Instagram connection failed")}>
           <p>
-            Instagram accepted the login but ReplyHalo could not complete the connection. Try Connect / Reconnect Instagram again. If it repeats, contact support — you will not be asked for your Instagram password or developer credentials.
+            {locale === "uk" ? "Instagram прийняв вхід, але ReplyHalo не зміг завершити підключення. Спробуйте Підключити / перепідключити Instagram ще раз. Якщо помилка повториться, зверніться до підтримки — пароль Instagram або developer credentials не потрібні." : "Instagram accepted the login but ReplyHalo could not complete the connection. Try Connect / Reconnect Instagram again. If it repeats, contact support — you will not be asked for your Instagram password or developer credentials."}
           </p>
         </Notice>
       );
@@ -299,8 +302,8 @@ export function InstagramConnectNotice() {
       const known = INSTAGRAM_MESSAGES[status];
       if (known) {
         notice = (
-          <Notice tone={known.tone} title={known.title}>
-            <p>{known.detail}</p>
+          <Notice tone={known.tone} title={t(known.title)}>
+            <p>{t(known.detail)}</p>
           </Notice>
         );
       }
