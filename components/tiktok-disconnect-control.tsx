@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/components/locale-provider";
 
 type Account = {
   id: string;
@@ -20,6 +21,7 @@ export default function TikTokDisconnectControl({
   accounts: Account[];
   canManage: boolean;
 }) {
+  const { t, locale } = useLocale();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +30,9 @@ export default function TikTokDisconnectControl({
   async function disconnect(account: Account) {
     if (
       !window.confirm(
-        `Disconnect ${label(account)}? Campaigns, durable matches, and history will be preserved and will return after reconnecting the same TikTok account.`
+        locale === "uk"
+          ? `Відключити ${label(account)}? Кампанії, збережені збіги та історія залишаться й повернуться після повторного підключення того самого TikTok акаунта.`
+          : `Disconnect ${label(account)}? Campaigns, durable matches, and history will be preserved and will return after reconnecting the same TikTok account.`
       )
     ) {
       return;
@@ -44,12 +48,12 @@ export default function TikTokDisconnectControl({
       });
       const payload = await response.json();
       if (!payload.success) {
-        setError(payload.error ?? "Could not disconnect TikTok account");
+        setError(t(payload.error ?? "Could not disconnect TikTok account"));
         return;
       }
       window.location.reload();
     } catch {
-      setError("Could not disconnect TikTok account");
+      setError(t("Could not disconnect TikTok account"));
     } finally {
       setBusyId(null);
     }
@@ -59,9 +63,9 @@ export default function TikTokDisconnectControl({
     <div className="max-w-6xl mx-auto rounded border border-border bg-surface/70 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-foreground">TikTok connection</p>
+          <p className="text-sm font-medium text-foreground">{t("TikTok connection")}</p>
           <p className="mt-1 text-xs text-muted">
-            Disconnect is non-destructive: campaigns and routing history stay stored for same-account reconnect.
+            {t("Disconnect is non-destructive: campaigns and routing history stay stored for same-account reconnect.")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -74,8 +78,8 @@ export default function TikTokDisconnectControl({
               className="rounded border border-error/20 px-3 py-2 text-xs font-medium text-error transition-colors hover:border-error/40 hover:bg-error/10 disabled:opacity-50"
             >
               {busyId === account.id
-                ? "Disconnecting…"
-                : `Disconnect ${label(account)}`}
+                ? t("Disconnecting…")
+                : `${t("Disconnect")} ${label(account)}`}
             </button>
           ))}
         </div>
