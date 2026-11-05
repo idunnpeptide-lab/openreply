@@ -44,9 +44,10 @@ export default async function TrendWatchCompetitorsPage() {
     );
   } catch (error) {
     return (
-      <TrendWatchServiceState
-        title="Competitor data is unavailable"
-        description={error instanceof Error ? error.message : undefined}
+      <TrendWatchCompetitorManager
+        initialNiches={[]}
+        initialAccounts={[]}
+        initialError={error instanceof Error ? error.message : "Trend Watch collector is unavailable"}
       />
     );
   }
