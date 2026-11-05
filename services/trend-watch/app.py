@@ -1067,6 +1067,21 @@ def saved(workspace_id: str = Depends(require_workspace)):
     return {"items": items}
 
 
+@app.post("/v1/trends/refresh")
+def refresh_trends_now(workspace_id: str = Depends(require_workspace)):
+    try:
+        refresh_trends(workspace_id)
+        count = query_one(
+            "SELECT COUNT(*) AS count FROM tw_trends WHERE workspace_id=%s",
+            (workspace_id,),
+        )
+        log_event(workspace_id, "Instagram trends refreshed manually")
+        return {"ok": True, "count": (count or {}).get("count", 0)}
+    except Exception as exc:
+        log_event(workspace_id, "Instagram trend refresh failed: " + str(exc), "error")
+        raise HTTPException(502, "Could not refresh Instagram trends") from exc
+
+
 @app.get("/v1/trends")
 def trends(workspace_id: str = Depends(require_workspace)):
     items = query_all(
