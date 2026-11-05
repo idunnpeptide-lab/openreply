@@ -1,14 +1,10 @@
 "use client";
 
-/**
- * Sidebar Navigation
- *
- * Text-only nav with active state and workspace section.
- */
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import LanguageSwitcher from "@/components/language-switcher";
+import { useLocale } from "@/components/locale-provider";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -35,6 +31,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const { t } = useLocale();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -72,16 +69,14 @@ export default function Sidebar({
 
       <aside
         id="dashboard-sidebar"
-        className={`
+        className={\`
           fixed top-0 left-0 z-50 h-dvh w-64 max-w-[85vw] shrink-0 bg-surface border-r border-border flex flex-col
           transition-transform duration-200 ease-out
           lg:h-full lg:translate-x-0 lg:static lg:z-auto lg:visible lg:pointer-events-auto
-          ${
-            isOpen
-              ? "visible translate-x-0 pointer-events-auto"
-              : "invisible -translate-x-full pointer-events-none"
-          }
-        `}
+          \${isOpen
+            ? "visible translate-x-0 pointer-events-auto"
+            : "invisible -translate-x-full pointer-events-none"}
+        \`}
       >
         <div
           className="flex items-center justify-between gap-3 px-6 py-5 border-b border-border"
@@ -95,41 +90,46 @@ export default function Sidebar({
             type="button"
             onClick={closeAndRestoreFocus}
             className="rounded border border-border px-2.5 py-1.5 text-sm text-muted hover:text-foreground lg:hidden"
-            aria-label="Close navigation"
+            aria-label={t("Close navigation")}
           >
-            Close
+            {t("Close")}
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Main navigation">
+        <nav
+          className="flex-1 px-3 py-4 space-y-1 overflow-y-auto"
+          aria-label={t("Main navigation")}
+        >
           {navItems.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(item.href + "/");
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
                 aria-current={isActive ? "page" : undefined}
-                className={`
+                className={\`
                   block px-3 py-2.5 rounded text-sm
-                  ${
-                    isActive
-                      ? "bg-surface-hover text-foreground font-medium"
-                      : "text-muted hover:text-foreground hover:bg-surface-hover"
-                  }
-                `}
+                  \${isActive
+                    ? "bg-surface-hover text-foreground font-medium"
+                    : "text-muted hover:text-foreground hover:bg-surface-hover"}
+                \`}
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             );
           })}
         </nav>
 
-        <div className="px-5 py-4 border-t border-border">
-          <p className="text-sm text-foreground truncate">{workspaceName}</p>
-          <p className="text-xs text-muted">ReplyHalo workspace</p>
+        <div className="space-y-3 border-t border-border px-5 py-4">
+          <div>
+            <p className="text-sm text-foreground truncate">{workspaceName}</p>
+            <p className="text-xs text-muted">{t("ReplyHalo workspace")}</p>
+          </div>
+          <LanguageSwitcher compact />
         </div>
       </aside>
     </>
