@@ -17,6 +17,7 @@ const ALLOWED_ROOTS = new Set([
   "analysis",
   "reels",
   "similar",
+  "events",
 ]);
 
 async function proxy(
