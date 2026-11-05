@@ -606,6 +606,11 @@ const uk: Record<string, string> = {
   "This plan has no free social-account slots.": "У цьому плані немає вільних слотів для соціальних акаунтів.",
   "ReplyHalo could not verify the plan right now. Please try again in a moment.": "ReplyHalo зараз не може перевірити план. Спробуйте ще раз трохи пізніше.",
   "We could not activate ReplyHalo with that code. Check it and try again, or contact support.": "Не вдалося активувати ReplyHalo цим кодом. Перевірте його та спробуйте ще раз або зверніться до підтримки.",
+
+  "Your plan has no free social-account slots. Reconnecting an already-linked account uses its existing slot. To connect a different account, use available plan capacity, upgrade, or contact support for a controlled migration.": "У вашому плані немає вільних слотів для соціальних акаунтів. Повторне підключення вже прив’язаного акаунта використовує його наявний слот. Щоб підключити інший акаунт, використайте доступний ліміт плану, оновіть план або зверніться до підтримки для контрольованого перенесення.",
+  "ReplyHalo could not disconnect this Instagram account. Nothing was changed. Please try again.": "ReplyHalo не зміг відключити цей Instagram акаунт. Нічого не було змінено. Спробуйте ще раз.",
+  "Could not invite member": "Не вдалося запросити учасника",
+  "ReplyHalo could not verify the activation code right now. Please try again.": "ReplyHalo зараз не може перевірити код активації. Спробуйте ще раз трохи пізніше.",
 };
 
 export function normalizeLocale(value?: string | null): ReplyHaloLocale {
