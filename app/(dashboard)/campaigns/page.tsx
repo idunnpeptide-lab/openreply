@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import { readCache, writeCache } from "@/lib/client-cache";
 import { automationMutationCustomerError } from "@/lib/customer-instagram-readiness";
+import { useLocale } from "@/components/locale-provider";
 
 interface Campaign {
   id: string;
@@ -65,6 +66,7 @@ interface Campaign {
 }
 
 export default function CampaignsPage() {
+  const { t } = useLocale();
   const router = useRouter();
   const [automations, setAutomations] = useState<Campaign[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -223,7 +225,7 @@ export default function CampaignsPage() {
       if (!response.ok || !payload.success) {
         const customerError = automationMutationCustomerError(payload.error);
         setLoadError(
-          customerError ?? "That automation could not be updated. Please retry."
+          customerError ?? t("That automation could not be updated. Please retry.")
         );
         return;
       }
@@ -252,7 +254,7 @@ export default function CampaignsPage() {
   }
 
   async function deleteAutomation(id: string) {
-    if (!confirm("Delete this campaign? This cannot be undone.")) return;
+    if (!confirm(t("Delete this campaign? This cannot be undone."))) return;
     try {
       const response = await fetch(`/api/automations?id=${id}`, { method: "DELETE" });
       const payload = await response.json();
@@ -329,7 +331,7 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Automations</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("Automations")}</h1>
           <p className="mt-1 text-sm text-muted">
             {filtered.length}
             {filtered.length !== automations.length ? ` of ${automations.length}` : ""}{" "}
@@ -348,7 +350,7 @@ export default function CampaignsPage() {
             href="/campaigns/import"
             className="flex-1 rounded border border-border px-4 py-2 text-center text-sm font-medium text-muted hover:text-foreground sm:flex-none"
           >
-            Import
+            {t("Import")}
           </Link>
           <Link
             href="/campaigns/new"
@@ -360,7 +362,7 @@ export default function CampaignsPage() {
             href="/campaigns/quick"
             className="flex-1 rounded bg-accent px-4 py-2 text-center text-sm font-semibold text-white hover:bg-accent-hover sm:flex-none"
           >
-            Quick Automation
+            {t("Quick Automation")}
           </Link>
         </div>
       </div>
@@ -397,14 +399,14 @@ export default function CampaignsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search automations by name, keyword, or message…"
-            aria-label="Search automations"
+            placeholder={t("Search automations by name, keyword, or message…")}
+            aria-label={t("Search automations")}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
           />
           <div
             className="inline-flex shrink-0 rounded-lg bg-surface p-1"
             role="group"
-            aria-label="Automation status filter"
+            aria-label={t("Automation status filter")}
           >
             {(["all", "active", "paused"] as const).map((s) => (
               <button
@@ -429,26 +431,26 @@ export default function CampaignsPage() {
         <div className="overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-surface to-surface p-6 sm:p-10">
           <div className="mx-auto max-w-2xl text-center">
             <span className="inline-flex rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
-              Best place to start
+              {t("Best place to start")}
             </span>
             <h3 className="mt-3 text-xl font-semibold text-foreground">
-              Launch your first automation in a few minutes
+              {t("Launch your first automation in a few minutes")}
             </h3>
             <p className="mx-auto mt-2 max-w-lg text-sm text-muted">
-              Start with a ready-made Comment → DM, Follow Gate, tracked-link, or follow-up flow. You can still use the full builder when you need something custom.
+              {t("Start with a ready-made Comment → DM, Follow Gate, tracked-link, or follow-up flow. You can still use the full builder when you need something custom.")}
             </p>
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 href="/campaigns/quick"
                 className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
               >
-                Choose Quick Automation
+                {t("Choose Quick Automation")}
               </Link>
               <Link
                 href="/campaigns/new"
                 className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-hover"
               >
-                Build custom automation
+                {t("Build custom automation")}
               </Link>
             </div>
           </div>
@@ -457,14 +459,14 @@ export default function CampaignsPage() {
 
       {automations.length > 0 && filtered.length === 0 && (
         <div className="panel rounded p-8 text-center">
-          <p className="text-sm font-medium text-foreground">No automations match these filters</p>
-          <p className="mt-1 text-xs text-muted">Clear the search and status filter to see everything again.</p>
+          <p className="text-sm font-medium text-foreground">{t("No automations match these filters")}</p>
+          <p className="mt-1 text-xs text-muted">{t("Clear the search and status filter to see everything again.")}</p>
           <button
             type="button"
             onClick={resetFilters}
             className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover"
           >
-            Clear filters
+            {t("Clear filters")}
           </button>
         </div>
       )}
@@ -539,7 +541,7 @@ export default function CampaignsPage() {
                           : "bg-zinc-500/10 text-muted"
                       }`}
                     >
-                      {auto.isActive ? "Active" : "Paused"}
+                      {auto.isActive ? t("Active") : t("Paused")}
                     </span>
                     {auto.pendingNextReel && (
                       <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-warning">
@@ -621,7 +623,7 @@ export default function CampaignsPage() {
                       onClick={() => void copyReelUrl(auto)}
                       className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
                     >
-                      {copiedId === auto.id ? "Copied!" : "Copy URL"}
+                      {copiedId === auto.id ? t("Copied!") : t("Copy URL")}
                     </button>
                   )}
                   <button
@@ -629,7 +631,7 @@ export default function CampaignsPage() {
                     role="switch"
                     aria-checked={auto.isActive}
                     onClick={() => void toggleActive(auto.id, auto.isActive)}
-                    aria-label={auto.isActive ? "Pause automation" : "Activate automation"}
+                    aria-label={auto.isActive ? t("Pause automation") : t("Activate automation")}
                     className={`relative h-6 w-11 rounded-full transition-colors ${
                       auto.isActive ? "bg-accent" : "bg-zinc-300"
                     }`}
@@ -664,7 +666,7 @@ export default function CampaignsPage() {
                             onClick={() => void duplicateAutomation(auto)}
                             className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
                           >
-                            Duplicate
+                            {t("Duplicate")}
                           </button>
                           <button
                             type="button"
@@ -674,7 +676,7 @@ export default function CampaignsPage() {
                             }}
                             className="block w-full px-3 py-2 text-left text-sm text-error hover:bg-surface-hover"
                           >
-                            Delete
+                            {t("Delete")}
                           </button>
                         </div>
                       </>
@@ -707,7 +709,7 @@ export default function CampaignsPage() {
                   rel="noreferrer"
                   className="text-zinc-300 hover:text-white"
                 >
-                  Open on Instagram
+                  {t("Open on Instagram")}
                 </a>
               )}
               <button
