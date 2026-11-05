@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "@/components/locale-provider";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import PostPicker from "@/components/post-picker";
 import CampaignPreview, { type PreviewTab } from "@/components/campaign-preview";
@@ -149,6 +150,7 @@ function Toggle({
 
 export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderProps) {
   const router = useRouter();
+  const { locale, t } = useLocale();
 
   const [loading, setLoading] = useState(mode === "edit");
   const [notFound, setNotFound] = useState(false);
@@ -693,12 +695,12 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   if (notFound) {
     return (
       <div className="panel rounded p-8 text-center">
-        <p className="text-sm text-muted">Campaign not found.</p>
+        <p className="text-sm text-muted">{t("Campaign not found.")}</p>
         <button
           onClick={() => router.push("/campaigns")}
           className="mt-4 rounded border border-border px-4 py-2 text-sm text-muted hover:text-foreground"
         >
-          Back to campaigns
+          {t("Back to campaigns")}
         </button>
       </div>
     );
@@ -708,16 +710,16 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     return (
       <div className="mx-auto max-w-3xl space-y-5">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Custom builder</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("Custom builder")}</h1>
           <p className="mt-1 text-sm text-muted">
-            ReplyHalo needs to confirm a connected Instagram account before a new automation can go live.
+            {t("ReplyHalo needs to confirm a connected Instagram account before a new automation can go live.")}
           </p>
         </div>
         <div className="panel rounded-xl p-6">
           <p className="text-sm font-medium text-foreground">
-            Could not load connected accounts
+            {t("Could not load connected accounts")}
           </p>
-          <p className="mt-1 text-sm text-muted">{accountsError}</p>
+          <p className="mt-1 text-sm text-muted">{t(accountsError)}</p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
@@ -725,13 +727,13 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               disabled={accountsLoading}
               className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
             >
-              {accountsLoading ? "Checking…" : "Try again"}
+              {accountsLoading ? t("Checking…") : t("Try again")}
             </button>
             <Link
               href="/settings"
               className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-hover"
             >
-              Check Instagram connection
+              {t("Check Instagram connection")}
             </Link>
           </div>
         </div>
@@ -745,18 +747,18 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         <div>
           <h1 className="text-2xl font-bold text-foreground">Custom builder</h1>
           <p className="mt-1 text-sm text-muted">
-            Connect Instagram first, then you can build a custom automation.
+            {t("Connect Instagram first, then you can build a custom automation.")}
           </p>
         </div>
         <div className="panel rounded-xl p-6">
           <p className="text-sm text-muted">
-            You need a connected Instagram Business or Creator account before creating an automation.
+            {t("You need a connected Instagram Business or Creator account before creating an automation.")}
           </p>
           <a
             href="/api/instagram/connect"
             className="mt-4 inline-flex rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
           >
-            Connect Instagram
+            {t("Connect Instagram")}
           </a>
         </div>
       </div>
@@ -767,8 +769,8 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     <div className="space-y-6">
       {accountsError && mode === "edit" && (
         <div className="rounded border border-warning/30 bg-warning/5 px-4 py-3 text-sm">
-          <p className="font-medium text-foreground">Could not refresh Instagram connection</p>
-          <p className="mt-1 text-muted">{accountsError}</p>
+          <p className="font-medium text-foreground">{t("Could not refresh Instagram connection")}</p>
+          <p className="mt-1 text-muted">{t(accountsError)}</p>
           <div className="mt-3 flex flex-wrap gap-3">
             <button
               type="button"
@@ -803,18 +805,18 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
           {mode === "edit" ? (
             <>
               <span className="truncate text-sm font-semibold text-foreground">
-                {name || "Untitled campaign"}
+                {name || t("Untitled campaign")}
               </span>
               <span
                 className={`rounded px-2 py-0.5 text-xs font-semibold ${
                   isActive ? "bg-success/15 text-success" : "bg-zinc-500/15 text-muted"
                 }`}
               >
-                {isActive ? "LIVE" : "PAUSED"}
+                {isActive ? t("LIVE") : t("PAUSED")}
               </span>
             </>
           ) : (
-            <span className="text-sm text-muted">New campaign</span>
+            <span className="text-sm text-muted">{t("New campaign")}</span>
           )}
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -825,7 +827,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               disabled={saving}
               className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:text-foreground disabled:opacity-50"
             >
-              {importQueue.length > 1 ? "Skip" : "Skip & finish"}
+              {importQueue.length > 1 ? t("Skip") : t("Skip & finish")}
             </button>
           )}
           {mode === "edit" &&
@@ -836,7 +838,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 disabled={saving}
                 className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:text-foreground disabled:opacity-50"
               >
-                Stop
+                {t("Stop")}
               </button>
             ) : (
               <button
@@ -845,7 +847,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 disabled={saving}
                 className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:text-foreground disabled:opacity-50"
               >
-                Go Live
+                {t("Go Live")}
               </button>
             ))}
           <button
@@ -854,7 +856,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             disabled={saving}
             className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
-            {saving ? "Saving…" : mode === "new" ? "Go Live" : "Save changes"}
+            {saving ? t("Saving…") : mode === "new" ? t("Go Live") : t("Save changes")}
           </button>
         </div>
       </div>
@@ -866,7 +868,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
       <div className="space-y-8 min-w-0">
         {error && (
           <div role="alert" className="rounded border border-error/20 bg-error/10 p-3 text-sm text-error">
-            <p>{error}</p>
+            <p>{t(error)}</p>
             {connectionRecoveryNeeded && (
               <Link
                 href="/settings"
@@ -880,14 +882,14 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
 
         <div className="space-y-3">
           <label className="text-sm font-semibold text-foreground">
-            Campaign name{" "}
-            <span className="font-normal text-muted">(optional)</span>
+            {t("Campaign name")}{" "}
+            <span className="font-normal text-muted">{t("(optional)")}</span>
           </label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. YC referral"
-            aria-label="Campaign name"
+            aria-label={t("Campaign name")}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
             maxLength={100}
           />
@@ -905,11 +907,11 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
           {mode === "edit" && selectedAccountId && (
             <div className="rounded-lg border border-border bg-surface/70 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Instagram account
+                {t("Instagram account")}
               </p>
               <p className="mt-1 text-sm font-medium text-foreground">@{username}</p>
               <p className="mt-1 text-xs text-muted">
-                This automation stays attached to this account. Reconnect it in Settings if the connection needs repair.
+                {t("This automation stays attached to this account.")}
               </p>
             </div>
           )}
