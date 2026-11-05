@@ -13,7 +13,6 @@ import AccountSelect, { type AccountOption } from "@/components/account-select";
 import LaunchOnboarding from "@/components/launch-onboarding";
 import StatCard from "@/components/stat-card";
 import StatusBadge from "@/components/status-badge";
-import { useLocale } from "@/components/locale-provider";
 
 interface DashboardStats {
   userName: string | null;
@@ -45,12 +44,11 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { locale, t } = useLocale();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState("all");
-  const [retryKey, set{t("Retry")}Key] = useState(0);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +89,7 @@ export default function DashboardPage() {
   function retryDashboard() {
     setLoading(true);
     setLoadError(false);
-    set{t("Retry")}Key((value) => value + 1);
+    setRetryKey((value) => value + 1);
   }
 
   if (loading && !stats) {
@@ -114,10 +112,10 @@ export default function DashboardPage() {
     return (
       <div className="mx-auto max-w-xl panel rounded-xl p-6 text-center sm:p-8">
         <h1 className="text-xl font-semibold text-foreground">
-          {t("We could not load your dashboard")}
+          We could not load your dashboard
         </h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-          Your automations and history are still saved. {t("Retry")} the dashboard, or
+          Your automations and history are still saved. Retry the dashboard, or
           check the Instagram connection if the problem continues.
         </p>
         <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
@@ -126,13 +124,13 @@ export default function DashboardPage() {
             onClick={retryDashboard}
             className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
           >
-            {t("{t("Retry")} dashboard")}
+            Retry dashboard
           </button>
           <Link
             href="/settings"
             className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-hover"
           >
-            {t("Check connection")}
+            Check connection
           </Link>
         </div>
       </div>
@@ -147,16 +145,16 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            {t("Hello")}, {stats.userName ?? t("there")}!
+            Hello, {stats.userName ?? "there"}!
           </h1>
           <p className="mt-1 text-sm text-muted">
             {connectedCount} connected{" "}
             {connectedCount === 1 ? "account" : "accounts"}
             {" · "}
-            {stats.contactsCount} {locale === "uk" ? (stats.contactsCount === 1 ? "контакт" : "контакти") : (stats.contactsCount === 1 ? "contact" : "contacts")}
+            {stats.contactsCount} {stats.contactsCount === 1 ? "contact" : "contacts"}
             {" · "}
             <Link href="/logs" className="text-accent hover:underline">
-              {t("See activity")}
+              See activity
             </Link>
           </p>
         </div>
@@ -173,10 +171,10 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {t("Could not refresh the latest numbers")}
+              Could not refresh the latest numbers
             </p>
             <p className="mt-0.5 text-xs text-muted">
-              {t("The last loaded dashboard is still shown below.")}
+              The last loaded dashboard is still shown below.
             </p>
           </div>
           <button
@@ -184,7 +182,7 @@ export default function DashboardPage() {
             onClick={retryDashboard}
             className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover"
           >
-            {t("Retry")}
+            Retry
           </button>
         </div>
       )}
@@ -197,39 +195,39 @@ export default function DashboardPage() {
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">{t("Launch performance")}</h2>
+            <h2 className="text-sm font-semibold text-foreground">Launch performance</h2>
             <p className="mt-0.5 text-xs text-muted">
-              {t("Delivery and link activity for the current month.")}
+              Delivery and link activity for the current month.
             </p>
           </div>
           {connectedCount > 0 && (
             <Link href="/campaigns/quick" className="text-xs font-medium text-accent hover:underline">
-              {t("New quick automation")}
+              New quick automation
             </Link>
           )}
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
-          <StatCard label={t("Active Automations")} value={stats.activeAutomations} />
-          <StatCard label={t("DMs Sent")} value={stats.dmsSentMonth} />
-          <StatCard label={t("Link Clicks")} value={stats.clicksThisMonth} />
-          <StatCard label={t("CTR")} value={`${stats.ctrThisMonth}%`} />
-          <StatCard label={t("Failed")} value={stats.dmsFailedMonth} />
-          <StatCard label={t("Skipped")} value={stats.dmsSkippedMonth} />
+          <StatCard label="Active Automations" value={stats.activeAutomations} />
+          <StatCard label="DMs Sent" value={stats.dmsSentMonth} />
+          <StatCard label="Link Clicks" value={stats.clicksThisMonth} />
+          <StatCard label="CTR" value={`${stats.ctrThisMonth}%`} />
+          <StatCard label="Failed" value={stats.dmsFailedMonth} />
+          <StatCard label="Skipped" value={stats.dmsSkippedMonth} />
         </div>
       </section>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-6">
         <div className="panel rounded p-4 sm:p-6 lg:col-span-3">
-          <h2 className="mb-6 text-sm font-semibold text-foreground">{t("DMs — Last 7 Days")}</h2>
+          <h2 className="mb-6 text-sm font-semibold text-foreground">DMs — Last 7 Days</h2>
           {stats.dailyDMs.every((day) => day.count === 0) ? (
             <div className="flex h-40 flex-col items-center justify-center text-center">
-              <p className="text-sm font-medium text-foreground">{t("No DMs sent yet")}</p>
+              <p className="text-sm font-medium text-foreground">No DMs sent yet</p>
               <p className="mt-1 max-w-xs text-xs text-muted">
-                {t("Once your first automation starts sending, the 7-day trend will appear here.")}
+                Once your first automation starts sending, the 7-day trend will appear here.
               </p>
               {connectedCount > 0 && stats.totalAutomations === 0 && (
                 <Link href="/campaigns/quick" className="mt-3 text-xs font-medium text-accent hover:underline">
-                  {t("Create your first automation")}
+                  Create your first automation
                 </Link>
               )}
             </div>
@@ -252,10 +250,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="panel rounded p-4 sm:p-6 lg:col-span-1">
-          <h2 className="mb-4 text-sm font-semibold text-foreground">{t("Top Keywords")}</h2>
+          <h2 className="mb-4 text-sm font-semibold text-foreground">Top Keywords</h2>
           <div className="space-y-3">
             {stats.topKeywords.length === 0 && (
-              <p className="py-8 text-sm text-muted">{t("No keyword matches yet")}</p>
+              <p className="py-8 text-sm text-muted">No keyword matches yet</p>
             )}
             {stats.topKeywords.map((keyword) => (
               <div key={keyword.keyword} className="flex items-center justify-between gap-3">
@@ -270,19 +268,19 @@ export default function DashboardPage() {
 
         <div className="panel rounded p-4 sm:p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-foreground">{t("Recent Activity")}</h2>
+            <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
             {stats.recentLogs.length > 0 && (
               <Link href="/logs" className="text-xs font-medium text-accent hover:underline">
-                {t("View all")}
+                View all
               </Link>
             )}
           </div>
           <div className="max-h-60 space-y-3 overflow-y-auto">
             {stats.recentLogs.length === 0 && (
               <div className="py-8 text-center">
-                <p className="text-sm font-medium text-foreground">{t("No activity yet")}</p>
+                <p className="text-sm font-medium text-foreground">No activity yet</p>
                 <p className="mt-1 text-xs text-muted">
-                  {t("Matches and delivery events will appear here after your automation goes live.")}
+                  Matches and delivery events will appear here after your automation goes live.
                 </p>
               </div>
             )}
