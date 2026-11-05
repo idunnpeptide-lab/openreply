@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/components/locale-provider";
 
 const items = [
   { href: "/trend-watch/outliers", label: "Outliers" },
@@ -13,6 +14,7 @@ const items = [
 
 export default function TrendWatchSubnav() {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
@@ -35,7 +37,7 @@ export default function TrendWatchSubnav() {
                   : "text-muted hover:bg-surface-hover hover:text-foreground")
               }
             >
-              {item.label}
+              {t(item.label)}
             </Link>
           );
         })}
