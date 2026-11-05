@@ -243,7 +243,7 @@ function InstagramHealthPanel({ accounts }: { accounts: HealthAccount[] }) {
                 )}
                 {!ready && account.reasons.length > 0 && (
                   <p className="mt-2 text-xs text-muted">
-                    {account.reasons[0]}. Reconnecting refreshes authorization; your campaigns, logs, clicks, and history stay saved.
+                    {t(account.reasons[0])}. {locale === "uk" ? "Перепідключення оновить авторизацію; ваші кампанії, журнали, кліки та історія залишаться збереженими." : "Reconnecting refreshes authorization; your campaigns, logs, clicks, and history stay saved."}
                   </p>
                 )}
               </div>
