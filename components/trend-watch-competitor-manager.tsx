@@ -18,6 +18,14 @@ type Account = {
   error?: string | null;
 };
 
+type SimilarAccount = {
+  username: string;
+  full_name?: string | null;
+  is_verified?: boolean | null;
+  profile_picture?: string | null;
+  tracked?: boolean;
+};
+
 interface Props {
   initialNiches: Niche[];
   initialAccounts: Account[];
@@ -55,6 +63,8 @@ export default function TrendWatchCompetitorManager({
   const [nicheId, setNicheId] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [similarSource, setSimilarSource] = useState<string | null>(null);
+  const [similarAccounts, setSimilarAccounts] = useState<SimilarAccount[]>([]);
 
   async function addNiche(event: FormEvent) {
     event.preventDefault();
@@ -110,6 +120,79 @@ export default function TrendWatchCompetitorManager({
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not add accounts"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeAccount(username: string) {
+    if (!window.confirm("Remove @" + username + " from Trend Watch?")) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api("accounts/" + encodeURIComponent(username), {
+        method: "DELETE",
+      });
+      setAccounts((current) =>
+        current.filter((account) => account.username !== username)
+      );
+      if (similarSource === username) {
+        setSimilarSource(null);
+        setSimilarAccounts([]);
+      }
+      setMessage("Removed @" + username + ".");
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not remove account"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadSimilar(username: string) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const data = await api("similar/" + encodeURIComponent(username));
+      setSimilarSource(username);
+      setSimilarAccounts((data.items ?? []) as SimilarAccount[]);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not load similar accounts"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addSimilar(username: string) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const data = await api("accounts", {
+        method: "POST",
+        body: JSON.stringify({
+          usernames: [username],
+          niche_id: nicheId ? Number(nicheId) : null,
+        }),
+      });
+      setSimilarAccounts((current) =>
+        current.map((item) =>
+          item.username === username ? { ...item, tracked: true } : item
+        )
+      );
+      setMessage(
+        data.added?.length
+          ? "Added @" + username + ". Sync started."
+          : "@" + username + " is already tracked."
+      );
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not add similar account"
       );
     } finally {
       setBusy(false);
@@ -265,13 +348,31 @@ export default function TrendWatchCompetitorManager({
                     <p className="mt-1 text-xs text-error">{account.error}</p>
                   )}
                 </div>
-                <span className="text-sm font-medium text-accent">
-                  {account.best_outlier
-                    ? "best ×" + account.best_outlier.toFixed(1)
-                    : account.status === "error"
-                      ? "Error"
-                      : "Collecting"}
-                </span>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span className="text-sm font-medium text-accent">
+                    {account.best_outlier
+                      ? "best ×" + account.best_outlier.toFixed(1)
+                      : account.status === "error"
+                        ? "Error"
+                        : "Collecting"}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => loadSimilar(account.username)}
+                    className="rounded border border-border px-2.5 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
+                  >
+                    Similar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => removeAccount(account.username)}
+                    className="rounded border border-error/30 px-2.5 py-1.5 text-xs text-error hover:bg-error/5 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
             {accounts.length === 0 && (
@@ -282,6 +383,65 @@ export default function TrendWatchCompetitorManager({
           </div>
         </section>
       </div>
+
+      {similarSource && (
+        <section className="panel rounded p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Similar to @{similarSource}
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Instagram accounts suggested as related competitors.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSimilarSource(null);
+                setSimilarAccounts([]);
+              }}
+              className="text-sm text-muted hover:text-foreground"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {similarAccounts.map((item) => (
+              <div
+                key={item.username}
+                className="flex items-center justify-between gap-3 rounded border border-border bg-background p-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    @{item.username}
+                    {item.is_verified ? " ✓" : ""}
+                  </p>
+                  {item.full_name && (
+                    <p className="mt-0.5 truncate text-xs text-muted">
+                      {item.full_name}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  disabled={busy || item.tracked}
+                  onClick={() => addSimilar(item.username)}
+                  className="shrink-0 rounded border border-border px-2.5 py-1.5 text-xs text-foreground disabled:opacity-50"
+                >
+                  {item.tracked ? "Tracked" : "Add"}
+                </button>
+              </div>
+            ))}
+            {similarAccounts.length === 0 && (
+              <p className="py-6 text-sm text-muted">
+                Instagram did not return similar accounts for this profile.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
