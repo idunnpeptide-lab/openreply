@@ -22,6 +22,7 @@ SCRAPER_URL = os.environ.get("SCRAPER_URL", "http://instagram-scraper:8000").rst
 REFRESH_HOURS = float(os.environ.get("TW_REFRESH_HOURS", "6"))
 REEL_PAGES = int(os.environ.get("TW_REEL_PAGES", "3"))
 REQUEST_DELAY = float(os.environ.get("TW_REQUEST_DELAY", "1.5"))
+SMOKE_USERNAME = os.environ.get("TW_SMOKE_USERNAME", "").strip()
 
 app = FastAPI(title="ReplyHalo Trend Watch", version="0.1.0")
 
@@ -718,6 +719,23 @@ def run_analysis_job(workspace_id: str, code: str):
             _analyzing.discard(key)
 
 
+def startup_smoke():
+    if not SMOKE_USERNAME:
+        return
+    try:
+        profile = scraper_get("/users/profile", user=clean_username(SMOKE_USERNAME))
+        username = profile.get("username") or clean_username(SMOKE_USERNAME)
+        followers = profile.get("follower_count")
+        print(
+            "TRENDWATCH_SMOKE_OK username=@"
+            + str(username)
+            + " followers="
+            + str(followers)
+        )
+    except Exception as exc:
+        print("TRENDWATCH_SMOKE_ERROR " + str(exc))
+
+
 def scheduler():
     while True:
         time.sleep(60)
@@ -750,6 +768,8 @@ def startup():
         with conn.cursor() as cur:
             cur.execute(SCHEMA)
     threading.Thread(target=scheduler, daemon=True).start()
+    if SMOKE_USERNAME:
+        threading.Thread(target=startup_smoke, daemon=True).start()
 
 
 @app.get("/health")
