@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Niche = {
@@ -44,7 +44,12 @@ export default function TrendWatchCompetitorManager({
 }: Props) {
   const router = useRouter();
   const [niches, setNiches] = useState(initialNiches);
-  const [accounts] = useState(initialAccounts);
+  const [accounts, setAccounts] = useState(initialAccounts);
+
+  useEffect(() => {
+    setNiches(initialNiches);
+    setAccounts(initialAccounts);
+  }, [initialNiches, initialAccounts]);
   const [nicheName, setNicheName] = useState("");
   const [usernames, setUsernames] = useState("");
   const [nicheId, setNicheId] = useState("");
