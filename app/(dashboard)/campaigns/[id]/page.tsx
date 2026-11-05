@@ -286,7 +286,7 @@ export default function CampaignDetailPage() {
             <FieldBox>{campaign.followUpMessage}</FieldBox>
             <p className="text-xs text-muted">
               {campaign.followUpDelayMinutes && campaign.followUpDelayMinutes > 0
-                ? (t("Sent") + " " + campaign.followUpDelayMinutes + " min " + (t("after the link.") === "after the link." ? "after the link." : "після посилання."))
+                ? t("Sent") + " " + campaign.followUpDelayMinutes + " " + t("minutes") + " " + t("after the link.")
                 : t("Sent right after the link.")}
             </p>
           </Summary>
