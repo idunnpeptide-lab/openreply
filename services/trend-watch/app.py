@@ -1,4 +1,5 @@
 import hmac
+import json
 import math
 import os
 import statistics
@@ -12,6 +13,8 @@ import psycopg
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
 from psycopg.rows import dict_row
 from pydantic import BaseModel
+
+from analyzer import analyze as analyze_video
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 INTERNAL_TOKEN = os.environ.get("TRENDWATCH_INTERNAL_TOKEN", "")
@@ -111,6 +114,18 @@ CREATE TABLE IF NOT EXISTS tw_trends (
 CREATE INDEX IF NOT EXISTS tw_trends_workspace
   ON tw_trends(workspace_id, rank);
 
+CREATE TABLE IF NOT EXISTS tw_analyses (
+  workspace_id TEXT NOT NULL,
+  code TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'queued',
+  step TEXT,
+  error TEXT,
+  data JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (workspace_id, code)
+);
+
 CREATE TABLE IF NOT EXISTS tw_events (
   id BIGSERIAL PRIMARY KEY,
   workspace_id TEXT NOT NULL,
@@ -125,6 +140,8 @@ _scraper_lock = threading.Lock()
 _last_scraper_call = 0.0
 _sync_lock = threading.Lock()
 _syncing_workspaces: set[str] = set()
+_analysis_lock = threading.Lock()
+_analyzing: set[tuple[str, str]] = set()
 
 
 class NicheIn(BaseModel):
@@ -625,6 +642,82 @@ def sync_workspace(workspace_id: str, usernames=None):
             _syncing_workspaces.discard(workspace_id)
 
 
+def run_analysis_job(workspace_id: str, code: str):
+    key = (workspace_id, code)
+    with _analysis_lock:
+        if key in _analyzing:
+            return
+        _analyzing.add(key)
+
+    try:
+        execute(
+            """
+            INSERT INTO tw_analyses(workspace_id, code, status, step, error, updated_at)
+            VALUES (%s,%s,'running','Preparing video',NULL,NOW())
+            ON CONFLICT(workspace_id, code) DO UPDATE SET
+              status='running', step='Preparing video', error=NULL, updated_at=NOW()
+            """,
+            (workspace_id, code),
+        )
+
+        reel = query_one(
+            """
+            SELECT r.*, a.followers, a.median_plays
+            FROM tw_reels r
+            LEFT JOIN tw_accounts a
+              ON a.workspace_id=r.workspace_id AND a.username=r.username
+            WHERE r.workspace_id=%s AND r.code=%s
+            """,
+            (workspace_id, code),
+        )
+        if not reel:
+            raise RuntimeError("Reel is not available in this workspace")
+
+        fresh_video_url = None
+        try:
+            details = scraper_get("/posts/details", post=code)
+            video = details.get("video") or {}
+            if isinstance(video, dict):
+                fresh_video_url = video.get("link")
+        except Exception:
+            pass
+
+        execute(
+            """
+            UPDATE tw_analyses
+            SET step='Frames, pacing, hook and transcript', updated_at=NOW()
+            WHERE workspace_id=%s AND code=%s
+            """,
+            (workspace_id, code),
+        )
+
+        result = analyze_video(workspace_id, code, reel, fresh_video_url)
+        execute(
+            """
+            UPDATE tw_analyses
+            SET status='done', step='Ready', data=%s::jsonb,
+                error=NULL, updated_at=NOW()
+            WHERE workspace_id=%s AND code=%s
+            """,
+            (json.dumps(result, ensure_ascii=False, default=str), workspace_id, code),
+        )
+        log_event(workspace_id, "Video analysis ready: " + code)
+    except Exception as exc:
+        execute(
+            """
+            INSERT INTO tw_analyses(workspace_id, code, status, step, error, updated_at)
+            VALUES (%s,%s,'error','Failed',%s,NOW())
+            ON CONFLICT(workspace_id, code) DO UPDATE SET
+              status='error', step='Failed', error=EXCLUDED.error, updated_at=NOW()
+            """,
+            (workspace_id, code, str(exc)[:1200]),
+        )
+        log_event(workspace_id, "Video analysis failed " + code + ": " + str(exc), "error")
+    finally:
+        with _analysis_lock:
+            _analyzing.discard(key)
+
+
 def scheduler():
     while True:
         time.sleep(60)
@@ -958,6 +1051,54 @@ def trends(workspace_id: str = Depends(require_workspace)):
         (workspace_id,),
     )
     return {"items": items}
+
+
+@app.post("/v1/analysis/{code}")
+def start_analysis(
+    code: str,
+    background: BackgroundTasks,
+    workspace_id: str = Depends(require_workspace),
+):
+    reel = query_one(
+        "SELECT code FROM tw_reels WHERE workspace_id=%s AND code=%s",
+        (workspace_id, code),
+    )
+    if not reel:
+        raise HTTPException(404, "Reel not found in this workspace")
+
+    existing = query_one(
+        "SELECT status FROM tw_analyses WHERE workspace_id=%s AND code=%s",
+        (workspace_id, code),
+    )
+    if existing and existing.get("status") == "running":
+        return {"status": "running"}
+
+    execute(
+        """
+        INSERT INTO tw_analyses(workspace_id, code, status, step, error, updated_at)
+        VALUES (%s,%s,'queued','Queued',NULL,NOW())
+        ON CONFLICT(workspace_id, code) DO UPDATE SET
+          status='queued', step='Queued', error=NULL, updated_at=NOW()
+        """,
+        (workspace_id, code),
+    )
+    background.add_task(run_analysis_job, workspace_id, code)
+    return {"status": "queued"}
+
+
+@app.get("/v1/analysis/{code}")
+def get_analysis(code: str, workspace_id: str = Depends(require_workspace)):
+    row = query_one(
+        """
+        SELECT code, status, step, error, data, created_at, updated_at
+        FROM tw_analyses
+        WHERE workspace_id=%s AND code=%s
+        """,
+        (workspace_id, code),
+    )
+    if not row:
+        return {"item": None}
+    return {"item": row}
 
 
 @app.get("/v1/events")
