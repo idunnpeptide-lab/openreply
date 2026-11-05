@@ -827,6 +827,12 @@ const uk: Record<string, string> = {
   "Accepting...": "Приймаємо...",
   "Accept invitation": "Прийняти запрошення",
   "Use the magic link account for": "Використовуйте акаунт magic link для",
+
+  "Sign in to use the": "Увійдіть, щоб використати",
+  "template.": "шаблон.",
+  "Owner": "Власник",
+  "Admin": "Адміністратор",
+  "Member": "Учасник",
 };
 
 export function normalizeLocale(value?: string | null): ReplyHaloLocale {
