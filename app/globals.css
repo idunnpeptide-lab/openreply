@@ -88,3 +88,28 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Trend Watch uses its own dense dark analytics theme without changing the
+   existing ReplyHalo Instagram/automation product surfaces. */
+.trendwatch-theme {
+  --color-background: #0b0c10;
+  --color-foreground: #eceef3;
+  --color-surface: #171a22;
+  --color-surface-hover: #20242e;
+  --color-border: #262a35;
+  --color-border-hover: #3a4050;
+  --color-muted: #8b91a1;
+  --color-accent: #ff3d6e;
+  --color-accent-hover: #ff557f;
+  --color-success: #2ee59d;
+  --color-error: #ff3d6e;
+  --color-warning: #ffb020;
+  color: var(--color-foreground);
+}
+
+.trendwatch-theme input,
+.trendwatch-theme textarea,
+.trendwatch-theme select {
+  color-scheme: dark;
+}
