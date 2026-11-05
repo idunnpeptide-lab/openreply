@@ -1,4 +1,5 @@
 import TrendWatchServiceState from "@/components/trend-watch-service-state";
+import TrendWatchRefreshTrendsButton from "@/components/trend-watch-refresh-trends-button";
 import {
   isTrendWatchConfigured,
   trendWatchRequest,
@@ -30,14 +31,17 @@ export default async function TrendWatchTrendsPage() {
 
     return (
       <div className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">
-            Instagram Trends
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            Trending topics, profiles and featured Reels discovered by the
-            isolated Instagram collector.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              Instagram Trends
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">
+              Trending topics, profiles and featured Reels discovered by the
+              isolated Instagram collector.
+            </p>
+          </div>
+          <TrendWatchRefreshTrendsButton />
         </div>
         <div className="panel rounded divide-y divide-border">
           {items.map((trend) => (
