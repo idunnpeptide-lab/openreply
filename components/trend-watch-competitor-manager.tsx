@@ -30,6 +30,7 @@ type SimilarAccount = {
 interface Props {
   initialNiches: Niche[];
   initialAccounts: Account[];
+  initialError?: string | null;
 }
 
 async function api(path: string, init?: RequestInit) {
@@ -50,6 +51,7 @@ async function api(path: string, init?: RequestInit) {
 export default function TrendWatchCompetitorManager({
   initialNiches,
   initialAccounts,
+  initialError = null,
 }: Props) {
   const router = useRouter();
   const { locale, t } = useLocale();
@@ -65,6 +67,7 @@ export default function TrendWatchCompetitorManager({
   const [nicheId, setNicheId] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [serviceError] = useState<string | null>(initialError);
   const [similarSource, setSimilarSource] = useState<string | null>(null);
   const [similarAccounts, setSimilarAccounts] = useState<SimilarAccount[]>([]);
 
@@ -223,6 +226,7 @@ export default function TrendWatchCompetitorManager({
 
   return (
     <div className="space-y-6">
+      {serviceError && <div className="rounded border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">Trend Watch collector error: {serviceError}</div>}
       <div className="grid gap-4 xl:grid-cols-2">
         <form onSubmit={addNiche} className="panel rounded p-4">
           <h2 className="text-sm font-semibold text-foreground">{t("Add niche")}</h2>
