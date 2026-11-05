@@ -11,10 +11,11 @@ from typing import Optional
 import httpx
 import psycopg
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
+from fastapi.responses import FileResponse
 from psycopg.rows import dict_row
 from pydantic import BaseModel
 
-from analyzer import analyze as analyze_video
+from analyzer import ANALYSES_DIR, safe_workspace, analyze as analyze_video
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 INTERNAL_TOKEN = os.environ.get("TRENDWATCH_INTERNAL_TOKEN", "")
@@ -999,7 +1000,7 @@ def outliers(
     sort: str = "score",
     workspace_id: str = Depends(require_workspace),
 ):
-    days_map = {"7d": 7, "30d": 30, "90d": 90, "all": None}
+    days_map = {"1d": 1, "3d": 3, "7d": 7, "30d": 30, "90d": 90, "all": None}
     days = days_map.get(period, 30)
     sort_map = {
         "score": "score DESC NULLS LAST",
@@ -1024,12 +1025,18 @@ def outliers(
     items = query_all(
         """
         SELECT r.code, r.username, r.link, r.caption, r.published_at,
-               r.image AS thumb, r.image, r.plays, r.likes, r.comments,
-               r.audio_title, r.outlier, r.velocity, r.er, r.virality,
-               r.score, r.saved, a.followers, a.median_plays
+               r.image AS thumb, r.image, r.video_url, r.duration,
+               r.plays, r.likes, r.comments, r.audio_title, r.audio_link,
+               r.outlier, r.velocity, r.er, r.virality,
+               r.score, r.saved, a.followers, a.median_plays,
+               n.id AS niche_id, n.name AS niche,
+               (SELECT x.status FROM tw_analyses x
+                 WHERE x.workspace_id=r.workspace_id AND x.code=r.code) AS analysis
         FROM tw_reels r
         LEFT JOIN tw_accounts a
           ON a.workspace_id=r.workspace_id AND a.username=r.username
+        LEFT JOIN tw_niches n
+          ON n.workspace_id=a.workspace_id AND n.id=a.niche_id
         WHERE """ + " AND ".join(where) + """
         ORDER BY """ + order_by + """
         LIMIT 300
@@ -1143,6 +1150,24 @@ def get_analysis(code: str, workspace_id: str = Depends(require_workspace)):
     if not row:
         return {"item": None}
     return {"item": row}
+
+
+@app.get("/v1/analysis/{code}/asset/{kind}/{filename}")
+def analysis_asset(
+    code: str,
+    kind: str,
+    filename: str,
+    workspace_id: str = Depends(require_workspace),
+):
+    if kind not in {"frames", "hook"}:
+        raise HTTPException(404, "Unknown analysis asset")
+    if "/" in filename or "\\" in filename or not filename.lower().endswith((".jpg", ".jpeg", ".png")):
+        raise HTTPException(400, "Invalid asset filename")
+    safe_code = "".join(ch if ch.isalnum() or ch in "_-" else "_" for ch in code)
+    path = ANALYSES_DIR / safe_workspace(workspace_id) / safe_code / kind / filename
+    if not path.exists() or not path.is_file():
+        raise HTTPException(404, "Analysis asset not found")
+    return FileResponse(path)
 
 
 @app.get("/v1/events")
