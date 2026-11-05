@@ -50,6 +50,7 @@ export default function TrendWatchAnalyzer() {
   const [loading, setLoading] = useState(Boolean(code));
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pollKey, setPollKey] = useState(0);
 
   useEffect(() => {
     if (!code) {
@@ -84,7 +85,7 @@ export default function TrendWatchAnalyzer() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [code]);
+  }, [code, pollKey]);
 
   async function startAnalysis() {
     if (!code) return;
@@ -104,13 +105,7 @@ export default function TrendWatchAnalyzer() {
         status: payload.data?.status === "running" ? "running" : "queued",
         step: "Queued",
       });
-      window.setTimeout(async () => {
-        try {
-          setItem(await readAnalysis(code));
-        } catch {
-          // The normal polling effect will retry on the next page visit.
-        }
-      }, 1800);
+      setPollKey((value) => value + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start analysis");
     } finally {
