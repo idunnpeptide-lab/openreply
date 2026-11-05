@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Instagram Overview Page
+ * Instagram {t("Overview")} Page
  *
  * Aggregate reach/engagement across your recent posts, plus a per-post table.
  * Views / reach / saved / shares come from Instagram media insights (requires
@@ -12,7 +12,8 @@ import { useEffect, useState } from "react";
 import AccountSelect from "@/components/account-select";
 import StatCard from "@/components/stat-card";
 import FollowerChart from "@/components/follower-chart";
-import type { OverviewResponse } from "@/app/api/instagram/overview/route";
+import type { {t("Overview")}Response } from "@/app/api/instagram/overview/route";
+import { useLocale } from "@/components/locale-provider";
 
 function formatNumber(n: number | null): string {
   if (n === null) return "—";
@@ -33,8 +34,9 @@ const COUNT_OPTIONS = [
   { value: "all", label: "All time" },
 ];
 
-export default function OverviewPage() {
-  const [data, setData] = useState<OverviewResponse | null>(null);
+export default function {t("Overview")}Page() {
+  const { locale, t } = useLocale();
+  const [data, setData] = useState<{t("Overview")}Response | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("all");
@@ -54,12 +56,12 @@ export default function OverviewPage() {
           setData(res.data);
           setError(null);
         } else {
-          setError(res.error ?? "Failed to load overview");
+          setError(res.error ?? t("Failed to load overview"));
         }
       })
-      .catch(() => setError("Failed to load overview"))
+      .catch(() => setError(t("Failed to load overview")))
       .finally(() => setLoading(false));
-  }, [selectedAccountId, count]);
+  }, [selectedAccountId, count, t]);
 
   function handleAccountChange(accountId: string) {
     setLoading(true);
@@ -93,7 +95,7 @@ export default function OverviewPage() {
             href="/api/instagram/connect"
             className="mt-4 inline-block text-sm text-accent hover:underline"
           >
-            Connect Instagram
+            {t("Connect Instagram")}
           </a>
         )}
       </div>
@@ -109,7 +111,7 @@ export default function OverviewPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-foreground">Overview</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t("Overview")}</h1>
           <p className="text-sm text-muted mt-1">
             {data.requestedCount === "all" ? "All-time" : "Recent"} —{" "}
             {totals.posts} post{totals.posts === 1 ? "" : "s"} from @
@@ -120,14 +122,14 @@ export default function OverviewPage() {
             // Kept out of the tile row below: that row sums the selected posts,
             // whereas this is a current account-level total.
             <p className="mt-1 text-sm text-muted">
-              {followers.toLocaleString()} followers
+              {followers.toLocaleString(locale === "uk" ? "uk-UA" : "en-US")} {t("followers")}
             </p>
           )}
         </div>
         <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Range
+              {t("Range")}
             </span>
             <select
               value={count}
@@ -136,7 +138,7 @@ export default function OverviewPage() {
             >
               {COUNT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
-                  {o.label}
+                  {t(o.label)}
                 </option>
               ))}
             </select>
@@ -158,7 +160,7 @@ export default function OverviewPage() {
       {!insightsAvailable && (
         <div className="panel rounded p-4 border border-border">
           <p className="text-sm text-foreground">
-            Views, reach, saved and shares need the insights permission.
+            {t("Views, reach, saved and shares need the insights permission.")}
           </p>
           <p className="text-sm text-muted mt-1">
             Reconnect your account to grant it — likes and comments are shown in
@@ -168,19 +170,19 @@ export default function OverviewPage() {
             href="/api/instagram/connect"
             className="mt-3 inline-block text-sm text-accent hover:underline"
           >
-            Reconnect Instagram
+            {t("Reconnect Instagram")}
           </a>
         </div>
       )}
 
       {/* Aggregate totals */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        <StatCard label="Views" value={formatNumber(totals.views)} />
-        <StatCard label="Reach" value={formatNumber(totals.reach)} />
-        <StatCard label="Likes" value={formatNumber(totals.likes)} />
-        <StatCard label="Comments" value={formatNumber(totals.comments)} />
-        <StatCard label="Saved" value={formatNumber(totals.saved)} />
-        <StatCard label="Shares" value={formatNumber(totals.shares)} />
+        <StatCard label={t("Views")} value={formatNumber(totals.views)} />
+        <StatCard label={t("Reach")} value={formatNumber(totals.reach)} />
+        <StatCard label={t("Likes")} value={formatNumber(totals.likes)} />
+        <StatCard label={t("Comments")} value={formatNumber(totals.comments)} />
+        <StatCard label={t("Saved")} value={formatNumber(totals.saved)} />
+        <StatCard label={t("Shares")} value={formatNumber(totals.shares)} />
       </div>
 
       {/* Follower trend — account-level, independent of the post range */}
@@ -188,9 +190,9 @@ export default function OverviewPage() {
 
       {/* Per-post table */}
       <div className="panel rounded p-4 sm:p-6">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Posts</h2>
+        <h2 className="text-sm font-semibold text-foreground mb-4">{t("Posts")}</h2>
         {posts.length === 0 ? (
-          <p className="text-sm text-muted py-8 text-center">No posts found</p>
+          <p className="text-sm text-muted py-8 text-center">{t("No posts found")}</p>
         ) : (
           // Eight metric columns can't compress into a phone; let the table keep
           // its natural width and scroll inside the panel instead.
@@ -198,14 +200,14 @@ export default function OverviewPage() {
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-zinc-500 border-b border-border">
-                  <th className="py-2 pr-4 font-medium">Post</th>
-                  <th className="py-2 px-3 font-medium text-right">Views</th>
-                  <th className="py-2 px-3 font-medium text-right">Reach</th>
-                  <th className="py-2 px-3 font-medium text-right">Likes</th>
-                  <th className="py-2 px-3 font-medium text-right">Comments</th>
-                  <th className="py-2 px-3 font-medium text-right">Saved</th>
-                  <th className="py-2 px-3 font-medium text-right">Shares</th>
-                  <th className="py-2 pl-3 font-medium text-right">Date</th>
+                  <th className="py-2 pr-4 font-medium">{t("Post")}</th>
+                  <th className="py-2 px-3 font-medium text-right">{t("Views")}</th>
+                  <th className="py-2 px-3 font-medium text-right">{t("Reach")}</th>
+                  <th className="py-2 px-3 font-medium text-right">{t("Likes")}</th>
+                  <th className="py-2 px-3 font-medium text-right">{t("Comments")}</th>
+                  <th className="py-2 px-3 font-medium text-right">{t("Saved")}</th>
+                  <th className="py-2 px-3 font-medium text-right">{t("Shares")}</th>
+                  <th className="py-2 pl-3 font-medium text-right">{t("Date")}</th>
                 </tr>
               </thead>
               <tbody>
