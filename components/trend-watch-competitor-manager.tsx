@@ -240,7 +240,8 @@ export default function TrendWatchCompetitorManager({
               disabled={busy}
               className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {t("Add")}\n            </button>
+              {t("Add")}
+            </button>
           </div>
         </form>
 
@@ -354,7 +355,8 @@ export default function TrendWatchCompetitorManager({
                     {account.best_outlier
                       ? "best ×" + account.best_outlier.toFixed(1)
                       : account.status === "error"
-                        ? "Error"\n                        : t("Collecting")}
+                        ? "Error"
+                        : t("Collecting")}
                   </span>
                   <button
                     type="button"
