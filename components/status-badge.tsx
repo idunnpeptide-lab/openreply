@@ -1,3 +1,7 @@
+"use client";
+
+import { useLocale } from "@/components/locale-provider";
+
 /**
  * Status label for DM status. Plain text; color carries the state.
  */
@@ -17,11 +21,12 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ status }: StatusBadgeProps) {
+  const { t } = useLocale();
   const config = statusConfig[status] ?? statusConfig.PENDING;
 
   return (
     <span className={`shrink-0 whitespace-nowrap text-sm ${config.text}`}>
-      {config.label}
+      {t(config.label)}
     </span>
   );
 }
