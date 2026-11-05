@@ -830,9 +830,6 @@ const uk: Record<string, string> = {
 
   "Sign in to use the": "Увійдіть, щоб використати",
   "template.": "шаблон.",
-  "Owner": "Власник",
-  "Admin": "Адміністратор",
-  "Member": "Учасник",
 };
 
 export function normalizeLocale(value?: string | null): ReplyHaloLocale {
