@@ -917,12 +917,12 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
           )}
         </div>
 
-        <Section title="When someone comments on">
+        <Section title={t("When someone comments on")}>
           <Radio
             checked={triggerScope === "specific"}
             onSelect={() => setTriggerScope("specific")}
           >
-            a specific post or reel
+            {t("a specific post or reel")}
           </Radio>
           {triggerScope === "specific" && (
             <div className="rounded-lg border border-border p-2">
@@ -931,12 +931,12 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 <div className="p-3 text-sm">
                   <p className="font-medium text-foreground">
                     {accountsLoading
-                      ? "Checking Instagram connection…"
-                      : "Reconnect Instagram to choose a different post or Reel"}
+                      ? t("Checking Instagram connection…")
+                      : t("Reconnect Instagram to choose a different post or Reel")}
                   </p>
                   {!accountsLoading && (
                     <p className="mt-1 text-xs text-muted">
-                      The current automation stays saved. Reconnect the attached account before changing provider content or going live.
+                      {t("The current automation stays saved. Reconnect the attached account before changing provider content or going live.")}
                     </p>
                   )}
                   {!accountsLoading && (
@@ -944,7 +944,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                       href="/settings"
                       className="mt-2 inline-flex text-xs font-medium text-accent hover:underline"
                     >
-                      Check Instagram connection
+                      {t("Check Instagram connection")}
                     </Link>
                   )}
                 </div>
@@ -963,67 +963,67 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             checked={triggerScope === "any"}
             onSelect={() => setTriggerScope("any")}
           >
-            any post or reel
+            {t("any post or reel")}
           </Radio>
           <Radio
             checked={triggerScope === "next"}
             onSelect={() => setTriggerScope("next")}
           >
-            next post or reel
+            {t("next post or reel")}
           </Radio>
         </Section>
 
-        <Section title="And this comment has">
+        <Section title={t("And this comment has")}>
           <Radio
             checked={matchMode === "specific"}
             onSelect={() => setMatchMode("specific")}
           >
-            a specific word or words
+            {t("a specific word or words")}
           </Radio>
           {matchMode === "specific" && (
             <div className="space-y-1">
               <input
                 value={keywordText}
                 onChange={(e) => setKeywordText(e.target.value)}
-                placeholder="Enter a word or multiple"
-                aria-label="Comment keywords"
+                placeholder={t("Enter a word or multiple")}
+                aria-label={t("Comment keywords")}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
               />
-              <p className="text-xs text-muted">Use commas to separate words</p>
+              <p className="text-xs text-muted">{t("Use commas to separate words")}</p>
             </div>
           )}
           <Radio
             checked={matchMode === "any"}
             onSelect={() => setMatchMode("any")}
           >
-            any word
+            {t("any word")}
           </Radio>
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
             <span className="text-sm text-foreground">
-              also reply when someone DMs{" "}
-              {matchMode === "any" ? "anything" : "these words"}
+              {t("also reply when someone DMs")}{" "}
+              {matchMode === "any" ? t("anything") : t("these words")}
             </span>
             <Toggle
               on={dmTriggerEnabled}
               onToggle={() => setDmTriggerEnabled(!dmTriggerEnabled)}
-              label="Reply to matching direct messages"
+              label={t("Reply to matching direct messages")}
             />
           </div>
           {dmTriggerEnabled && (
             <p className="text-xs text-muted">
               {matchMode === "any"
-                ? "Every DM to this account gets the reply below — use with care."
-                : "A DM containing any of these words gets the same reply, no comment needed."}
+                ? t("Every DM to this account gets the reply below — use with care.")
+                : t("A DM containing any of these words gets the same reply, no comment needed.")}
             </p>
           )}
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
             <span className="text-sm text-foreground">
-              reply to their comments under the post
+              {t("reply to their comments under the post")}
             </span>
             <Toggle
               on={publicReplyEnabled}
               onToggle={() => setPublicReplyEnabled(!publicReplyEnabled)}
-              label="Publicly reply to matching comments"
+              label={t("Publicly reply to matching comments")}
             />
           </div>
           {publicReplyEnabled && (
@@ -1051,7 +1051,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                         )
                       }
                       className="shrink-0 px-2 text-muted hover:text-error"
-                      aria-label="Remove reply"
+                      aria-label={t("Remove reply")}
                     >
                       ✕
                     </button>
@@ -1066,25 +1066,24 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   }
                   className="text-xs font-medium text-accent hover:underline"
                 >
-                  + Add another reply
+                  + {t("Add another reply")}
                 </button>
               )}
               <p className="text-xs text-muted">
-                One is picked at random each time, so replies don&apos;t look
-                identical.
+                {t("One is picked at random each time, so replies don't look identical.")}
               </p>
             </div>
           )}
         </Section>
 
-        <Section title="They will get">
+        <Section title={t("They will get")}>
           <div className="rounded-lg border border-border p-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-foreground">an opening DM</span>
+              <span className="text-sm text-foreground">{t("an opening DM")}</span>
               <Toggle
                 on={openingDmEnabled}
                 onToggle={() => setOpeningDmEnabled(!openingDmEnabled)}
-                label="Send an opening direct message"
+                label={t("Send an opening direct message")}
               />
             </div>
             {openingDmEnabled && (
@@ -1093,7 +1092,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={openingDmMessage}
                   onChange={(e) => setOpeningDmMessage(e.target.value)}
                   placeholder="Hey there! I'm so happy you're here 😊"
-                  aria-label="Opening direct message"
+                  aria-label={t("Opening direct message")}
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
@@ -1102,7 +1101,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={openingDmButtonLabel}
                   onChange={(e) => setOpeningDmButtonLabel(e.target.value)}
                   placeholder="Send me the link"
-                  aria-label="Opening direct message button label"
+                  aria-label={t("Opening direct message button label")}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                   maxLength={64}
                 />
@@ -1112,12 +1111,12 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
           <div className="mt-3 rounded-lg border border-border p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">
-                a follow requirement first
+                {t("a follow requirement first")}
               </span>
               <Toggle
                 on={requireFollow}
                 onToggle={() => setRequireFollow(!requireFollow)}
-                label="Require a follow before the private reply"
+                label={t("Require a follow before the private reply")}
               />
             </div>
             {requireFollow && (
@@ -1126,7 +1125,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={followPromptMessage}
                   onChange={(e) => setFollowPromptMessage(e.target.value)}
                   placeholder="quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over"
-                  aria-label="Follow requirement message"
+                  aria-label={t("Follow requirement message")}
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
@@ -1135,14 +1134,12 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={followPromptButtonLabel}
                   onChange={(e) => setFollowPromptButtonLabel(e.target.value)}
                   placeholder="i'm following"
-                  aria-label="Follow requirement button label"
+                  aria-label={t("Follow requirement button label")}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                   maxLength={20}
                 />
                 <p className="text-xs text-muted">
-                  We send the link only after they tap the button and Instagram
-                  confirms the follow. If it can&apos;t be verified, we send it
-                  anyway.
+                  {t("We send the link only after they tap the button and Instagram confirms the follow. If it can't be verified, we send it anyway.")}
                 </p>
               </div>
             )}
