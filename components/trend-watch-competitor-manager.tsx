@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "@/components/locale-provider";
 
 type Niche = {
   id: string | number;
@@ -51,6 +52,7 @@ export default function TrendWatchCompetitorManager({
   initialAccounts,
 }: Props) {
   const router = useRouter();
+  const { locale, t } = useLocale();
   const [niches, setNiches] = useState(initialNiches);
   const [accounts, setAccounts] = useState(initialAccounts);
 
@@ -127,7 +129,7 @@ export default function TrendWatchCompetitorManager({
   }
 
   async function removeAccount(username: string) {
-    if (!window.confirm("Remove @" + username + " from Trend Watch?")) return;
+    if (!window.confirm(locale === "uk" ? "Видалити @" + username + " з Trend Watch?" : "Remove @" + username + " from Trend Watch?")) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -223,9 +225,9 @@ export default function TrendWatchCompetitorManager({
     <div className="space-y-6">
       <div className="grid gap-4 xl:grid-cols-2">
         <form onSubmit={addNiche} className="panel rounded p-4">
-          <h2 className="text-sm font-semibold text-foreground">Add niche</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t("Add niche")}</h2>
           <p className="mt-1 text-sm text-muted">
-            Group competitors by market, product category or content angle.
+            {t("Group competitors by market, product category or content angle.")}
           </p>
           <div className="mt-4 flex gap-2">
             <input
@@ -238,17 +240,16 @@ export default function TrendWatchCompetitorManager({
               disabled={busy}
               className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              Add
-            </button>
+              {t("Add")}\n            </button>
           </div>
         </form>
 
         <form onSubmit={addAccounts} className="panel rounded p-4">
           <h2 className="text-sm font-semibold text-foreground">
-            Add competitors
+            {t("Add competitors")}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Paste usernames, profile links, or a comma-separated list.
+            {t("Paste usernames, profile links, or a comma-separated list.")}
           </p>
           <textarea
             value={usernames}
@@ -263,7 +264,7 @@ export default function TrendWatchCompetitorManager({
               onChange={(event) => setNicheId(event.target.value)}
               className="min-w-48 rounded border border-border bg-background px-3 py-2 text-sm"
             >
-              <option value="">No niche</option>
+              <option value="">{t("No niche")}</option>
               {niches.map((niche) => (
                 <option key={String(niche.id)} value={String(niche.id)}>
                   {niche.name}
@@ -274,7 +275,7 @@ export default function TrendWatchCompetitorManager({
               disabled={busy}
               className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              Add & sync
+              {t("Add & sync")}
             </button>
             <button
               type="button"
@@ -282,7 +283,7 @@ export default function TrendWatchCompetitorManager({
               disabled={busy}
               className="rounded border border-border px-4 py-2 text-sm text-foreground disabled:opacity-50"
             >
-              Sync all
+              {t("Sync all")}
             </button>
           </div>
         </form>
@@ -296,7 +297,7 @@ export default function TrendWatchCompetitorManager({
 
       <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section className="panel rounded p-4">
-          <h2 className="text-sm font-semibold text-foreground">Niches</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t("Niches")}</h2>
           <div className="mt-3 space-y-2">
             {niches.map((niche) => (
               <div
@@ -309,7 +310,7 @@ export default function TrendWatchCompetitorManager({
             ))}
             {niches.length === 0 && (
               <p className="py-6 text-center text-sm text-muted">
-                No niches yet.
+                {t("No niches yet.")}
               </p>
             )}
           </div>
@@ -319,14 +320,14 @@ export default function TrendWatchCompetitorManager({
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                Competitors
+                {t("Competitors")}
               </h2>
               <p className="mt-1 text-sm text-muted">
-                Tracked Instagram accounts and their strongest recent outlier.
+                {t("Tracked Instagram accounts and their strongest recent outlier.")}
               </p>
             </div>
             <span className="text-sm text-muted">
-              {accounts.length} accounts
+              {accounts.length} {t("accounts")}
             </span>
           </div>
 
@@ -341,8 +342,8 @@ export default function TrendWatchCompetitorManager({
                     @{account.username}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    {account.niche || "Unassigned"} ·{" "}
-                    {account.followers?.toLocaleString() ?? "—"} followers
+                    {account.niche || t("Unassigned")} ·{" "}
+                    {account.followers?.toLocaleString(locale === "uk" ? "uk-UA" : "en-US") ?? "—"} {t("followers")}
                   </p>
                   {account.error && (
                     <p className="mt-1 text-xs text-error">{account.error}</p>
@@ -353,8 +354,7 @@ export default function TrendWatchCompetitorManager({
                     {account.best_outlier
                       ? "best ×" + account.best_outlier.toFixed(1)
                       : account.status === "error"
-                        ? "Error"
-                        : "Collecting"}
+                        ? "Error"\n                        : t("Collecting")}
                   </span>
                   <button
                     type="button"
@@ -362,7 +362,7 @@ export default function TrendWatchCompetitorManager({
                     onClick={() => loadSimilar(account.username)}
                     className="rounded border border-border px-2.5 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
                   >
-                    Similar
+                    {t("Similar")}
                   </button>
                   <button
                     type="button"
@@ -370,14 +370,14 @@ export default function TrendWatchCompetitorManager({
                     onClick={() => removeAccount(account.username)}
                     className="rounded border border-error/30 px-2.5 py-1.5 text-xs text-error hover:bg-error/5 disabled:opacity-50"
                   >
-                    Remove
+                    {t("Remove")}
                   </button>
                 </div>
               </div>
             ))}
             {accounts.length === 0 && (
               <p className="py-10 text-center text-sm text-muted">
-                Add your first competitor to start monitoring.
+                {t("Add your first competitor to start monitoring.")}
               </p>
             )}
           </div>
@@ -389,10 +389,10 @@ export default function TrendWatchCompetitorManager({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                Similar to @{similarSource}
+                {t("Similar to")} @{similarSource}
               </h2>
               <p className="mt-1 text-sm text-muted">
-                Instagram accounts suggested as related competitors.
+                {t("Instagram accounts suggested as related competitors.")}
               </p>
             </div>
             <button
@@ -403,7 +403,7 @@ export default function TrendWatchCompetitorManager({
               }}
               className="text-sm text-muted hover:text-foreground"
             >
-              Close
+              {t("Close")}
             </button>
           </div>
 
@@ -430,13 +430,13 @@ export default function TrendWatchCompetitorManager({
                   onClick={() => addSimilar(item.username)}
                   className="shrink-0 rounded border border-border px-2.5 py-1.5 text-xs text-foreground disabled:opacity-50"
                 >
-                  {item.tracked ? "Tracked" : "Add"}
+                  {item.tracked ? t("Tracked") : t("Add")}
                 </button>
               </div>
             ))}
             {similarAccounts.length === 0 && (
               <p className="py-6 text-sm text-muted">
-                Instagram did not return similar accounts for this profile.
+                {t("Instagram did not return similar accounts for this profile.")}
               </p>
             )}
           </div>
