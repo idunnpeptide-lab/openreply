@@ -488,6 +488,10 @@ const uk: Record<string, string> = {
   "PAUSED": "ПРИЗУПИНЕНА",
   "Importing": "Імпорт",
   "Fields are prefilled from your CSV. Pick the reel, edit anything, and save to load the next one — or Skip if you don't want this one.": "Поля заповнені з CSV. Оберіть Reel, за потреби відредагуйте й збережіть, щоб завантажити наступний, або пропустіть цей рядок.",
+  "No posts match": "Немає публікацій за запитом",
+  "Already used": "Вже використовується",
+  "Show": "Показати",
+  "more": "ще",
 };
 
 export function normalizeLocale(value?: string | null): ReplyHaloLocale {
