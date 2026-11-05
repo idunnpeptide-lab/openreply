@@ -48,7 +48,7 @@ export default async function LoginPage({
           </h1>
           <p className="text-muted text-sm leading-relaxed mt-2">
             {selectedTemplate
-              ? `Sign in to use the ${selectedTemplate.title} template.`
+              ? <><LocalizedText text="Sign in to use the" />{" "}{selectedTemplate.title}{" "}<LocalizedText text="template." /></>
               : <LocalizedText text="Sign in or create your ReplyHalo account with a secure email link." />}
           </p>
         </div>
