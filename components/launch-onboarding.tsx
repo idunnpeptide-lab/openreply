@@ -57,7 +57,7 @@ export default function LaunchOnboarding({
   connectedAccounts: number;
   activeAutomations: number;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [health, setHealth] = useState<HealthAccount[]>([]);
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [readinessChecked, setReadinessChecked] = useState(false);
@@ -108,7 +108,9 @@ export default function LaunchOnboarding({
               {t("We could not verify your ReplyHalo plan")}
             </h2>
             <p className="mt-2 max-w-xl text-sm text-muted">
-              {t("Open Settings to check your plan before connecting or reconnecting a social account. Your existing automations and history stay saved.")}
+              {locale === "uk"
+                ? "Відкрийте Налаштування та перевірте план перед підключенням або повторним підключенням соціального акаунта. Ваші автоматизації та історія залишаться збереженими."
+                : "Open Settings to check your plan before connecting or reconnecting a social account. Your existing automations and history stay saved."}
             </p>
           </div>
           <Link
@@ -136,20 +138,24 @@ export default function LaunchOnboarding({
             </span>
             <h2 className="mt-3 text-lg font-bold text-foreground sm:text-xl">
               {license?.configured
-                ? "{t("Your ReplyHalo plan needs attention")}"
-                : "{t("Activate your ReplyHalo plan")}"}
+                ? t("Your ReplyHalo plan needs attention")
+                : t("Activate your ReplyHalo plan")}
             </h2>
             <p className="mt-2 max-w-xl text-sm text-muted">
               {license?.configured
-                ? t("Open Settings to restore your plan before connecting or reconnecting a social account. Your existing automations and history stay saved.")
-                : t("Use the activation code you received with your ReplyHalo access. After activation, you can connect Instagram with one authorization screen.")}
+                ? locale === "uk"
+                  ? "Відкрийте Налаштування та відновіть план перед підключенням або повторним підключенням соціального акаунта. Ваші автоматизації та історія залишаться збереженими."
+                  : "Open Settings to restore your plan before connecting or reconnecting a social account. Your existing automations and history stay saved."
+                : locale === "uk"
+                  ? "Використайте код активації, який ви отримали разом із доступом ReplyHalo. Після активації ви зможете підключити Instagram через один екран авторизації."
+                  : "Use the activation code you received with your ReplyHalo access. After activation, you can connect Instagram with one authorization screen."}
             </p>
           </div>
           <Link
             href="/settings"
             className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-center text-sm font-semibold text-white hover:bg-accent-hover"
           >
-            {license?.configured ? "{t("Check plan")}" : "Activate ReplyHalo"}
+            {license?.configured ? t("Check plan") : t("Activate ReplyHalo")}
           </Link>
         </div>
       </section>
@@ -163,10 +169,14 @@ export default function LaunchOnboarding({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">
-              @{account.username} needs attention
+              @{account.username}{" "}
+              {locale === "uk" ? "потребує уваги" : "needs attention"}
             </p>
             <p className="mt-1 text-xs text-muted">
-              {account.reasons[0] ?? t("Instagram connection needs attention.")}
+              {account.reasons[0] ??
+                (locale === "uk"
+                  ? "Підключення Instagram потребує уваги."
+                  : "Instagram connection needs attention.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -197,11 +207,13 @@ export default function LaunchOnboarding({
           </span>
           <h2 className="mt-3 text-xl font-bold text-foreground sm:text-2xl">
             {connectedAccounts === 0
-              ? "{t("{t("Connect Instagram")} and launch your first automation")}"
-              : "{t("Your Instagram is connected — create your first automation")}"}
+              ? t("Connect Instagram and launch your first automation")
+              : t("Your Instagram is connected — create your first automation")}
           </h2>
           <p className="mt-2 max-w-xl text-sm text-muted">
-            {t("ReplyHalo handles the technical setup behind the scenes. Connect your professional Instagram account, choose a ready-made automation, and activate it.")}
+            {t(
+              "ReplyHalo handles the technical setup behind the scenes. Connect your professional Instagram account, choose a ready-made automation, and activate it."
+            )}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -238,20 +250,26 @@ export default function LaunchOnboarding({
         <div className="space-y-4 rounded-xl border border-border bg-surface/80 p-4 sm:p-5">
           <Step
             number={1}
-            title="{t("Connect Instagram")}"
-            description={t("Authorize your Business or Creator account in Instagram.")}
+            title={t("Connect Instagram")}
+            description={t(
+              "Authorize your Business or Creator account in Instagram."
+            )}
             complete={connectedAccounts > 0}
           />
           <Step
             number={2}
             title={t("Choose a Quick Automation")}
-            description={t("Start from a ready-made comment-to-DM flow instead of building from zero.")}
+            description={t(
+              "Start from a ready-made comment-to-DM flow instead of building from zero."
+            )}
             complete={activeAutomations > 0}
           />
           <Step
             number={3}
             title={t("Activate")}
-            description={t("Pick the Reel or post, confirm the keyword and message, then go live.")}
+            description={t(
+              "Pick the Reel or post, confirm the keyword and message, then go live."
+            )}
             complete={activeAutomations > 0}
           />
         </div>
