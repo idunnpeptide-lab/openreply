@@ -39,7 +39,9 @@ export default function TopBar({
 }: TopBarProps) {
   const pathname = usePathname();
   const { locale, t } = useLocale();
-  const titleKey = pathname.startsWith("/trend-watch")\n    ? "Trend Watch"\n    : pageTitles[pathname] ?? (pathname.startsWith("/campaigns/") ? "Campaigns" : "Dashboard");
+  const titleKey = pathname.startsWith("/trend-watch")
+    ? "Trend Watch"
+    : pageTitles[pathname] ?? (pathname.startsWith("/campaigns/") ? "Campaigns" : "Dashboard");
 
   return (
     <header
