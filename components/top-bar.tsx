@@ -1,21 +1,22 @@
 "use client";
 
+/**
+ * Top Bar
+ *
+ * Page title, mobile hamburger, and connection status.
+ */
+
 import { usePathname } from "next/navigation";
-import { useLocale } from "@/components/locale-provider";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/overview": "Overview",
-  "/inbox": "Inbox",
   "/campaigns": "Campaigns",
-  "/campaigns/quick": "Quick Automations",
   "/campaigns/new": "New Campaign",
   "/automations": "Campaigns",
   "/automations/new": "New Campaign",
   "/logs": "DM Logs",
   "/settings": "Settings",
   "/diagnostics": "Diagnostics",
-  "/tiktok": "TikTok staging",
 };
 
 interface TopBarProps {
@@ -32,14 +33,14 @@ export default function TopBar({
   instagramAccountCount,
 }: TopBarProps) {
   const pathname = usePathname();
-  const { locale, t } = useLocale();
-  const titleKey =
-    pageTitles[pathname] ??
-    (pathname.startsWith("/campaigns/") ? "Campaigns" : "Dashboard");
+  const title = pageTitles[pathname] ?? "Dashboard";
 
   return (
     <header
       className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 lg:px-8 border-b border-border bg-background"
+      // Installed to the home screen the app starts at the very top of the
+      // display, so without this the title sits under the clock and battery.
+      // The inset is 0 in a browser tab and on desktop.
       style={{
         height: "calc(4rem + env(safe-area-inset-top))",
         paddingTop: "env(safe-area-inset-top)",
@@ -51,32 +52,29 @@ export default function TopBar({
           type="button"
           onClick={onMenuClick}
           className="lg:hidden shrink-0 px-2.5 py-1.5 rounded border border-border text-sm text-muted hover:text-foreground"
-          aria-label={t("Open navigation")}
+          aria-label="Open navigation"
           aria-expanded={sidebarOpen}
           aria-controls="dashboard-sidebar"
         >
-          {t("Menu")}
+          Menu
         </button>
-        <h1 className="truncate text-base font-semibold sm:text-lg">
-          {t(titleKey)}
-        </h1>
+        <h1 className="truncate text-base font-semibold sm:text-lg">{title}</h1>
       </div>
 
       {instagramAccountCount > 0 ? (
         <p className="shrink-0 truncate text-sm text-muted">
           {instagramAccountCount > 1
-            ? locale === "uk"
-              ? \`\${instagramAccountCount} акаунти\`
-              : \`\${instagramAccountCount} accounts\`
-            : \`@\${instagramUsername}\`}
+            ? `${instagramAccountCount} accounts`
+            : `@${instagramUsername}`}
         </p>
       ) : (
         <a
           href="/api/instagram/connect"
           className="shrink-0 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded bg-accent text-white hover:bg-accent-hover"
         >
-          <span className="sm:hidden">{t("Connect")}</span>
-          <span className="hidden sm:inline">{t("Connect Instagram")}</span>
+          {/* Full label needs more room than a 360px header has to spare. */}
+          <span className="sm:hidden">Connect</span>
+          <span className="hidden sm:inline">Connect Instagram</span>
         </a>
       )}
     </header>
