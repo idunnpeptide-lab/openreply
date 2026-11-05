@@ -3,8 +3,6 @@
 import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
 import { InstagramConnectNotice } from "@/components/instagram-connect-notice";
-import LanguageSwitcher from "@/components/language-switcher";
-import { useLocale } from "@/components/locale-provider";
 import {
   accountLimitRecoveryMessage,
   instagramDisconnectCustomerError,
@@ -109,7 +107,6 @@ function activationErrorMessage(error?: string) {
 }
 
 export default function SettingsPage() {
-  const { locale, t } = useLocale();
   const [data, setData] = useState<SettingsData | null>(null);
   const [membersData, setMembersData] = useState<WorkspaceMembersData | null>(
     null
@@ -307,21 +304,11 @@ export default function SettingsPage() {
       </Suspense>
 
       <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold">{t("Language")}</h2>
-        <p className="mt-1 text-xs text-muted">
-          {t("Choose the language used across ReplyHalo.")}
-        </p>
-        <div className="mt-4 max-w-sm">
-          <LanguageSwitcher />
-        </div>
-      </section>
-
-      <section className="panel rounded p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold">{t("ReplyHalo Plan")}</h2>
+            <h2 className="text-base font-semibold">ReplyHalo Plan</h2>
             <p className="mt-1 text-xs text-muted">
-              {t("Your plan controls how many social accounts can be connected to this workspace.")}
+              Your plan controls how many social accounts can be connected to this workspace.
             </p>
           </div>
 
@@ -392,7 +379,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted">Plan renewal</p>
                 <p className="mt-1 text-sm font-semibold text-foreground">
                   {licenseData.expiresAt
-                    ? new Date(licenseData.expiresAt).toLocaleDateString(locale === "uk" ? "uk-UA" : "en-US")
+                    ? new Date(licenseData.expiresAt).toLocaleDateString()
                     : "No expiry"}
                 </p>
               </div>
@@ -473,7 +460,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">{t("Instagram")}</h2>
+        <h2 className="text-base font-semibold mb-6">Instagram</h2>
 
         {instagramError && (
           <div className="mb-4 rounded-lg border border-error/20 bg-error/5 p-3">
@@ -485,9 +472,9 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
             <div>
-              <p className="text-sm font-medium text-foreground">{t("Status")}</p>
+              <p className="text-sm font-medium text-foreground">Status</p>
               <p className="text-xs text-muted mt-0.5">
-                {t("Comment automation and private replies depend on this connection.")}
+                Comment automation and private replies depend on this connection.
               </p>
             </div>
             <span
@@ -497,13 +484,13 @@ export default function SettingsPage() {
                   : "bg-warning/10 text-warning"
               }`}
             >
-              {accounts.length > 0 ? t("Connected") : t("Not connected")}
+              {accounts.length > 0 ? "Connected" : "Not connected"}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
             <div>
-              <p className="text-sm font-medium text-foreground">{t("Accounts")}</p>
+              <p className="text-sm font-medium text-foreground">Accounts</p>
               <p className="text-xs text-muted mt-0.5">
                 {accounts.length} connected Instagram profile
                 {accounts.length === 1 ? "" : "s"}
@@ -517,7 +504,7 @@ export default function SettingsPage() {
           <div className="space-y-3 py-3">
             {accounts.length === 0 && (
               <p className="text-sm text-muted">
-                {t("Connect an Instagram professional account to launch automations.")}
+                Connect an Instagram professional account to launch automations.
               </p>
             )}
             {accounts.map((account) => (
@@ -532,9 +519,9 @@ export default function SettingsPage() {
                   <p className="mt-1 text-xs text-muted">
                     Connection valid until{" "}
                     {account.tokenExpiresAt
-                      ? new Date(account.tokenExpiresAt).toLocaleDateString(locale === "uk" ? "uk-UA" : "en-US")
+                      ? new Date(account.tokenExpiresAt).toLocaleDateString()
                       : "not available"}{" "}
-                    · {account.webhookSubscribed ? t("Automation ready") : t("Finishing setup")}
+                    · {account.webhookSubscribed ? "Automation ready" : "Finishing setup"}
                   </p>
                 </div>
                 <button
@@ -543,8 +530,8 @@ export default function SettingsPage() {
                   className="inline-flex items-center justify-center rounded border border-error/20 px-4 py-2 text-sm font-medium text-error transition-all hover:border-error/40 hover:bg-error/10 disabled:opacity-50"
                 >
                   {busy === `disconnect:${account.id}`
-                    ? t("Disconnecting...")
-                    : t("Disconnect")}
+                    ? "Disconnecting..."
+                    : "Disconnect"}
                 </button>
               </div>
             ))}
@@ -557,18 +544,18 @@ export default function SettingsPage() {
               href="/api/instagram/connect"
               className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-white hover:bg-accent-hover"
             >
-              {accounts.length > 0 ? t("Connect another account") : t("Connect Instagram")}
+              {accounts.length > 0 ? "Connect another account" : "Connect Instagram"}
             </a>
           ) : (
             <span className="px-4 py-2 rounded text-sm font-medium bg-zinc-500/10 text-muted">
-              {t("Check your ReplyHalo plan before connecting Instagram")}
+              Check your ReplyHalo plan before connecting Instagram
             </span>
           )}
         </div>
       </section>
 
       <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">{t("Team")}</h2>
+        <h2 className="text-base font-semibold mb-6">Team</h2>
         <div className="space-y-3">
           {membersData?.members.map((member) => (
             <div
@@ -577,7 +564,7 @@ export default function SettingsPage() {
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">
-                  {member.user.name ?? member.user.email ?? "{t("Unknown member")}"}
+                  {member.user.name ?? member.user.email ?? "Unknown member"}
                 </p>
                 <p className="text-xs text-muted">{member.user.email}</p>
               </div>
@@ -591,7 +578,7 @@ export default function SettingsPage() {
         {membersData?.invitations.length ? (
           <div className="mt-6 border-t border-border pt-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              {t("Pending invites")}
+              Pending invites
             </p>
             <div className="space-y-3">
               {membersData.invitations.map((invitation) => (
