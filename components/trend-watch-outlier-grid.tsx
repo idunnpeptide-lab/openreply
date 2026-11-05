@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "@/components/locale-provider";
 
 export type TrendWatchOutlier = {
   code: string;
@@ -18,9 +19,9 @@ export type TrendWatchOutlier = {
   saved?: boolean | null;
 };
 
-function compact(value?: number | null) {
+function compact(value: number | null | undefined, locale: "en" | "uk") {
   if (value === null || value === undefined) return "—";
-  return new Intl.NumberFormat("en", { notation: "compact" }).format(value);
+  return new Intl.NumberFormat(locale === "uk" ? "uk-UA" : "en-US", { notation: "compact" }).format(value);
 }
 
 export default function TrendWatchOutlierGrid({
@@ -28,6 +29,7 @@ export default function TrendWatchOutlierGrid({
 }: {
   initialItems: TrendWatchOutlier[];
 }) {
+  const { locale, t } = useLocale();
   const [items, setItems] = useState(initialItems);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [periodDays, setPeriodDays] = useState(30);
@@ -82,7 +84,7 @@ export default function TrendWatchOutlierGrid({
   if (items.length === 0) {
     return (
       <div className="panel rounded p-8 text-center text-sm text-muted">
-        Add competitors and run a sync to discover outliers.
+        {t("Add competitors and run a sync to discover outliers.")}
       </div>
     );
   }
@@ -91,20 +93,20 @@ export default function TrendWatchOutlierGrid({
     <div className="space-y-4">
       <div className="panel flex flex-wrap items-end gap-3 rounded p-3">
         <label className="text-xs text-muted">
-          <span className="mb-1 block">Period</span>
+          <span className="mb-1 block">{t("Period")}</span>
           <select
             value={periodDays}
             onChange={(event) => setPeriodDays(Number(event.target.value))}
             className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
           >
-            <option value={7}>7 days</option>
-            <option value={30}>30 days</option>
-            <option value={90}>90 days</option>
+            <option value={7}>{t("7 days")}</option>
+            <option value={30}>{t("30 days")}</option>
+            <option value={90}>{t("90 days")}</option>
           </select>
         </label>
 
         <label className="text-xs text-muted">
-          <span className="mb-1 block">Minimum outlier</span>
+          <span className="mb-1 block">{t("Minimum outlier")}</span>
           <select
             value={minOutlier}
             onChange={(event) => setMinOutlier(Number(event.target.value))}
@@ -118,7 +120,7 @@ export default function TrendWatchOutlierGrid({
         </label>
 
         <label className="text-xs text-muted">
-          <span className="mb-1 block">Sort by</span>
+          <span className="mb-1 block">{t("Sort by")}</span>
           <select
             value={sortBy}
             onChange={(event) =>
@@ -128,21 +130,21 @@ export default function TrendWatchOutlierGrid({
             }
             className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
           >
-            <option value="score">Score</option>
+            <option value="score">{t("Score")}</option>
             <option value="outlier">Outlier ×</option>
-            <option value="plays">Views</option>
-            <option value="velocity">Velocity</option>
+            <option value="plays">{t("Views")}</option>
+            <option value="velocity">{t("Velocity")}</option>
           </select>
         </label>
 
         <span className="ml-auto pb-2 text-sm text-muted">
-          {visibleItems.length} shown
+          {visibleItems.length} {t("shown")}
         </span>
       </div>
 
       {visibleItems.length === 0 ? (
         <div className="panel rounded p-8 text-center text-sm text-muted">
-          No Reels match these filters.
+          {t("No Reels match these filters.")}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -165,23 +167,23 @@ export default function TrendWatchOutlierGrid({
               </span>
             </div>
             <p className="mt-2 line-clamp-2 text-sm text-muted">
-              {item.caption || "No caption"}
+              {item.caption || t("No caption")}
             </p>
             <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted">
               <div>
-                <span className="block text-zinc-500">Views</span>
+                <span className="block text-zinc-500">{t("Views")}</span>
                 <span className="mt-1 block text-sm text-foreground">
-                  {compact(item.plays)}
+                  {compact(item.plays, locale)}
                 </span>
               </div>
               <div>
-                <span className="block text-zinc-500">Velocity/h</span>
+                <span className="block text-zinc-500">{t("Velocity/h")}</span>
                 <span className="mt-1 block text-sm text-foreground">
-                  {compact(item.velocity)}
+                  {compact(item.velocity, locale)}
                 </span>
               </div>
               <div>
-                <span className="block text-zinc-500">Score</span>
+                <span className="block text-zinc-500">{t("Score")}</span>
                 <span className="mt-1 block text-sm text-foreground">
                   {item.score?.toFixed(0) ?? "—"}
                 </span>
@@ -193,7 +195,7 @@ export default function TrendWatchOutlierGrid({
                 href={"/trend-watch/analyzer?code=" + encodeURIComponent(item.code)}
                 className="rounded bg-accent px-3 py-2 text-sm font-medium text-white"
               >
-                Analyze
+                {t("Analyze")}
               </Link>
               <button
                 type="button"
@@ -201,7 +203,7 @@ export default function TrendWatchOutlierGrid({
                 onClick={() => toggleSaved(item)}
                 className="rounded border border-border px-3 py-2 text-sm text-foreground disabled:opacity-50"
               >
-                {item.saved ? "Saved ✓" : "Save idea"}
+                {item.saved ? t("Saved ✓") : t("Save idea")}
               </button>
               {item.link && (
                 <a
