@@ -9,6 +9,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import LanguageSwitcher from "@/components/language-switcher";
+import { useLocale } from "@/components/locale-provider";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -35,6 +37,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const { t } = useLocale();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -95,13 +98,13 @@ export default function Sidebar({
             type="button"
             onClick={closeAndRestoreFocus}
             className="rounded border border-border px-2.5 py-1.5 text-sm text-muted hover:text-foreground lg:hidden"
-            aria-label="Close navigation"
+            aria-label={t("Close navigation")}
           >
-            Close
+            {t("Close")}
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Main navigation">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label={t("Main navigation")}>
           {navItems.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
@@ -121,15 +124,18 @@ export default function Sidebar({
                   }
                 `}
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             );
           })}
         </nav>
 
-        <div className="px-5 py-4 border-t border-border">
-          <p className="text-sm text-foreground truncate">{workspaceName}</p>
-          <p className="text-xs text-muted">ReplyHalo workspace</p>
+        <div className="space-y-3 border-t border-border px-5 py-4">
+          <div>
+            <p className="text-sm text-foreground truncate">{workspaceName}</p>
+            <p className="text-xs text-muted">{t("ReplyHalo workspace")}</p>
+          </div>
+          <LanguageSwitcher compact />
         </div>
       </aside>
     </>

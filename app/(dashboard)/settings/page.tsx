@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
 import { InstagramConnectNotice } from "@/components/instagram-connect-notice";
+import LanguageSwitcher from "@/components/language-switcher";
+import { useLocale } from "@/components/locale-provider";
 import {
   accountLimitRecoveryMessage,
   instagramDisconnectCustomerError,
@@ -107,6 +109,7 @@ function activationErrorMessage(error?: string) {
 }
 
 export default function SettingsPage() {
+  const { t } = useLocale();
   const [data, setData] = useState<SettingsData | null>(null);
   const [membersData, setMembersData] = useState<WorkspaceMembersData | null>(
     null
@@ -302,6 +305,16 @@ export default function SettingsPage() {
       <Suspense fallback={null}>
         <InstagramConnectNotice />
       </Suspense>
+
+      <section className="panel rounded p-4 sm:p-6">
+        <h2 className="text-base font-semibold">{t("Language")}</h2>
+        <p className="mt-1 text-xs text-muted">
+          {t("Choose the language used across ReplyHalo.")}
+        </p>
+        <div className="mt-4 max-w-sm">
+          <LanguageSwitcher />
+        </div>
+      </section>
 
       <section className="panel rounded p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
