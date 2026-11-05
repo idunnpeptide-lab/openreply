@@ -723,14 +723,23 @@ def startup_smoke():
     if not SMOKE_USERNAME:
         return
     try:
-        profile = scraper_get("/users/profile", user=clean_username(SMOKE_USERNAME))
-        username = profile.get("username") or clean_username(SMOKE_USERNAME)
+        requested = clean_username(SMOKE_USERNAME)
+        profile = scraper_get("/users/profile", user=requested)
+        username = profile.get("username") or requested
         followers = profile.get("follower_count")
+        _, reels = scraper_reels(username)
+        first = normalized_reel(reels[0]) if reels else {}
         print(
             "TRENDWATCH_SMOKE_OK username=@"
             + str(username)
             + " followers="
             + str(followers)
+            + " reels="
+            + str(len(reels))
+            + " first_code="
+            + str(first.get("code"))
+            + " first_plays="
+            + str(first.get("plays"))
         )
     except Exception as exc:
         print("TRENDWATCH_SMOKE_ERROR " + str(exc))
