@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/components/locale-provider";
 
 export type TrendWatchSavedIdea = {
   code: string;
@@ -15,6 +16,7 @@ export default function TrendWatchSavedGrid({
 }: {
   initialItems: TrendWatchSavedIdea[];
 }) {
+  const { t } = useLocale();
   const [items, setItems] = useState(initialItems);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +35,12 @@ export default function TrendWatchSavedGrid({
       );
       const payload = await response.json();
       if (!payload.success) {
-        throw new Error(payload.error || "Could not remove saved idea");
+        throw new Error(payload.error || t("Could not remove saved idea"));
       }
       setItems((current) => current.filter((item) => item.code !== code));
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not remove saved idea"
+        err instanceof Error ? err.message : t("Could not remove saved idea")
       );
     } finally {
       setBusyCode(null);
@@ -66,7 +68,7 @@ export default function TrendWatchSavedGrid({
             </div>
 
             <p className="mt-2 line-clamp-3 text-sm text-muted">
-              {idea.caption || "No caption"}
+              {idea.caption || t("No caption")}
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -76,7 +78,7 @@ export default function TrendWatchSavedGrid({
                 }
                 className="rounded bg-accent px-3 py-2 text-sm font-medium text-white"
               >
-                Analyze
+                {t("Analyze")}
               </a>
 
               <button
@@ -85,7 +87,7 @@ export default function TrendWatchSavedGrid({
                 onClick={() => removeSaved(idea.code)}
                 className="rounded border border-border px-3 py-2 text-sm text-foreground disabled:opacity-50"
               >
-                {busyCode === idea.code ? "Removing…" : "Remove saved"}
+                {busyCode === idea.code ? t("Removing…") : t("Remove saved")}
               </button>
 
               {idea.link && (
@@ -104,7 +106,7 @@ export default function TrendWatchSavedGrid({
 
         {items.length === 0 && (
           <div className="panel rounded p-10 text-center text-sm text-muted md:col-span-2">
-            No saved ideas yet.
+            {t("No saved ideas yet.")}
           </div>
         )}
       </div>
