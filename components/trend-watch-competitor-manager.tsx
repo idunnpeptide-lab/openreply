@@ -251,10 +251,10 @@ export default function TrendWatchCompetitorManager({
 
         <form onSubmit={addAccounts} className="panel rounded p-4">
           <h2 className="text-sm font-semibold text-foreground">
-            {t("Add competitors")}
+            {t("Add Instagram accounts")}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {t("Paste usernames, profile links, or a comma-separated list.")}
+            {t("Paste a competitor profile, your own profile, or multiple usernames and links.")}
           </p>
           <textarea
             value={usernames}
@@ -325,7 +325,7 @@ export default function TrendWatchCompetitorManager({
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                {t("Competitors")}
+                {t("Tracked Instagram accounts")}
               </h2>
               <p className="mt-1 text-sm text-muted">
                 {t("Tracked Instagram accounts and their strongest recent outlier.")}
@@ -383,7 +383,7 @@ export default function TrendWatchCompetitorManager({
             ))}
             {accounts.length === 0 && (
               <p className="py-10 text-center text-sm text-muted">
-                {t("Add your first competitor to start monitoring.")}
+                {t("Add an Instagram account above to start monitoring.")}
               </p>
             )}
           </div>
