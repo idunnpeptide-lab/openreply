@@ -1,4 +1,5 @@
 import TrendWatchServiceState from "@/components/trend-watch-service-state";
+import LocalizedText from "@/components/localized-text";
 import TrendWatchSavedGrid, { type TrendWatchSavedIdea } from "@/components/trend-watch-saved-grid";
 import {
   isTrendWatchConfigured,
@@ -23,9 +24,9 @@ export default async function TrendWatchSavedPage() {
     return (
       <div className="space-y-4">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Saved Ideas</h2>
+          <h2 className="text-base font-semibold text-foreground"><LocalizedText text="Saved Ideas" /></h2>
           <p className="mt-1 text-sm text-muted">
-            Winning formats you saved for later adaptation.
+            <LocalizedText text="Winning formats you saved for later adaptation." />
           </p>
         </div>
         <TrendWatchSavedGrid initialItems={items} />
