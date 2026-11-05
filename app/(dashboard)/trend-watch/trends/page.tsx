@@ -1,4 +1,5 @@
 import TrendWatchServiceState from "@/components/trend-watch-service-state";
+import LocalizedText from "@/components/localized-text";
 import TrendWatchRefreshTrendsButton from "@/components/trend-watch-refresh-trends-button";
 import {
   isTrendWatchConfigured,
@@ -34,7 +35,7 @@ export default async function TrendWatchTrendsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              Instagram Trends
+              <LocalizedText text="Instagram Trends" />
             </h2>
             <p className="mt-1 max-w-2xl text-sm text-muted">
               Trending topics, profiles and featured Reels discovered by the
@@ -70,14 +71,14 @@ export default async function TrendWatchTrendsPage() {
                   rel="noopener noreferrer"
                   className="text-sm text-accent hover:underline"
                 >
-                  Open
+                  <LocalizedText text="Open" />
                 </a>
               )}
             </div>
           ))}
           {items.length === 0 && (
             <p className="p-10 text-center text-sm text-muted">
-              Trend data has not been collected yet.
+              <LocalizedText text="Trend data has not been collected yet." />
             </p>
           )}
         </div>
