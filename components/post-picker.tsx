@@ -156,14 +156,14 @@ export default function PostPicker({
       </div>
       {visible.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted">
-          No posts match &ldquo;{query}&rdquo;
+          {t("No posts match")} &ldquo;{query}&rdquo;
         </p>
       ) : (
         <>
           {usedPostIds && Object.keys(usedPostIds).length > 0 && (
             <p className="flex items-center gap-1.5 px-1 text-[11px] text-muted">
               <span className="inline-block h-2.5 w-2.5 rounded-sm border border-warning/50" />
-              Already used
+              {t("Already used")}
             </p>
           )}
           {/* auto-rows-min + content-start keep each row at its natural height.
@@ -229,7 +229,7 @@ export default function PostPicker({
             )}
             {isSelected && (
               <span className="absolute bottom-0 inset-x-0 bg-accent text-white text-xs py-1">
-                Selected
+                {t("Selected")}
               </span>
             )}
           </button>
@@ -242,7 +242,7 @@ export default function PostPicker({
               onClick={() => setShown((n) => n + PAGE_SIZE)}
               className="w-full rounded-lg border border-border py-2 text-sm text-muted hover:text-foreground"
             >
-              Show {Math.min(PAGE_SIZE, remaining)} more
+              {t("Show")} {Math.min(PAGE_SIZE, remaining)} {t("more")}
             </button>
           )}
         </>
