@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import InvitationAcceptCard from "@/components/invitation-accept-card";
+import LanguageSwitcher from "@/components/language-switcher";
+import LocalizedText from "@/components/localized-text";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 
@@ -10,7 +12,7 @@ type InvitePageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "Accept Workspace Invitation - OpenReply",
+  title: "Accept Workspace Invitation - ReplyHalo",
   robots: { index: false, follow: false },
 };
 
@@ -35,24 +37,26 @@ export default async function InvitePage({ params }: InvitePageProps) {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-5 py-12">
-        <Link href="/" className="mb-8 text-sm font-bold text-cyan-100">
-          OpenReply
-        </Link>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <Link href="/" className="text-sm font-bold text-cyan-100">ReplyHalo</Link>
+          <div className="w-40"><LanguageSwitcher compact /></div>
+        </div>
         <section className="border border-white/10 bg-white/[0.035] p-8">
           <p className="text-xs font-semibold uppercase tracking-wide text-cyan-100">
-            Workspace invitation
+            <LocalizedText text="Workspace invitation" />
           </p>
           <h1 className="mt-4 text-3xl font-black leading-tight text-white">
-            Join {invitation.workspace.name}
+            <LocalizedText text="Join" /> {invitation.workspace.name}
           </h1>
           <p className="mt-4 text-sm leading-6 text-zinc-400">
-            You were invited as {invitation.role.toLowerCase()} for{" "}
-            {invitation.email}.
+            <LocalizedText text="You were invited as" />{" "}
+            <LocalizedText text={invitation.role === "OWNER" ? "Owner" : invitation.role === "ADMIN" ? "Admin" : "Member"} />{" "}
+            <LocalizedText text="for" /> {invitation.email}.
           </p>
           <div className="mt-8">
             {expired ? (
               <p className="text-sm text-error">
-                This invitation has expired. Ask the workspace owner to resend it.
+                <LocalizedText text="This invitation has expired. Ask the workspace owner to resend it." />
               </p>
             ) : (
               <InvitationAcceptCard
