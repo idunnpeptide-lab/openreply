@@ -3,12 +3,15 @@
 import { useState } from "react";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
+import { LocaleProvider } from "@/components/locale-provider";
+import type { ReplyHaloLocale } from "@/lib/i18n";
 
 interface DashboardShellProps {
   children: React.ReactNode;
   workspaceName: string;
   instagramUsername: string | null;
   instagramAccountCount: number;
+  initialLocale: ReplyHaloLocale;
 }
 
 export default function DashboardShell({
@@ -16,11 +19,13 @@ export default function DashboardShell({
   workspaceName,
   instagramUsername,
   instagramAccountCount,
+  initialLocale,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    // h-dvh, not h-screen: on mobile browsers the URL bar eats into 100vh, which
+    <LocaleProvider initialLocale={initialLocale}>
+    {/* h-dvh, not h-screen: on mobile browsers the URL bar eats into 100vh, which
     // would push the composer and pagination controls below the fold.
     <div className="flex h-dvh overflow-hidden bg-background">
       <Sidebar
@@ -47,5 +52,6 @@ export default function DashboardShell({
         </main>
       </div>
     </div>
+    </LocaleProvider>
   );
 }
