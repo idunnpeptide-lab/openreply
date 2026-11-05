@@ -150,7 +150,7 @@ function Toggle({
 
 export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderProps) {
   const router = useRouter();
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
 
   const [loading, setLoading] = useState(mode === "edit");
   const [notFound, setNotFound] = useState(false);
@@ -1146,14 +1146,14 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
           </div>
         </Section>
 
-        <Section title="And then, they will get">
+        <Section title={t("And then, they will get")}>
           <div className="rounded-lg border border-border p-3 space-y-2">
-            <span className="text-sm text-foreground">a DM with a link</span>
+            <span className="text-sm text-foreground">{t("a DM with a link")}</span>
             <textarea
               value={dmMessage}
               onChange={(e) => setDmMessage(e.target.value)}
               placeholder="Write a message"
-              aria-label="Private message"
+              aria-label={t("Private message")}
               rows={3}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
               maxLength={1000}
@@ -1165,14 +1165,14 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   onChange={(e) => setTrackedDestinationUrl(e.target.value)}
                   onBlur={ensureLinkToken}
                   placeholder="https://yourlink.com/offer"
-                  aria-label="Tracked link destination URL"
+                  aria-label={t("Tracked link destination URL")}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                 />
                 <input
                   value={linkButtonLabel}
                   onChange={(e) => setLinkButtonLabel(e.target.value)}
                   placeholder="Button label (e.g. Open link)"
-                  aria-label="Tracked link button label"
+                  aria-label={t("Tracked link button label")}
                   maxLength={20}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                 />
@@ -1182,14 +1182,14 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                       value={secondaryDestinationUrl}
                       onChange={(e) => setSecondaryDestinationUrl(e.target.value)}
                       placeholder="https://yourlink.com/second"
-                      aria-label="Second link destination URL"
+                      aria-label={t("Second link destination URL")}
                       className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                     />
                     <input
                       value={secondaryButtonLabel}
                       onChange={(e) => setSecondaryButtonLabel(e.target.value)}
-                      placeholder="Second button label"
-                      aria-label="Second link button label"
+                      placeholder={t("Second button label")}
+                      aria-label={t("Second link button label")}
                       maxLength={20}
                       className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                     />
@@ -1200,7 +1200,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                     onClick={() => setSecondLinkOpen(true)}
                     className="w-full rounded-lg border border-border py-2 text-sm text-muted hover:text-foreground"
                   >
-                    + Add A Second Link
+                    {t("+ Add A Second Link")}
                   </button>
                 )}
               </div>
@@ -1210,22 +1210,22 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 onClick={() => setLinkOpen(true)}
                 className="w-full rounded-lg border border-border py-2 text-sm text-muted hover:text-foreground"
               >
-                + Add A Link
+                {t("+ Add A Link")}
               </button>
             )}
             <p className="text-xs text-muted">
-              {"{link}"} inserts the tracked link; {"{username}"} personalizes.
+              {t("{link} inserts the tracked link; {username} personalizes.")}
             </p>
           </div>
           <div className="mt-3 rounded-lg border border-border p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">
-                a follow-up thank-you message
+                {t("a follow-up thank-you message")}
               </span>
               <Toggle
                 on={followUpEnabled}
                 onToggle={() => setFollowUpEnabled(!followUpEnabled)}
-                label="Send a follow-up message"
+                label={t("Send a follow-up message")}
               />
             </div>
             {followUpEnabled && (
@@ -1234,13 +1234,13 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   value={followUpMessage}
                   onChange={(e) => setFollowUpMessage(e.target.value)}
                   placeholder="Btw just wanted to say thanks for following me, I appreciate the support 🙌"
-                  aria-label="Follow-up message"
+                  aria-label={t("Follow-up message")}
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
                 />
                 <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
-                  <span className="text-xs text-muted">Send it</span>
+                  <span className="text-xs text-muted">{t("Send it")}</span>
                   <input
                     type="number"
                     min={0}
@@ -1251,17 +1251,17 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                         Math.max(0, Math.min(1440, Math.floor(Number(e.target.value) || 0)))
                       )
                     }
-                    aria-label="Follow-up delay in minutes"
+                    aria-label={t("Follow-up delay in minutes")}
                     className="w-20 rounded-lg border border-border bg-surface px-2 py-1 text-sm text-foreground focus:border-accent/40 focus:outline-none"
                   />
                   <span className="text-xs text-muted">
-                    minutes after the link
+                    {t("minutes after the link")}
                   </span>
                 </div>
                 <p className="text-xs text-muted">
                   {followUpDelayMinutes > 0
                     ? `Sent ${followUpDelayMinutes} min after they tap through.`
-                    : "Sent right after they tap through."}
+                    : t("Sent right after they tap through.")}
                   {" {username}"} personalizes it. Max 24 hours, to stay inside
                   Instagram&apos;s messaging window.
                 </p>
@@ -1273,7 +1273,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
 
       {/* Right: preview */}
       <div>
-        <p className="mb-4 text-sm text-muted">Preview</p>
+        <p className="mb-4 text-sm text-muted">{t("Preview")}</p>
         <div className="flex min-w-0 justify-center lg:sticky lg:top-6 lg:block">
           <CampaignPreview
             tab={previewTab}
