@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "@/components/locale-provider";
 
 type AnalysisItem = {
   code: string;
@@ -45,6 +46,7 @@ async function readAnalysis(code: string) {
 
 export default function TrendWatchAnalyzer() {
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const code = useMemo(() => searchParams.get("code")?.trim() || "", [searchParams]);
   const [item, setItem] = useState<AnalysisItem | null>(null);
   const [loading, setLoading] = useState(Boolean(code));
@@ -116,11 +118,9 @@ export default function TrendWatchAnalyzer() {
   if (!code) {
     return (
       <div className="panel rounded p-8 text-center">
-        <h2 className="text-base font-semibold text-foreground">Video Analyzer</h2>
+        <h2 className="text-base font-semibold text-foreground">{t("Video Analyzer")}</h2>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted">
-          Open the Outliers tab and click Analyze on any Reel. Trend Watch will
-          inspect scene changes, editing pace, the first 10 seconds, transcript
-          and — when configured — generate an AI adaptation.
+          {t("Open the Outliers tab and click Analyze on any Reel. Trend Watch will inspect scene changes, editing pace, the first 10 seconds, transcript and — when configured — generate an AI adaptation.")}
         </p>
       </div>
     );
@@ -138,9 +138,9 @@ export default function TrendWatchAnalyzer() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              Video Analyzer
+              {t("Video Analyzer")}
             </h2>
-            <p className="mt-1 text-sm text-muted">Reel code: {code}</p>
+            <p className="mt-1 text-sm text-muted">{t("Reel code")}: {code}</p>
           </div>
           {(!item || item.status === "error") && (
             <button
@@ -149,7 +149,7 @@ export default function TrendWatchAnalyzer() {
               onClick={startAnalysis}
               className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {starting ? "Starting…" : item ? "Run again" : "Analyze video"}
+              {starting ? t("Starting…") : item ? t("Run again") : t("Analyze video")}
             </button>
           )}
         </div>
@@ -159,19 +159,19 @@ export default function TrendWatchAnalyzer() {
         {item && item.status !== "done" && item.status !== "error" && (
           <div className="mt-5 rounded border border-border bg-background p-4">
             <p className="text-sm font-medium text-foreground">
-              {item.status === "queued" ? "Queued" : "Analyzing"}
+              {item.status === "queued" ? t("Queued") : t("Analyzing")}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {item.step || "Processing video"}
+              {item.step ? t(item.step) : t("Processing video")}
             </p>
           </div>
         )}
 
         {item?.status === "error" && (
           <div className="mt-5 rounded border border-error/30 bg-background p-4">
-            <p className="text-sm font-medium text-error">Analysis failed</p>
+            <p className="text-sm font-medium text-error">{t("Analysis failed")}</p>
             <p className="mt-1 text-sm text-muted">
-              {item.error || "Unknown analysis error"}
+              {item.error || t("Unknown analysis error")}
             </p>
           </div>
         )}
@@ -221,7 +221,7 @@ export default function TrendWatchAnalyzer() {
           <section className="panel rounded p-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-foreground">
-                Transcript
+                {t("Transcript")}
               </h3>
               {data.transcript?.provider && (
                 <span className="text-xs text-muted">
@@ -230,18 +230,17 @@ export default function TrendWatchAnalyzer() {
               )}
             </div>
             <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted">
-              {data.transcript?.text ||
-                "Whisper is not configured for this environment."}
+              {data.transcript?.text || t("Whisper is not configured for this environment.")}
             </p>
           </section>
 
           <section className="panel rounded p-5">
             <h3 className="text-sm font-semibold text-foreground">
-              AI breakdown & adaptation
+              {t("AI breakdown & adaptation")}
             </h3>
             <div className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted">
               {data.ai_markdown ||
-                "Connect an Anthropic API key to generate the strategic breakdown, hooks and adapted script."}
+                t("Connect an Anthropic API key to generate the strategic breakdown, hooks and adapted script.")}
             </div>
           </section>
         </>
