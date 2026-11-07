@@ -8,7 +8,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import LanguageSwitcher from "@/components/language-switcher";
+import { useLocale } from "@/components/locale-provider";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -17,6 +19,17 @@ const navItems = [
   { label: "Quick Automations", href: "/campaigns/quick" },
   { label: "Campaigns", href: "/campaigns", exact: true },
   { label: "TikTok staging", href: "/tiktok" },
+];
+
+const trendWatchItems = [
+  { label: "Outliers", href: "/trend-watch/outliers" },
+  { label: "Competitors & Niches", href: "/trend-watch/competitors" },
+  { label: "Instagram Trends", href: "/trend-watch/trends" },
+  { label: "Saved Ideas", href: "/trend-watch/saved" },
+  { label: "Video Analyzer", href: "/trend-watch/analyzer" },
+];
+
+const trailingNavItems = [
   { label: "DM Logs", href: "/logs" },
   { label: "Settings", href: "/settings" },
   { label: "Diagnostics", href: "/diagnostics" },
@@ -34,7 +47,14 @@ export default function Sidebar({
   workspaceName,
 }: SidebarProps) {
   const pathname = usePathname();
+  const trendWatchActive = pathname.startsWith("/trend-watch");
+  const [trendWatchOpen, setTrendWatchOpen] = useState(trendWatchActive);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const { t } = useLocale();
+
+  useEffect(() => {
+    if (trendWatchActive) setTrendWatchOpen(true);
+  }, [trendWatchActive]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -58,6 +78,35 @@ export default function Sidebar({
     window.requestAnimationFrame(() => {
       document.getElementById("dashboard-menu-button")?.focus();
     });
+  }
+
+  function renderLink(item: {
+    label: string;
+    href: string;
+    exact?: boolean;
+  }) {
+    const isActive = item.exact
+      ? pathname === item.href
+      : pathname === item.href || pathname.startsWith(item.href + "/");
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onClose}
+        aria-current={isActive ? "page" : undefined}
+        className={`
+          block px-3 py-2.5 rounded text-sm
+          ${
+            isActive
+              ? "bg-surface-hover text-foreground font-medium"
+              : "text-muted hover:text-foreground hover:bg-surface-hover"
+          }
+        `}
+      >
+        {t(item.label)}
+      </Link>
+    );
   }
 
   return (
@@ -95,41 +144,81 @@ export default function Sidebar({
             type="button"
             onClick={closeAndRestoreFocus}
             className="rounded border border-border px-2.5 py-1.5 text-sm text-muted hover:text-foreground lg:hidden"
-            aria-label="Close navigation"
+            aria-label={t("Close navigation")}
           >
-            Close
+            {t("Close")}
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Main navigation">
-          {navItems.map((item) => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                aria-current={isActive ? "page" : undefined}
-                className={`
-                  block px-3 py-2.5 rounded text-sm
-                  ${
-                    isActive
-                      ? "bg-surface-hover text-foreground font-medium"
-                      : "text-muted hover:text-foreground hover:bg-surface-hover"
-                  }
-                `}
+        <nav
+          className="flex-1 px-3 py-4 space-y-1 overflow-y-auto"
+          aria-label={t("Main navigation")}
+        >
+          {navItems.map(renderLink)}
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setTrendWatchOpen((open) => !open)}
+              aria-expanded={trendWatchOpen}
+              className={`
+                flex w-full items-center justify-between rounded px-3 py-2.5 text-left text-sm
+                ${
+                  trendWatchActive
+                    ? "bg-surface-hover text-foreground font-medium"
+                    : "text-muted hover:text-foreground hover:bg-surface-hover"
+                }
+              `}
+            >
+              <span>{t("Trend Watch")}</span>
+              <span
+                aria-hidden="true"
+                className={`text-xs transition-transform ${
+                  trendWatchOpen ? "rotate-90" : ""
+                }`}
               >
-                {item.label}
-              </Link>
-            );
-          })}
+                ›
+              </span>
+            </button>
+
+            {trendWatchOpen && (
+              <div className="mt-1 space-y-1 border-l border-border ml-3 pl-3">
+                {trendWatchItems.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onClose}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`
+                        block rounded px-3 py-2 text-sm
+                        ${
+                          isActive
+                            ? "bg-surface-hover text-foreground font-medium"
+                            : "text-muted hover:text-foreground hover:bg-surface-hover"
+                        }
+                      `}
+                    >
+                      {t(item.label)}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {trailingNavItems.map(renderLink)}
         </nav>
 
-        <div className="px-5 py-4 border-t border-border">
-          <p className="text-sm text-foreground truncate">{workspaceName}</p>
-          <p className="text-xs text-muted">ReplyHalo workspace</p>
+        <div className="space-y-3 border-t border-border px-5 py-4">
+          <div>
+            <p className="text-sm text-foreground truncate">{workspaceName}</p>
+            <p className="text-xs text-muted">{t("ReplyHalo workspace")}</p>
+          </div>
+          <LanguageSwitcher compact />
         </div>
       </aside>
     </>

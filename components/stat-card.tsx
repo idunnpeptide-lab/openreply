@@ -1,3 +1,5 @@
+import LocalizedText from "@/components/localized-text";
+
 /**
  * Stat Card
  *
@@ -14,11 +16,11 @@ interface StatCardProps {
 export default function StatCard({ label, value, trend, trendUp }: StatCardProps) {
   return (
     <div className="panel rounded p-4">
-      <p className="text-sm text-muted">{label}</p>
+      <p className="text-sm text-muted"><LocalizedText text={label} /></p>
       <p className="text-2xl font-semibold text-foreground mt-1">{value}</p>
       {trend && (
         <p className={`text-xs mt-1 ${trendUp ? "text-success" : "text-error"}`}>
-          {trendUp ? "Up" : "Down"} {trend}
+          <LocalizedText text={trendUp ? "Up" : "Down"} /> {trend}
         </p>
       )}
     </div>

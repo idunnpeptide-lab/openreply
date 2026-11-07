@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
 import { InstagramConnectNotice } from "@/components/instagram-connect-notice";
+import LanguageSwitcher from "@/components/language-switcher";
+import { useLocale } from "@/components/locale-provider";
 import {
   accountLimitRecoveryMessage,
   instagramDisconnectCustomerError,
@@ -107,6 +109,7 @@ function activationErrorMessage(error?: string) {
 }
 
 export default function SettingsPage() {
+  const { t } = useLocale();
   const [data, setData] = useState<SettingsData | null>(null);
   const [membersData, setMembersData] = useState<WorkspaceMembersData | null>(
     null
@@ -204,11 +207,11 @@ export default function SettingsPage() {
         setLicenseLoadError(false);
         setLicenseKeyInput("");
       } else {
-        setLicenseError(activationErrorMessage(payload.error));
+        setLicenseError(t(activationErrorMessage(payload.error)));
       }
     } catch {
       setLicenseError(
-        "ReplyHalo could not verify the activation code right now. Please try again."
+        t("ReplyHalo could not verify the activation code right now. Please try again.")
       );
     } finally {
       setBusy(null);
@@ -218,7 +221,7 @@ export default function SettingsPage() {
   async function disconnectInstagram(instagramAccountId: string) {
     if (
       !confirm(
-        "Disconnect Instagram? Campaigns will stop sending until you reconnect. Campaigns, logs, clicks, and history are preserved."
+        t("Disconnect Instagram? Campaigns will stop sending until you reconnect. Campaigns, logs, clicks, and history are preserved.")
       )
     ) {
       return;
@@ -241,13 +244,13 @@ export default function SettingsPage() {
       );
 
       if (customerError) {
-        setInstagramError(customerError);
+        setInstagramError(t(customerError));
         return;
       }
 
       window.location.reload();
     } catch {
-      setInstagramError(instagramDisconnectCustomerError(false, undefined));
+      setInstagramError(t(instagramDisconnectCustomerError(false, undefined) ?? ""));
     } finally {
       setBusy((current) => (current === busyKey ? null : current));
     }
@@ -267,7 +270,7 @@ export default function SettingsPage() {
       setMembersData(payload.data);
       setInviteEmail("");
     } else {
-      setMemberError(payload.error ?? "Could not invite member");
+      setMemberError(t(payload.error ?? "Could not invite member"));
     }
     setBusy(null);
   }
@@ -302,6 +305,16 @@ export default function SettingsPage() {
       <Suspense fallback={null}>
         <InstagramConnectNotice />
       </Suspense>
+
+      <section className="panel rounded p-4 sm:p-6">
+        <h2 className="text-base font-semibold">{t("Language")}</h2>
+        <p className="mt-1 text-xs text-muted">
+          {t("Choose the language used across ReplyHalo.")}
+        </p>
+        <div className="mt-4 max-w-sm">
+          <LanguageSwitcher />
+        </div>
+      </section>
 
       <section className="panel rounded p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
@@ -394,7 +407,7 @@ export default function SettingsPage() {
           <div className="mt-4 rounded-lg border border-warning/20 bg-warning/5 p-3">
             <p className="text-sm font-medium text-foreground">Your plan needs attention</p>
             <p className="mt-1 text-xs text-muted">
-              {planAttentionMessage(licenseData.error)}
+              {t(planAttentionMessage(licenseData.error))}
             </p>
           </div>
         ) : (
