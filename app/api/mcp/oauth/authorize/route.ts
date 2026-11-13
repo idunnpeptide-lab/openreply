@@ -15,10 +15,13 @@ export async function GET(request: NextRequest) {
   const codeChallenge = params.get("code_challenge") || "";
   const codeChallengeMethod = params.get("code_challenge_method");
   const state = params.get("state");
+  const base = getBaseUrl().replace(/\/$/, "");
+  const expectedResource = base + "/mcp";
+  const resource = params.get("resource") || expectedResource;
   const scopes = normalizeRequestedScopes(params.get("scope"));
 
   const client = verifyClientId(clientId);
-  if (!client || responseType !== "code" || codeChallengeMethod !== "S256") {
+  if (!client || responseType !== "code" || codeChallengeMethod !== "S256" || resource !== expectedResource) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
   if (!client.redirectUris.includes(redirectUri)) {
@@ -30,7 +33,6 @@ export async function GET(request: NextRequest) {
 
   const membership = await getCurrentOAuthWorkspace();
   if (!membership) {
-    const base = getBaseUrl().replace(/\/$/, "");
     const callbackUrl = encodeURIComponent(request.url);
     return NextResponse.redirect(base + "/login?callbackUrl=" + callbackUrl);
   }
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest) {
     clientId,
     redirectUri,
     codeChallenge,
+    resource,
   });
 
   const redirect = new URL(redirectUri);
