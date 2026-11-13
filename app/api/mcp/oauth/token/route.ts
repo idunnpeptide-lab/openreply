@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { consumeAuthorizationCode } from "@/lib/mcp/replay";
+import { isMcpTokenRevoked } from "@/lib/mcp/revocation";
 import {
   issueAccessToken,
   verifyAuthorizationCode,
@@ -69,6 +70,13 @@ export async function POST(request: NextRequest) {
     const claims = verifyRefreshToken(refresh);
     if (!claims || claims.clientId !== clientId) {
       return NextResponse.json({ error: "invalid_grant" }, { status: 400 });
+    }
+    if (await isMcpTokenRevoked({
+      workspaceId: claims.workspaceId,
+      userId: claims.userId,
+      issuedAt: claims.iat,
+    })) {
+      return NextResponse.json({ error: "invalid_grant", error_description: "Connection was revoked" }, { status: 400 });
     }
 
     const issued = issueAccessToken({
