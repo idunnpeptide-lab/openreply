@@ -12,11 +12,15 @@ const SCOPES = [
 
 export default function McpSettingsCard() {
   const { t } = useLocale();
-  const [serverUrl, setServerUrl] = useState("/mcp");
+  const [serverUrl, setServerUrl] = useState(
+    process.env.NEXT_PUBLIC_MCP_SERVER_URL || "/mcp"
+  );
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setServerUrl(window.location.origin + "/mcp");
+    if (!process.env.NEXT_PUBLIC_MCP_SERVER_URL) {
+      setServerUrl(window.location.origin + "/mcp");
+    }
   }, []);
 
   async function copy() {
