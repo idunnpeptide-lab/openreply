@@ -54,6 +54,36 @@ export const MCP_TOOLS: ToolDefinition[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   {
+    name: "replyhalo_search_reels",
+    title: "Search Instagram Reels",
+    description: "Search Instagram discovery by a free-text keyword or topic and return popular Reels plus related keywords.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", minLength: 1, maxLength: 120 },
+        limit: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  },
+  {
+    name: "replyhalo_get_similar_accounts",
+    title: "Find similar Instagram accounts",
+    description: "Find Instagram accounts similar to a tracked or supplied public username using the Trend Watch collector.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        username: { type: "string", minLength: 1, maxLength: 100 },
+        limit: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+      },
+      required: ["username"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  },
+  {
     name: "replyhalo_get_instagram_trends",
     title: "Get Instagram trends",
     description: "Return the current Instagram trend cards collected by Trend Watch for this workspace.",
@@ -107,6 +137,8 @@ const TOOL_SCOPES: Record<string, McpScope> = {
   replyhalo_list_instagram_accounts: "mcp:instagram:read",
   replyhalo_get_campaigns: "mcp:campaigns:read",
   replyhalo_get_outliers: "mcp:trendwatch:read",
+  replyhalo_search_reels: "mcp:trendwatch:read",
+  replyhalo_get_similar_accounts: "mcp:trendwatch:read",
   replyhalo_get_instagram_trends: "mcp:trendwatch:read",
   replyhalo_get_saved_ideas: "mcp:trendwatch:read",
   replyhalo_get_video_analysis: "mcp:trendwatch:read",
@@ -156,6 +188,28 @@ export async function assertMcpMembership(claims: McpAccessClaims) {
 function requireToolScope(claims: McpAccessClaims, tool: string) {
   const required = TOOL_SCOPES[tool];
   return required ? claims.scopes.includes(required) : false;
+}
+
+async function scraperSearch(query: string) {
+  const base = process.env.TRENDWATCH_SCRAPER_URL?.replace(/\/$/, "");
+  if (!base) throw new Error("Trend Watch scraper is not configured");
+  const url = new URL(base + "/search/keywords");
+  url.searchParams.set("query", query);
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof payload?.error === "string"
+        ? payload.error
+        : "Instagram keyword search failed"
+    );
+  }
+  return payload as Record<string, unknown>;
 }
 
 async function trend<T>(workspaceId: string, path: string): Promise<T> {
@@ -229,6 +283,29 @@ export async function callMcpTool(
           "&sort=" + encodeURIComponent(sort)
       );
       result = { items: (response.items || []).slice(0, limit) };
+    } else if (name === "replyhalo_search_reels") {
+      const query = str(args.query).trim().slice(0, 120);
+      if (!query) throw new Error("Search query is required");
+      const limit = num(args.limit, 20, 1, 50);
+      const response = await scraperSearch(query);
+      const posts = Array.isArray(response.posts) ? response.posts.slice(0, limit) : [];
+      result = {
+        query,
+        posts,
+        related_keywords: Array.isArray(response.related_keywords)
+          ? response.related_keywords
+          : [],
+        description: response.description ?? null,
+      };
+    } else if (name === "replyhalo_get_similar_accounts") {
+      const username = str(args.username).trim().replace(/^@/, "").slice(0, 100);
+      if (!username) throw new Error("Instagram username is required");
+      const limit = num(args.limit, 20, 1, 50);
+      const response = await trend<{ items?: unknown[] }>(
+        claims.workspaceId,
+        "/v1/similar/" + encodeURIComponent(username)
+      );
+      result = { username, items: (response.items || []).slice(0, limit) };
     } else if (name === "replyhalo_get_instagram_trends") {
       const limit = num(args.limit, 30, 1, 100);
       const response = await trend<{ items?: unknown[] }>(claims.workspaceId, "/v1/trends");
