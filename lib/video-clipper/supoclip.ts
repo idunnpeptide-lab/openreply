@@ -40,10 +40,105 @@ function baseUrl() {
   return requireEnv("SUPOCLIP_API_URL").replace(/\/$/, "");
 }
 
-function authHeaders(): Record<string, string> {
-  const userId = process.env.SUPOCLIP_USER_ID?.trim();
+let cachedServiceUserId: string | null = null;
+
+function authBootstrapConfigured() {
+  return Boolean(
+    process.env.SUPOCLIP_AUTH_URL &&
+      process.env.SUPOCLIP_SERVICE_EMAIL &&
+      process.env.SUPOCLIP_SERVICE_PASSWORD &&
+      process.env.SUPOCLIP_AUTH_SECRET
+  );
+}
+
+async function parseBetterAuthUser(response: Response): Promise<string | null> {
+  const payload = (await response.json().catch(() => null)) as
+    | { user?: { id?: unknown } }
+    | null;
+  return typeof payload?.user?.id === "string" && payload.user.id
+    ? payload.user.id
+    : null;
+}
+
+async function resolveServiceUserId(): Promise<string> {
+  const configured = process.env.SUPOCLIP_USER_ID?.trim();
+  if (configured) return configured;
+  if (cachedServiceUserId) return cachedServiceUserId;
+
+  const authUrl = process.env.SUPOCLIP_AUTH_URL?.replace(/\/$/, "");
+  const email = process.env.SUPOCLIP_SERVICE_EMAIL?.trim();
+  const password = process.env.SUPOCLIP_SERVICE_PASSWORD;
+  if (!authUrl || !email || !password) {
+    throw new Error(
+      "Configure SUPOCLIP_USER_ID or SUPOCLIP_AUTH_URL + service credentials"
+    );
+  }
+
+  const headers = {
+    "content-type": "application/json",
+    origin: authUrl,
+  };
+
+  const signIn = await fetch(authUrl + "/api/auth/sign-in/email", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ email, password }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (signIn.ok) {
+    const id = await parseBetterAuthUser(signIn);
+    if (id) {
+      cachedServiceUserId = id;
+      return id;
+    }
+  }
+
+  const signUp = await fetch(authUrl + "/api/auth/sign-up/email", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      name: process.env.SUPOCLIP_SERVICE_NAME?.trim() || "ReplyHalo Engine",
+      email,
+      password,
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (signUp.ok) {
+    const id = await parseBetterAuthUser(signUp);
+    if (id) {
+      cachedServiceUserId = id;
+      return id;
+    }
+  }
+
+  // Another instance may have created the account between sign-in and sign-up.
+  const retry = await fetch(authUrl + "/api/auth/sign-in/email", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ email, password }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (retry.ok) {
+    const id = await parseBetterAuthUser(retry);
+    if (id) {
+      cachedServiceUserId = id;
+      return id;
+    }
+  }
+
+  const detail = await retry.text().catch(() => "");
+  throw new Error(
+    `Could not initialize SupoClip service user (${retry.status}): ${detail.slice(0, 300)}`
+  );
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
   const secret = process.env.SUPOCLIP_AUTH_SECRET?.trim();
-  if (userId && secret) {
+  if (secret) {
+    const userId = await resolveServiceUserId();
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = createHmac("sha256", secret)
       .update(`${userId}:${timestamp}`)
@@ -59,15 +154,15 @@ function authHeaders(): Record<string, string> {
   if (apiKey) return { Authorization: `Bearer ${apiKey}` };
 
   throw new Error(
-    "Configure SUPOCLIP_USER_ID + SUPOCLIP_AUTH_SECRET or SUPOCLIP_API_KEY"
+    "Configure SupoClip HMAC service auth or SUPOCLIP_API_KEY"
   );
 }
 
 export function getVideoClipperConfigStatus() {
   const hasHmac = Boolean(
     process.env.SUPOCLIP_API_URL &&
-      process.env.SUPOCLIP_USER_ID &&
-      process.env.SUPOCLIP_AUTH_SECRET
+      process.env.SUPOCLIP_AUTH_SECRET &&
+      (process.env.SUPOCLIP_USER_ID || authBootstrapConfigured())
   );
   const hasApiKey = Boolean(
     process.env.SUPOCLIP_API_URL && process.env.SUPOCLIP_API_KEY
@@ -83,7 +178,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(baseUrl() + path, {
     ...init,
     headers: {
-      ...authHeaders(),
+      ...(await authHeaders()),
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...(init?.headers || {}),
     },
@@ -135,7 +230,7 @@ export async function getSupoClipFile(taskId: string, clipId: string) {
   const response = await fetch(
     baseUrl() + `/tasks/${encodeURIComponent(taskId)}/clips/${encodeURIComponent(clipId)}/file`,
     {
-      headers: authHeaders(),
+      headers: await authHeaders(),
       cache: "no-store",
       signal: AbortSignal.timeout(120_000),
       redirect: "follow",
