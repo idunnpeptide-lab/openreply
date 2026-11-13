@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import IORedis from "ioredis";
 
 let redis: IORedis | null = null;
@@ -19,7 +20,8 @@ export async function consumeAuthorizationCode(code: string, expiresInSeconds = 
   if (client.status === "wait") {
     await client.connect();
   }
-  const key = "replyhalo:mcp:oauth-code:" + code;
+  const digest = createHash("sha256").update(code).digest("hex");
+  const key = "replyhalo:mcp:oauth-code:" + digest;
   const result = await client.set(key, "1", "EX", expiresInSeconds, "NX");
   return result === "OK";
 }
