@@ -163,3 +163,56 @@ export async function checkSupoClipConnection() {
     };
   }
 }
+
+
+export type SupoClipUploadAuthorization = {
+  storage?: string;
+  video_path: string;
+  uploadId: string;
+  partSize?: number;
+  parts?: Array<{ partNumber: number; url: string }>;
+  [key: string]: unknown;
+};
+
+export async function authorizeSupoClipUpload(input: {
+  filename: string;
+  size: number;
+  contentType: string;
+}) {
+  return request<SupoClipUploadAuthorization>("/upload/authorize", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function refreshSupoClipUploadParts(input: {
+  video_path: string;
+  uploadId: string;
+  partNumbers: number[];
+}) {
+  return request<{ parts?: Array<{ partNumber: number; url: string }> }>("/upload/parts", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function completeSupoClipUpload(input: {
+  video_path: string;
+  uploadId: string;
+  parts: Array<{ partNumber: number; etag: string }>;
+}) {
+  return request<{ video_path?: string; [key: string]: unknown }>("/upload/complete", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function abortSupoClipUpload(input: {
+  video_path: string;
+  uploadId: string;
+}) {
+  return request<{ message?: string; [key: string]: unknown }>("/upload/abort", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
