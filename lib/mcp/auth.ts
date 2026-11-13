@@ -174,12 +174,14 @@ export function issueAccessToken(input: {
     exp: ts + 60 * 60,
     ...input,
   });
-  const refreshToken = pack({
-    typ: "refresh",
-    iat: ts,
-    exp: ts + 30 * 24 * 60 * 60,
-    ...input,
-  });
+  const refreshToken = input.scopes.includes("offline_access")
+    ? pack({
+        typ: "refresh",
+        iat: ts,
+        exp: ts + 30 * 24 * 60 * 60,
+        ...input,
+      })
+    : null;
   return { accessToken, refreshToken, expiresIn: 3600 };
 }
 
