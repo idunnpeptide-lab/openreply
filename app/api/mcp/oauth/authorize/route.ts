@@ -173,8 +173,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const input = await parsePost(request);
   const base = getBaseUrl().replace(/\/$/, "");
+  const origin = request.headers.get("origin");
+  if (!origin || origin !== new URL(base).origin) {
+    return NextResponse.json({ error: "invalid_request", error_description: "Invalid consent origin" }, { status: 400 });
+  }
+
+  const input = await parsePost(request);
   const expectedResource = base + "/mcp";
   if (input.resource !== expectedResource) {
     return NextResponse.json({ error: "invalid_target" }, { status: 400 });
