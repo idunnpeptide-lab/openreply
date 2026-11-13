@@ -76,6 +76,8 @@ async function authenticate(request: Request) {
   if (!token) return null;
   const claims = verifyAccessToken(token);
   if (!claims) return null;
+  const expectedResource = getBaseUrl().replace(/\/$/, "") + "/mcp";
+  if (claims.resource !== expectedResource) return null;
   if (!(await assertMcpMembership(claims))) return null;
   return claims;
 }
