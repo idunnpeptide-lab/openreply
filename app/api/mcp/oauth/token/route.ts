@@ -9,12 +9,12 @@ import {
   verifyRefreshToken,
 } from "@/lib/mcp/auth";
 
-function tokenResponse(accessToken: string, refreshToken: string, expiresIn: number, scopes: string[]) {
+function tokenResponse(accessToken: string, refreshToken: string | null, expiresIn: number, scopes: string[]) {
   return NextResponse.json({
     access_token: accessToken,
     token_type: "Bearer",
     expires_in: expiresIn,
-    refresh_token: refreshToken,
+    ...(refreshToken ? { refresh_token: refreshToken } : {}),
     scope: scopes.join(" "),
   }, {
     headers: { "Cache-Control": "no-store", Pragma: "no-cache" },
