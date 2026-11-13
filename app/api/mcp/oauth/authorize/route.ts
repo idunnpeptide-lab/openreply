@@ -159,6 +159,7 @@ export async function GET(request: NextRequest) {
   }
 
   const scopes = normalizeRequestedScopes(input.scopeRaw);
+  const redirectOrigin = new URL(input.redirectUri).origin;
   return new NextResponse(
     consentHtml(input, checked.client.clientName || "AI client", scopes),
     {
@@ -166,7 +167,10 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
-        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+        "Content-Security-Policy":
+          "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' " +
+          redirectOrigin +
+          "; frame-ancestors 'none'",
       },
     }
   );
