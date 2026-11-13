@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { requireEnv } from "@/lib/env";
 
 export type SupoClipWorkflow = "highlights" | "series" | "topic" | "recap" | "trailer";
@@ -39,13 +40,41 @@ function baseUrl() {
   return requireEnv("SUPOCLIP_API_URL").replace(/\/$/, "");
 }
 
-function apiKey() {
-  return requireEnv("SUPOCLIP_API_KEY");
+function authHeaders(): Record<string, string> {
+  const userId = process.env.SUPOCLIP_USER_ID?.trim();
+  const secret = process.env.SUPOCLIP_AUTH_SECRET?.trim();
+  if (userId && secret) {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = createHmac("sha256", secret)
+      .update(`${userId}:${timestamp}`)
+      .digest("hex");
+    return {
+      "x-supoclip-user-id": userId,
+      "x-supoclip-ts": timestamp,
+      "x-supoclip-signature": signature,
+    };
+  }
+
+  const apiKey = process.env.SUPOCLIP_API_KEY?.trim();
+  if (apiKey) return { Authorization: `Bearer ${apiKey}` };
+
+  throw new Error(
+    "Configure SUPOCLIP_USER_ID + SUPOCLIP_AUTH_SECRET or SUPOCLIP_API_KEY"
+  );
 }
 
 export function getVideoClipperConfigStatus() {
+  const hasHmac = Boolean(
+    process.env.SUPOCLIP_API_URL &&
+      process.env.SUPOCLIP_USER_ID &&
+      process.env.SUPOCLIP_AUTH_SECRET
+  );
+  const hasApiKey = Boolean(
+    process.env.SUPOCLIP_API_URL && process.env.SUPOCLIP_API_KEY
+  );
   return {
-    configured: Boolean(process.env.SUPOCLIP_API_URL && process.env.SUPOCLIP_API_KEY),
+    configured: hasHmac || hasApiKey,
+    authMode: hasHmac ? "hmac" : hasApiKey ? "api_key" : null,
     apiUrl: process.env.SUPOCLIP_API_URL ? process.env.SUPOCLIP_API_URL.replace(/\/$/, "") : null,
   };
 }
@@ -54,7 +83,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(baseUrl() + path, {
     ...init,
     headers: {
-      Authorization: `Bearer ${apiKey()}`,
+      ...authHeaders(),
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...(init?.headers || {}),
     },
@@ -106,7 +135,7 @@ export async function getSupoClipFile(taskId: string, clipId: string) {
   const response = await fetch(
     baseUrl() + `/tasks/${encodeURIComponent(taskId)}/clips/${encodeURIComponent(clipId)}/file`,
     {
-      headers: { Authorization: `Bearer ${apiKey()}` },
+      headers: authHeaders(),
       cache: "no-store",
       signal: AbortSignal.timeout(120_000),
       redirect: "follow",
