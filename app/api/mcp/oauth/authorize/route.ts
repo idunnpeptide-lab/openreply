@@ -97,7 +97,7 @@ button{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:poin
 <h1>Connect ${escapeHtml(clientName)} to ReplyHalo?</h1>
 <p>This AI client is requesting read-only access to your ReplyHalo workspace:</p>
 <ul>${scopeList}</ul>
-<form method="post">${fields}
+<form method="post" action="/api/mcp/oauth/authorize">${fields}
 <div class="actions">
 <button class="allow" type="submit" name="decision" value="allow">Allow access</button>
 <button class="deny" type="submit" name="decision" value="deny">Deny</button>
@@ -174,12 +174,41 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const base = getBaseUrl().replace(/\/$/, "");
+  const expectedOrigin = new URL(base).origin;
   const origin = request.headers.get("origin");
-  if (!origin || origin !== new URL(base).origin) {
-    return NextResponse.json({ error: "invalid_request", error_description: "Invalid consent origin" }, { status: 400 });
+  const referer = request.headers.get("referer");
+  let sameOrigin = false;
+
+  if (origin) {
+    sameOrigin = origin === expectedOrigin;
+  } else if (referer) {
+    try {
+      sameOrigin = new URL(referer).origin === expectedOrigin;
+    } catch {
+      sameOrigin = false;
+    }
+  }
+
+  if (!sameOrigin) {
+    console.warn("[MCP OAuth] consent rejected: origin mismatch", {
+      origin,
+      referer,
+      expectedOrigin,
+    });
+    return NextResponse.json(
+      { error: "invalid_request", error_description: "Invalid consent origin" },
+      { status: 400 }
+    );
   }
 
   const input = await parsePost(request);
+  console.info("[MCP OAuth] consent submitted", {
+    decision: input.decision,
+    hasState: Boolean(input.state),
+    redirectHost: (() => {
+      try { return new URL(input.redirectUri).host; } catch { return "invalid"; }
+    })(),
+  });
   const expectedResource = base + "/mcp";
   if (input.resource !== expectedResource) {
     return NextResponse.json({ error: "invalid_target" }, { status: 400 });
