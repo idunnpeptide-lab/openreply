@@ -100,7 +100,7 @@ export function normalizeRequestedScopes(raw: string | null | undefined): McpSco
     .split(/\s+/)
     .map((item) => item.trim())
     .filter(Boolean);
-  if (requested.length === 0) return [...MCP_ALLOWED_SCOPES];
+  if (requested.length === 0) return MCP_ALLOWED_SCOPES.filter((scope) => scope !== "offline_access");
   return MCP_ALLOWED_SCOPES.filter((scope) => requested.includes(scope));
 }
 
