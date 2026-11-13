@@ -5,7 +5,7 @@ import { getOwnedVideoClipperTask, requireVideoClipperContext } from "@/lib/vide
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ taskId: string; clipId: string }> }
 ) {
   try {
@@ -19,9 +19,12 @@ export async function GET(
     headers.set("Cache-Control", "private, max-age=300");
     const length = upstream.headers.get("content-length");
     if (length) headers.set("Content-Length", length);
+    const download = request.nextUrl.searchParams.get("download") === "1";
     headers.set(
       "Content-Disposition",
-      upstream.headers.get("content-disposition") || `inline; filename="replyhalo-clip-${clipId}.mp4"`
+      download
+        ? `attachment; filename="replyhalo-clip-${clipId}.mp4"`
+        : upstream.headers.get("content-disposition") || `inline; filename="replyhalo-clip-${clipId}.mp4"`
     );
 
     return new NextResponse(upstream.body, { status: 200, headers });
