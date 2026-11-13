@@ -58,7 +58,7 @@ function rpcError(
 
 function unauthorized(description = "OAuth access token required") {
   const base = getBaseUrl().replace(/\/$/, "");
-  const metadata = base + "/.well-known/oauth-protected-resource";
+  const metadata = base + "/.well-known/oauth-protected-resource/mcp";
   return NextResponse.json(
     { error: "unauthorized", error_description: description },
     {
