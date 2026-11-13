@@ -95,11 +95,12 @@ export default function VideoClipper() {
 
   useEffect(() => {
     if (!activeTaskId) return;
+    const taskId = activeTaskId;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     async function tick() {
-      const task = await loadTask(activeTaskId);
+      const task = await loadTask(taskId);
       if (cancelled || !task) return;
       if (!terminal.has(String(task.status || "").toLowerCase())) {
         timer = setTimeout(tick, 3000);
