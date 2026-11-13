@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
 import { InstagramConnectNotice } from "@/components/instagram-connect-notice";
 import LanguageSwitcher from "@/components/language-switcher";
+import McpSettingsCard from "@/components/mcp-settings-card";
 import { useLocale } from "@/components/locale-provider";
 import {
   accountLimitRecoveryMessage,
@@ -315,6 +316,8 @@ export default function SettingsPage() {
           <LanguageSwitcher />
         </div>
       </section>
+
+      <McpSettingsCard />
 
       <section className="panel rounded p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
