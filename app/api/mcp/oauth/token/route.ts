@@ -1,0 +1,71 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  issueAccessToken,
+  verifyAuthorizationCode,
+  verifyClientId,
+  verifyPkce,
+  verifyRefreshToken,
+} from "@/lib/mcp/auth";
+
+function tokenResponse(accessToken: string, refreshToken: string, expiresIn: number, scopes: string[]) {
+  return NextResponse.json({
+    access_token: accessToken,
+    token_type: "Bearer",
+    expires_in: expiresIn,
+    refresh_token: refreshToken,
+    scope: scopes.join(" "),
+  }, {
+    headers: { "Cache-Control": "no-store", Pragma: "no-cache" },
+  });
+}
+
+export async function POST(request: NextRequest) {
+  const raw = await request.text();
+  const form = new URLSearchParams(raw);
+  const grantType = form.get("grant_type");
+  const clientId = form.get("client_id") || "";
+
+  if (!verifyClientId(clientId)) {
+    return NextResponse.json({ error: "invalid_client" }, { status: 401 });
+  }
+
+  if (grantType === "authorization_code") {
+    const code = form.get("code") || "";
+    const redirectUri = form.get("redirect_uri") || "";
+    const verifier = form.get("code_verifier") || "";
+    const claims = verifyAuthorizationCode(code);
+
+    if (!claims || claims.clientId !== clientId || claims.redirectUri !== redirectUri) {
+      return NextResponse.json({ error: "invalid_grant" }, { status: 400 });
+    }
+    if (!verifier || !verifyPkce(verifier, claims.codeChallenge)) {
+      return NextResponse.json({ error: "invalid_grant", error_description: "PKCE verification failed" }, { status: 400 });
+    }
+
+    const issued = issueAccessToken({
+      userId: claims.userId,
+      workspaceId: claims.workspaceId,
+      scopes: claims.scopes,
+      clientId,
+    });
+    return tokenResponse(issued.accessToken, issued.refreshToken, issued.expiresIn, claims.scopes);
+  }
+
+  if (grantType === "refresh_token") {
+    const refresh = form.get("refresh_token") || "";
+    const claims = verifyRefreshToken(refresh);
+    if (!claims || claims.clientId !== clientId) {
+      return NextResponse.json({ error: "invalid_grant" }, { status: 400 });
+    }
+
+    const issued = issueAccessToken({
+      userId: claims.userId,
+      workspaceId: claims.workspaceId,
+      scopes: claims.scopes,
+      clientId,
+    });
+    return tokenResponse(issued.accessToken, issued.refreshToken, issued.expiresIn, claims.scopes);
+  }
+
+  return NextResponse.json({ error: "unsupported_grant_type" }, { status: 400 });
+}
