@@ -118,3 +118,18 @@ export async function getSupoClipFile(taskId: string, clipId: string) {
   }
   return response;
 }
+
+
+export async function checkSupoClipConnection() {
+  const startedAt = Date.now();
+  try {
+    await request<unknown>("/tasks/workflows");
+    return { ok: true, latencyMs: Date.now() - startedAt };
+  } catch (error) {
+    return {
+      ok: false,
+      latencyMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : "Video engine unavailable",
+    };
+  }
+}
