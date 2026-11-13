@@ -32,7 +32,7 @@ const uk: Record<string, string> = {
   "Engine not configured": "Engine не налаштований",
   "Video engine connected": "Video engine підключений",
   "Video engine unavailable": "Video engine недоступний",
-  "Set SUPOCLIP_API_URL and SUPOCLIP_API_KEY on the ReplyHalo service before starting a render.": "Перед запуском рендеру додайте SUPOCLIP_API_URL і SUPOCLIP_API_KEY у сервіс ReplyHalo.",
+  "Video engine is not configured for this environment.": "Video engine не налаштований для цього середовища.",
   "Source video URL": "URL вихідного відео",
   "Start with a supported URL. Direct large-file upload will use a separate storage flow in the next phase.": "Почніть із підтримуваного URL. Великі файли завантажуватимуться напряму в storage окремим потоком на наступному етапі.",
   "Workflow": "Режим",
