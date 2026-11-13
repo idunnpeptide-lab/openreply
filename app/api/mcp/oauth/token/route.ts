@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { consumeAuthorizationCode } from "@/lib/mcp/replay";
+import { consumeAuthorizationCode, consumeRefreshToken } from "@/lib/mcp/replay";
 import { isMcpTokenRevoked } from "@/lib/mcp/revocation";
 import {
   issueAccessToken,
@@ -77,6 +77,10 @@ export async function POST(request: NextRequest) {
       issuedAt: claims.iat,
     })) {
       return NextResponse.json({ error: "invalid_grant", error_description: "Connection was revoked" }, { status: 400 });
+    }
+    const firstRefreshUse = await consumeRefreshToken(refresh);
+    if (!firstRefreshUse) {
+      return NextResponse.json({ error: "invalid_grant", error_description: "Refresh token was already used" }, { status: 400 });
     }
 
     const issued = issueAccessToken({
