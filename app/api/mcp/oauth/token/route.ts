@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { consumeAuthorizationCode } from "@/lib/mcp/replay";
 import {
   issueAccessToken,
   verifyAuthorizationCode,
@@ -40,6 +41,11 @@ export async function POST(request: NextRequest) {
     }
     if (!verifier || !verifyPkce(verifier, claims.codeChallenge)) {
       return NextResponse.json({ error: "invalid_grant", error_description: "PKCE verification failed" }, { status: 400 });
+    }
+
+    const firstUse = await consumeAuthorizationCode(code);
+    if (!firstUse) {
+      return NextResponse.json({ error: "invalid_grant", error_description: "Authorization code was already used" }, { status: 400 });
     }
 
     const issued = issueAccessToken({
