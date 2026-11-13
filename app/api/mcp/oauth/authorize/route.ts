@@ -7,28 +7,149 @@ import {
   verifyClientId,
 } from "@/lib/mcp/auth";
 
-export async function GET(request: NextRequest) {
+type AuthInput = {
+  clientId: string;
+  redirectUri: string;
+  responseType: string | null;
+  codeChallenge: string;
+  codeChallengeMethod: string | null;
+  state: string | null;
+  resource: string;
+  scopeRaw: string | null;
+};
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function validate(input: AuthInput) {
+  const client = verifyClientId(input.clientId);
+  if (
+    !client ||
+    input.responseType !== "code" ||
+    input.codeChallengeMethod !== "S256" ||
+    !input.codeChallenge
+  ) {
+    return { ok: false as const, error: "invalid_request" };
+  }
+  if (!client.redirectUris.includes(input.redirectUri)) {
+    return { ok: false as const, error: "invalid_redirect_uri" };
+  }
+  return { ok: true as const, client };
+}
+
+function deniedRedirect(input: AuthInput) {
+  const redirect = new URL(input.redirectUri);
+  redirect.searchParams.set("error", "access_denied");
+  if (input.state) redirect.searchParams.set("state", input.state);
+  return redirect;
+}
+
+function consentHtml(input: AuthInput, clientName: string, scopes: string[]) {
+  const hidden: Record<string, string> = {
+    client_id: input.clientId,
+    redirect_uri: input.redirectUri,
+    response_type: input.responseType || "code",
+    code_challenge: input.codeChallenge,
+    code_challenge_method: input.codeChallengeMethod || "S256",
+    resource: input.resource,
+    scope: input.scopeRaw || scopes.join(" "),
+    state: input.state || "",
+  };
+  const fields = Object.entries(hidden)
+    .map(([key, value]) => `<input type="hidden" name="${escapeHtml(key)}" value="${escapeHtml(value)}">`)
+    .join("");
+
+  const labels: Record<string, string> = {
+    "mcp:trendwatch:read": "Read Trend Watch data, outliers, trends and saved ideas",
+    "mcp:instagram:read": "Read connected Instagram account metadata",
+    "mcp:campaigns:read": "Read ReplyHalo campaign configuration",
+    "mcp:inbox:read": "Read Instagram inbox conversation summaries",
+    "offline_access": "Keep the connection active with a refresh token",
+  };
+  const scopeList = scopes
+    .map((scope) => `<li>${escapeHtml(labels[scope] || scope)}</li>`)
+    .join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect to ReplyHalo</title>
+<style>
+body{margin:0;background:#0b0c10;color:#eceef3;font-family:Inter,system-ui,-apple-system,sans-serif}
+main{max-width:620px;margin:8vh auto;padding:24px}
+.card{background:#12141a;border:1px solid #262a35;border-radius:18px;padding:28px}
+h1{margin:0 0 10px;font-size:24px}p,li{color:#a7adba;line-height:1.55}
+ul{padding-left:20px}.actions{display:flex;gap:12px;margin-top:24px}
+button{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer}
+.allow{background:#ff3d6e;color:white}.deny{background:#262a35;color:#eceef3}
+.small{font-size:12px;color:#737a89;margin-top:18px}
+</style>
+</head>
+<body><main><div class="card">
+<h1>Connect ${escapeHtml(clientName)} to ReplyHalo?</h1>
+<p>This AI client is requesting read-only access to your ReplyHalo workspace:</p>
+<ul>${scopeList}</ul>
+<form method="post">${fields}
+<div class="actions">
+<button class="allow" type="submit" name="decision" value="allow">Allow access</button>
+<button class="deny" type="submit" name="decision" value="deny">Deny</button>
+</div>
+</form>
+<p class="small">ReplyHalo does not give the AI your Instagram access tokens, Meta secrets, database credentials or license keys.</p>
+</div></main></body></html>`;
+}
+
+async function parseGet(request: NextRequest): Promise<AuthInput> {
   const params = request.nextUrl.searchParams;
-  const clientId = params.get("client_id") || "";
-  const redirectUri = params.get("redirect_uri") || "";
-  const responseType = params.get("response_type");
-  const codeChallenge = params.get("code_challenge") || "";
-  const codeChallengeMethod = params.get("code_challenge_method");
-  const state = params.get("state");
+  const base = getBaseUrl().replace(/\/$/, "");
+  return {
+    clientId: params.get("client_id") || "",
+    redirectUri: params.get("redirect_uri") || "",
+    responseType: params.get("response_type"),
+    codeChallenge: params.get("code_challenge") || "",
+    codeChallengeMethod: params.get("code_challenge_method"),
+    state: params.get("state"),
+    resource: params.get("resource") || base + "/mcp",
+    scopeRaw: params.get("scope"),
+  };
+}
+
+async function parsePost(request: NextRequest): Promise<AuthInput & { decision: string }> {
+  const form = await request.formData();
+  const base = getBaseUrl().replace(/\/$/, "");
+  const read = (key: string) => String(form.get(key) || "");
+  return {
+    clientId: read("client_id"),
+    redirectUri: read("redirect_uri"),
+    responseType: read("response_type") || null,
+    codeChallenge: read("code_challenge"),
+    codeChallengeMethod: read("code_challenge_method") || null,
+    state: read("state") || null,
+    resource: read("resource") || base + "/mcp",
+    scopeRaw: read("scope") || null,
+    decision: read("decision"),
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const input = await parseGet(request);
   const base = getBaseUrl().replace(/\/$/, "");
   const expectedResource = base + "/mcp";
-  const resource = params.get("resource") || expectedResource;
-  const scopes = normalizeRequestedScopes(params.get("scope"));
+  if (input.resource !== expectedResource) {
+    return NextResponse.json({ error: "invalid_target" }, { status: 400 });
+  }
 
-  const client = verifyClientId(clientId);
-  if (!client || responseType !== "code" || codeChallengeMethod !== "S256" || resource !== expectedResource) {
-    return NextResponse.json({ error: "invalid_request" }, { status: 400 });
-  }
-  if (!client.redirectUris.includes(redirectUri)) {
-    return NextResponse.json({ error: "invalid_redirect_uri" }, { status: 400 });
-  }
-  if (!codeChallenge) {
-    return NextResponse.json({ error: "invalid_request", error_description: "PKCE code_challenge is required" }, { status: 400 });
+  const checked = validate(input);
+  if (!checked.ok) {
+    return NextResponse.json({ error: checked.error }, { status: 400 });
   }
 
   const membership = await getCurrentOAuthWorkspace();
@@ -37,18 +158,55 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(base + "/login?callbackUrl=" + callbackUrl);
   }
 
+  const scopes = normalizeRequestedScopes(input.scopeRaw);
+  return new NextResponse(
+    consentHtml(input, checked.client.clientName || "AI client", scopes),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+      },
+    }
+  );
+}
+
+export async function POST(request: NextRequest) {
+  const input = await parsePost(request);
+  const base = getBaseUrl().replace(/\/$/, "");
+  const expectedResource = base + "/mcp";
+  if (input.resource !== expectedResource) {
+    return NextResponse.json({ error: "invalid_target" }, { status: 400 });
+  }
+
+  const checked = validate(input);
+  if (!checked.ok) {
+    return NextResponse.json({ error: checked.error }, { status: 400 });
+  }
+
+  const membership = await getCurrentOAuthWorkspace();
+  if (!membership) {
+    return NextResponse.redirect(base + "/login");
+  }
+
+  if (input.decision !== "allow") {
+    return NextResponse.redirect(deniedRedirect(input));
+  }
+
+  const scopes = normalizeRequestedScopes(input.scopeRaw);
   const code = issueAuthorizationCode({
     userId: membership.userId,
     workspaceId: membership.workspaceId,
     scopes,
-    clientId,
-    redirectUri,
-    codeChallenge,
-    resource,
+    clientId: input.clientId,
+    redirectUri: input.redirectUri,
+    codeChallenge: input.codeChallenge,
+    resource: input.resource,
   });
 
-  const redirect = new URL(redirectUri);
+  const redirect = new URL(input.redirectUri);
   redirect.searchParams.set("code", code);
-  if (state) redirect.searchParams.set("state", state);
+  if (input.state) redirect.searchParams.set("state", input.state);
   return NextResponse.redirect(redirect);
 }
