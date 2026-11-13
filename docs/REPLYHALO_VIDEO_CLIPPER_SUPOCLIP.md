@@ -52,12 +52,24 @@ The default product UX is intentionally centered on **Highlights** first.
 
 ## Required ReplyHalo variables
 
+Preferred internal Railway service authentication:
+
 ```env
-SUPOCLIP_API_URL=https://<supoclip-backend>
+SUPOCLIP_API_URL=http://supoclip-api-staging.railway.internal:8000
+SUPOCLIP_AUTH_SECRET=<same BACKEND_AUTH_SECRET used by the SupoClip backend>
+SUPOCLIP_USER_ID=replyhalo-service
+```
+
+ReplyHalo signs every server-to-server request with HMAC-SHA256 using the SupoClip-compatible headers
+`x-supoclip-user-id`, `x-supoclip-ts`, and `x-supoclip-signature`.
+
+A SupoClip API key remains supported as a fallback:
+
+```env
 SUPOCLIP_API_KEY=sk_...
 ```
 
-The API key remains server-side and is never sent to the browser.
+Neither the HMAC secret nor an API key is ever sent to the browser.
 
 ## SupoClip engine requirements
 
@@ -90,7 +102,7 @@ or another supported LLM provider.
 ReplyHalo browser
   -> ReplyHalo /api/video-clipper/*
   -> workspace/session ownership check
-  -> SupoClip REST API using server-only API key
+  -> SupoClip REST API using server-only HMAC service auth
   -> SupoClip Redis queue
   -> SupoClip worker
   -> generated clips
@@ -140,3 +152,28 @@ Do not merge the SupoClip worker into the existing ReplyHalo Instagram worker.
 - convert winning Reel structures into a new original clip plan;
 - optional publishing into ReplyHalo-connected social accounts;
 - performance feedback loop.
+
+
+## Current staging deployment
+
+Railway contains an isolated SupoClip staging stack:
+
+- `supoclip-api-staging` — FastAPI backend, 2 vCPU / 4 GB;
+- `supoclip-worker-staging` — ARQ video worker, 4 vCPU / 8 GB;
+- `supoclip-postgres-staging` — persistent PostgreSQL volume;
+- `supoclip-redis-staging` — persistent Redis volume;
+- `supoclip-ollama-staging` — local `qwen3:4b` model with persistent model volume.
+
+The staging stack is configured without paid transcription/LLM API keys:
+
+```env
+TRANSCRIPTION_PROVIDER=whisper
+WHISPER_MODEL_SIZE=tiny
+LLM=ollama:qwen3:4b
+SELF_HOST=true
+BACKEND_CPU_ONLY=true
+```
+
+This is intentionally slower than AssemblyAI/Gemini/Claude but allows end-to-end QA without external API credentials.
+
+The ReplyHalo Video Clipper staging service connects to this engine over Railway private networking and uses HMAC service authentication.
