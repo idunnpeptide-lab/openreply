@@ -192,11 +192,11 @@ export async function POST(request: NextRequest) {
 
   const membership = await getCurrentOAuthWorkspace();
   if (!membership) {
-    return NextResponse.redirect(base + "/login");
+    return NextResponse.redirect(base + "/login", 303);
   }
 
   if (input.decision !== "allow") {
-    return NextResponse.redirect(deniedRedirect(input));
+    return NextResponse.redirect(deniedRedirect(input), 303);
   }
 
   const scopes = normalizeRequestedScopes(input.scopeRaw);
@@ -213,5 +213,5 @@ export async function POST(request: NextRequest) {
   const redirect = new URL(input.redirectUri);
   redirect.searchParams.set("code", code);
   if (input.state) redirect.searchParams.set("state", input.state);
-  return NextResponse.redirect(redirect);
+  return NextResponse.redirect(redirect, 303);
 }
