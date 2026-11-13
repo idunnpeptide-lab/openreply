@@ -91,10 +91,30 @@ model Workspace {
   operationalEvents       OperationalEvent[]
   socialEventReceipts     SocialEventReceipt[]
   videoClipperTasks       VideoClipperTask[]
+  videoClipperUploads     VideoClipperUpload[]
 
   @@index([ownerId])
 }
 
+
+
+model VideoClipperUpload {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  createdByUserId String
+  sourcePath      String   @unique
+  filename        String
+  contentType     String?
+  sizeBytes       BigInt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([createdByUserId])
+  @@index([createdAt])
+}
 
 model VideoClipperTask {
   id              String   @id @default(cuid())
