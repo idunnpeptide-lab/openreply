@@ -8,6 +8,7 @@ export const MCP_ALLOWED_SCOPES = [
   "mcp:instagram:read",
   "mcp:campaigns:read",
   "mcp:inbox:read",
+  "offline_access",
 ] as const;
 
 export type McpScope = (typeof MCP_ALLOWED_SCOPES)[number];
@@ -25,6 +26,7 @@ export type McpAccessClaims = SignedEnvelope & {
   workspaceId: string;
   scopes: McpScope[];
   clientId: string;
+  resource: string;
 };
 
 type ClientClaims = SignedEnvelope & {
@@ -41,6 +43,7 @@ type CodeClaims = SignedEnvelope & {
   clientId: string;
   redirectUri: string;
   codeChallenge: string;
+  resource: string;
 };
 
 type RefreshClaims = SignedEnvelope & {
@@ -49,6 +52,7 @@ type RefreshClaims = SignedEnvelope & {
   workspaceId: string;
   scopes: McpScope[];
   clientId: string;
+  resource: string;
 };
 
 function secret() {
@@ -134,6 +138,7 @@ export function issueAuthorizationCode(input: {
   clientId: string;
   redirectUri: string;
   codeChallenge: string;
+  resource: string;
 }) {
   const ts = now();
   return pack({
@@ -160,6 +165,7 @@ export function issueAccessToken(input: {
   workspaceId: string;
   scopes: McpScope[];
   clientId: string;
+  resource: string;
 }) {
   const ts = now();
   const accessToken = pack({
