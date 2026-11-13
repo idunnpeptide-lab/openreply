@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
   const form = new URLSearchParams(raw);
   const grantType = form.get("grant_type");
   const clientId = form.get("client_id") || "";
+  const requestedResource = form.get("resource");
 
   if (!verifyClientId(clientId)) {
     return NextResponse.json({ error: "invalid_client" }, { status: 401 });
@@ -36,7 +37,12 @@ export async function POST(request: NextRequest) {
     const verifier = form.get("code_verifier") || "";
     const claims = verifyAuthorizationCode(code);
 
-    if (!claims || claims.clientId !== clientId || claims.redirectUri !== redirectUri) {
+    if (
+      !claims ||
+      claims.clientId !== clientId ||
+      claims.redirectUri !== redirectUri ||
+      (requestedResource && requestedResource !== claims.resource)
+    ) {
       return NextResponse.json({ error: "invalid_grant" }, { status: 400 });
     }
     if (!verifier || !verifyPkce(verifier, claims.codeChallenge)) {
@@ -53,6 +59,7 @@ export async function POST(request: NextRequest) {
       workspaceId: claims.workspaceId,
       scopes: claims.scopes,
       clientId,
+      resource: claims.resource,
     });
     return tokenResponse(issued.accessToken, issued.refreshToken, issued.expiresIn, claims.scopes);
   }
@@ -69,6 +76,7 @@ export async function POST(request: NextRequest) {
       workspaceId: claims.workspaceId,
       scopes: claims.scopes,
       clientId,
+      resource: claims.resource,
     });
     return tokenResponse(issued.accessToken, issued.refreshToken, issued.expiresIn, claims.scopes);
   }
