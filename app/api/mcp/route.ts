@@ -5,6 +5,7 @@ import {
   verifyAccessToken,
 } from "@/lib/mcp/auth";
 import { checkMcpRateLimit } from "@/lib/mcp/rate-limit";
+import { validateDmMagnetWorkspaceLicense } from "@/lib/dm-magnet-license";
 import { isMcpTokenRevoked } from "@/lib/mcp/revocation";
 import {
   assertMcpMembership,
@@ -86,6 +87,11 @@ async function authenticate(request: Request) {
     issuedAt: claims.iat,
   })) return null;
   if (!(await assertMcpMembership(claims))) return null;
+  try {
+    await validateDmMagnetWorkspaceLicense(claims.workspaceId);
+  } catch {
+    return null;
+  }
   return claims;
 }
 
