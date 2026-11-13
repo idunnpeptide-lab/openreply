@@ -5,6 +5,7 @@ import {
   verifyAccessToken,
 } from "@/lib/mcp/auth";
 import { checkMcpRateLimit } from "@/lib/mcp/rate-limit";
+import { isMcpTokenRevoked } from "@/lib/mcp/revocation";
 import {
   assertMcpMembership,
   callMcpTool,
@@ -79,6 +80,11 @@ async function authenticate(request: Request) {
   if (!claims) return null;
   const expectedResource = getBaseUrl().replace(/\/$/, "") + "/mcp";
   if (claims.resource !== expectedResource) return null;
+  if (await isMcpTokenRevoked({
+    workspaceId: claims.workspaceId,
+    userId: claims.userId,
+    issuedAt: claims.iat,
+  })) return null;
   if (!(await assertMcpMembership(claims))) return null;
   return claims;
 }
