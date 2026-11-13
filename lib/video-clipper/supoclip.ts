@@ -7,6 +7,7 @@ export type SupoClipClipLength = "auto" | "short" | "medium" | "long";
 
 export type SupoClipTask = {
   id: string;
+  task_id?: string;
   status?: string;
   progress?: number;
   progress_message?: string | null;
@@ -111,10 +112,13 @@ export async function createSupoClipTask(input: {
   if (input.workflow === "topic" && input.topic?.trim()) {
     body.workflow_options = { topic: input.topic.trim().slice(0, 120) };
   }
-  return request<SupoClipTask>("/tasks/", {
+  const created = await request<SupoClipTask & { task_id?: string }>("/tasks/", {
     method: "POST",
     body: JSON.stringify(body),
   });
+  const id = created.id || created.task_id;
+  if (!id) throw new Error("SupoClip create task response did not include a task id");
+  return { ...created, id };
 }
 
 export async function getSupoClipTask(taskId: string) {
