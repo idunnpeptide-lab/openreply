@@ -45,14 +45,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "source_url_required" }, { status: 400 });
     }
 
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(sourceUrl);
-    } catch {
-      return NextResponse.json({ error: "invalid_source_url" }, { status: 400 });
-    }
-    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-      return NextResponse.json({ error: "invalid_source_url" }, { status: 400 });
+    if (sourceUrl.startsWith("upload://")) {
+      const ownedUpload = await prisma.videoClipperUpload.findFirst({
+        where: { sourcePath: sourceUrl, workspaceId },
+        select: { id: true },
+      });
+      if (!ownedUpload) {
+        return NextResponse.json({ error: "upload_not_found" }, { status: 404 });
+      }
+    } else {
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(sourceUrl);
+      } catch {
+        return NextResponse.json({ error: "invalid_source_url" }, { status: 400 });
+      }
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return NextResponse.json({ error: "invalid_source_url" }, { status: 400 });
+      }
     }
 
     const workflowRaw = typeof body.workflow === "string" ? body.workflow : "highlights";
