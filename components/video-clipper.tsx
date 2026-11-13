@@ -176,7 +176,7 @@ export default function VideoClipper() {
 
         {!status?.configured && status !== null && (
           <div className="mt-4 rounded border border-warning/30 bg-warning/5 p-3 text-xs text-muted">
-            {t("Set SUPOCLIP_API_URL and SUPOCLIP_API_KEY on the ReplyHalo service before starting a render.")}
+            {t("Video engine is not configured for this environment.")}
           </div>
         )}
 
