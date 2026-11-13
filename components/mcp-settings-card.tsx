@@ -16,6 +16,9 @@ export default function McpSettingsCard() {
     process.env.NEXT_PUBLIC_MCP_SERVER_URL || "/mcp"
   );
   const [copied, setCopied] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revoked, setRevoked] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_MCP_SERVER_URL) {
@@ -27,6 +30,29 @@ export default function McpSettingsCard() {
     await navigator.clipboard?.writeText(serverUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  async function revokeConnections() {
+    if (!window.confirm(t("Revoke all ChatGPT and Claude MCP connections for this workspace?"))) {
+      return;
+    }
+    setRevoking(true);
+    setRevoked(false);
+    setRevokeError(null);
+    try {
+      const response = await fetch("/api/mcp/revoke", { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || t("Could not revoke MCP connections"));
+      }
+      setRevoked(true);
+    } catch (error) {
+      setRevokeError(
+        error instanceof Error ? error.message : t("Could not revoke MCP connections")
+      );
+    } finally {
+      setRevoking(false);
+    }
   }
 
   return (
@@ -85,6 +111,25 @@ export default function McpSettingsCard() {
         <p className="text-xs leading-5 text-muted">
           {t("ReplyHalo never sends Instagram access tokens, Meta secrets, database credentials, or license keys to the AI client. Write actions are disabled in MCP v1.")}
         </p>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 rounded border border-border bg-surface/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">{t("AI connection security")}</p>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            {t("Revoke all existing MCP access and refresh tokens if you want to disconnect ChatGPT, Claude, or any other AI client immediately.")}
+          </p>
+          {revoked && <p className="mt-2 text-xs text-success">{t("All MCP connections revoked.")}</p>}
+          {revokeError && <p className="mt-2 text-xs text-error">{revokeError}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={revokeConnections}
+          disabled={revoking}
+          className="shrink-0 rounded border border-error/30 px-4 py-2 text-xs font-semibold text-error hover:bg-error/5 disabled:opacity-50"
+        >
+          {revoking ? t("Revoking…") : t("Revoke AI connections")}
+        </button>
       </div>
     </section>
   );
