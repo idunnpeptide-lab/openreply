@@ -43,9 +43,10 @@ function validate(input: AuthInput) {
   return { ok: true as const, client };
 }
 
-function deniedRedirect(input: AuthInput) {
+function deniedRedirect(input: AuthInput, issuer: string) {
   const redirect = new URL(input.redirectUri);
   redirect.searchParams.set("error", "access_denied");
+  redirect.searchParams.set("iss", issuer);
   if (input.state) redirect.searchParams.set("state", input.state);
   return redirect;
 }
@@ -97,13 +98,57 @@ button{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:poin
 <h1>Connect ${escapeHtml(clientName)} to ReplyHalo?</h1>
 <p>This AI client is requesting read-only access to your ReplyHalo workspace:</p>
 <ul>${scopeList}</ul>
-<form method="post" action="/api/mcp/oauth/authorize">${fields}
+<form id="consent-form" method="post" action="/api/mcp/oauth/authorize">${fields}
 <div class="actions">
 <button class="allow" type="submit" name="decision" value="allow">Allow access</button>
 <button class="deny" type="submit" name="decision" value="deny">Deny</button>
 </div>
 </form>
+<p id="consent-status" class="small" aria-live="polite"></p>
 <p class="small">ReplyHalo does not give the AI your Instagram access tokens, Meta secrets, database credentials or license keys.</p>
+<script>
+(() => {
+  const form = document.getElementById("consent-form");
+  const status = document.getElementById("consent-status");
+  const buttons = Array.from(form.querySelectorAll("button[type=submit]"));
+  let decision = "allow";
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      decision = button.value || "allow";
+    });
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    buttons.forEach((button) => { button.disabled = true; });
+    status.textContent = decision === "allow" ? "Connecting to AI client…" : "Cancelling…";
+
+    const data = new FormData(form);
+    data.set("decision", decision);
+
+    try {
+      const response = await fetch(form.action, {
+        method: "POST",
+        body: data,
+        credentials: "same-origin",
+        headers: {
+          "Accept": "application/json",
+          "X-MCP-Consent-Fetch": "1"
+        }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.redirect_to) {
+        throw new Error(payload.error_description || payload.error || "Authorization failed");
+      }
+      window.location.assign(payload.redirect_to);
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Authorization failed";
+      buttons.forEach((button) => { button.disabled = false; });
+    }
+  });
+})();
+</script>
 </div></main></body></html>`;
 }
 
@@ -159,7 +204,6 @@ export async function GET(request: NextRequest) {
   }
 
   const scopes = normalizeRequestedScopes(input.scopeRaw);
-  const redirectOrigin = new URL(input.redirectUri).origin;
   return new NextResponse(
     consentHtml(input, checked.client.clientName || "AI client", scopes),
     {
@@ -168,9 +212,7 @@ export async function GET(request: NextRequest) {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
         "Content-Security-Policy":
-          "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' " +
-          redirectOrigin +
-          "; frame-ancestors 'none'",
+          "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'",
       },
     }
   );
@@ -228,8 +270,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(base + "/login", 303);
   }
 
+  const wantsJson =
+    request.headers.get("x-mcp-consent-fetch") === "1" ||
+    request.headers.get("accept")?.includes("application/json") === true;
+
   if (input.decision !== "allow") {
-    return NextResponse.redirect(deniedRedirect(input), 303);
+    const denied = deniedRedirect(input, base);
+    if (wantsJson) {
+      return NextResponse.json(
+        { redirect_to: denied.toString() },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    return NextResponse.redirect(denied, 303);
   }
 
   const scopes = normalizeRequestedScopes(input.scopeRaw);
@@ -245,6 +298,21 @@ export async function POST(request: NextRequest) {
 
   const redirect = new URL(input.redirectUri);
   redirect.searchParams.set("code", code);
+  redirect.searchParams.set("iss", base);
   if (input.state) redirect.searchParams.set("state", input.state);
+
+  console.info("[MCP OAuth] consent approved", {
+    redirectHost: redirect.host,
+    hasState: Boolean(input.state),
+    hasIssuer: true,
+    responseMode: wantsJson ? "json" : "redirect",
+  });
+
+  if (wantsJson) {
+    return NextResponse.json(
+      { redirect_to: redirect.toString() },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  }
   return NextResponse.redirect(redirect, 303);
 }
