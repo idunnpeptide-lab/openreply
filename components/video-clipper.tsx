@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
+import { uploadVideoToClipper } from "@/lib/video-clipper/upload-client";
 
 type LocalTask = {
   id: string;
@@ -52,6 +53,8 @@ export default function VideoClipper() {
   const [activeTask, setActiveTask] = useState<LocalTask | null>(null);
   const [clips, setClips] = useState<Clip[]>([]);
   const [sourceUrl, setSourceUrl] = useState("");
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [workflow, setWorkflow] = useState("highlights");
   const [clipLength, setClipLength] = useState("auto");
   const [topic, setTopic] = useState("");
@@ -119,11 +122,22 @@ export default function VideoClipper() {
     setCreating(true);
     setError(null);
     try {
+      let resolvedSourceUrl = sourceUrl.trim();
+      if (sourceFile) {
+        setUploadProgress(0);
+        resolvedSourceUrl = await uploadVideoToClipper(sourceFile, (progress) => {
+          setUploadProgress(progress.percent);
+        });
+      }
+      if (!resolvedSourceUrl) {
+        throw new Error(t("Choose a video file or enter a video URL."));
+      }
+
       const response = await fetch("/api/video-clipper/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceUrl,
+          sourceUrl: resolvedSourceUrl,
           workflow,
           clipLength,
           topic: workflow === "topic" ? topic : undefined,
@@ -136,10 +150,13 @@ export default function VideoClipper() {
       setActiveTaskId(payload.task.id);
       setActiveTask(payload.task);
       setClips([]);
+      setSourceUrl("");
+      setSourceFile(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create task");
     } finally {
       setCreating(false);
+      setUploadProgress(null);
     }
   }
 
@@ -181,18 +198,59 @@ export default function VideoClipper() {
         )}
 
         <form onSubmit={createTask} className="mt-6 space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">{t("Source video URL")}</label>
-            <input
-              value={sourceUrl}
-              onChange={(event) => setSourceUrl(event.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
-              className="w-full rounded border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-muted"
-              required
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              {t("Start with a supported URL. Direct large-file upload will use a separate storage flow in the next phase.")}
-            </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">{t("Upload video")}</label>
+              <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded border border-dashed border-border bg-background px-4 py-5 text-center hover:bg-surface-hover">
+                <span className="text-sm font-medium">
+                  {sourceFile ? sourceFile.name : t("Choose a video file")}
+                </span>
+                <span className="mt-1 text-xs text-muted">
+                  {sourceFile
+                    ? `${Math.max(1, Math.round(sourceFile.size / 1_000_000))} MB`
+                    : t("MP4, MOV, WebM and other supported video formats")}
+                </span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    setSourceFile(file);
+                    if (file) setSourceUrl("");
+                  }}
+                />
+              </label>
+              {uploadProgress !== null && (
+                <div className="mt-2">
+                  <div className="h-1.5 overflow-hidden rounded bg-surface-hover">
+                    <div
+                      className="h-full bg-foreground transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    {t("Uploading video")} {uploadProgress}%
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">{t("Or paste video URL")}</label>
+              <input
+                value={sourceUrl}
+                onChange={(event) => {
+                  setSourceUrl(event.target.value);
+                  if (event.target.value.trim()) setSourceFile(null);
+                }}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full rounded border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-muted"
+              />
+              <p className="mt-1.5 text-xs leading-5 text-muted">
+                {t("For the most reliable processing, upload the video directly. URL availability depends on the source platform.")}
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -260,7 +318,11 @@ export default function VideoClipper() {
             disabled={creating || !status?.connected}
             className="rounded bg-foreground px-4 py-2.5 text-sm font-semibold text-background disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {creating ? t("Creating…") : t("Generate clips")}
+            {uploadProgress !== null
+              ? `${t("Uploading video")} ${uploadProgress}%…`
+              : creating
+                ? t("Creating…")
+                : t("Generate clips")}
           </button>
         </form>
       </section>
