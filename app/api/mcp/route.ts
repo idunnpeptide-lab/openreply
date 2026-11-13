@@ -4,6 +4,7 @@ import {
   getBearerToken,
   verifyAccessToken,
 } from "@/lib/mcp/auth";
+import { checkMcpRateLimit } from "@/lib/mcp/rate-limit";
 import {
   assertMcpMembership,
   callMcpTool,
@@ -85,6 +86,25 @@ async function authenticate(request: Request) {
 export async function POST(request: NextRequest) {
   const claims = await authenticate(request);
   if (!claims) return unauthorized();
+
+  const rate = await checkMcpRateLimit({
+    workspaceId: claims.workspaceId,
+    clientId: claims.clientId,
+  });
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", error_description: "Too many MCP requests" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rate.retryAfterSeconds),
+          "X-RateLimit-Limit": String(rate.limit),
+          "X-RateLimit-Remaining": String(rate.remaining),
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
 
   let body: JsonRpcRequest;
   try {
