@@ -58,6 +58,11 @@ interface WebhookEntry {
         id?: string;
       };
       media_id?: string;
+      // Instagram messaging_postbacks may be delivered as a changes event,
+      // rather than under entry.messaging.
+      sender?: { id?: string };
+      recipient?: { id?: string };
+      postback?: { mid?: string; title?: string; payload?: string };
     };
   }>;
   messaging?: Array<{
@@ -168,6 +173,34 @@ export function parsePostbackEvents(
         userId,
         payload: postbackPayload,
         mid: messaging.postback?.mid,
+      });
+    }
+
+    // Meta's Instagram webhook reference also documents postbacks via
+    // entry.changes[{ field: "messaging_postbacks", value: ... }].
+    // Preserve the existing entry.messaging path for working accounts.
+    for (const change of entry.changes ?? []) {
+      if (change.field !== "messaging_postbacks") continue;
+      const value = change.value;
+      const postbackPayload = value?.postback?.payload;
+      const userId = value?.sender?.id;
+      const accountId = entry.id || value?.recipient?.id;
+      if (!postbackPayload || !userId || !accountId || userId === accountId) {
+        continue;
+      }
+      // Only one event if a provider ever includes the same tap in both shapes.
+      const mid = value.postback?.mid;
+      if (events.some((event) =>
+        event.instagramAccountId === accountId &&
+        event.userId === userId &&
+        event.payload === postbackPayload &&
+        Boolean(mid) && event.mid === mid
+      )) continue;
+      events.push({
+        instagramAccountId: accountId,
+        userId,
+        payload: postbackPayload,
+        mid,
       });
     }
   }
