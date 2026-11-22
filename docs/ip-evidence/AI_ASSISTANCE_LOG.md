@@ -727,3 +727,10 @@ Human validation passed for fresh passwordless authentication and workspace/Dash
 **ChatGPT (OpenAI) assistance:** Inspected GitHub source and Railway staging topology; identified 30-day UI default, top-300 server cap, and three-page collector cap; implemented SQL-paginated all-time ranking, competitor filter/navigation, individual history sync, safe deeper pagination, and regression tests. Scoped work to Trend Watch staging services and copied the three changed UI files into the MCP staging branch, without edits to production Instagram automations.
 
 **Evidence:** PR #97; merge `43954e850f0c49324b8f3dd05cb385f385c189d4`; history-sync `1a8665722a3aff5cf2243e8ebaecb2f4f1bf9bc9`; MCP UI port `e7e9cbc898c28c95b910ef5eda8fedd4c8905335`; five backend tests passed; staging API and web builds successful. No human acceptance or complete historic Instagram Reel coverage is claimed yet.
+
+
+## 2026-11-22 — AI-assisted voiceover rewrite addition to Trend Watch
+
+Volodymyr Rudyi defined UX and output constraints: preserve theme, core keywords and style but make a fresh script adapted to the creator's product, editable and copyable for ElevenLabs or Captions. ChatGPT (OpenAI) implemented a new workspace-scoped API action, internal local Ollama rewrite provider, text editor/UI, product context, keywords and language options; wrote tests; tracked real Railway runtime signals; identified 180-second initial generation timeout and 48 CPU-thread model oversubscription, then applied output/thread budgets and verified the successful local generation probe (60 words) in staging. Translation strings were added for Ukrainian UI.
+
+Evidence: GitHub PR #101/#102/#103, `SCRIPT_REWRITE_SELFTEST_OK provider=ollama model=qwen2.5:0.5b words=60` on 2026-11-22. Human in-browser acceptance and fidelity on actual competitor transcripts not yet confirmed. Production Instagram automations untouched.

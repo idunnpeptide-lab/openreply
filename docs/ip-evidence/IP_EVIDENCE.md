@@ -627,3 +627,13 @@ The fresh passwordless-authentication boundary is now manually validated after t
 - Build evidence: Railway Trend Watch API and staging-web `SUCCESS` on commit `1a8665722a3aff5cf2243e8ebaecb2f4f1bf9bc9`; Python Docker unit tests: 5 passing; Next.js compiled and TypeScript passed. MCP staging new commit build had been initiated, final status tracked separately.
 - Scope: no production Instagram worker, webhook, campaigns, or tokens changed.
 - Limitations: collection is bounded by upstream Instagram data, cursors, and a configurable safe collector ceiling. Manual confirmation of deep old-Reel backfill and view ordering remains pending.
+
+
+## 2026-11-22 — Voiceover script generation based on Trend Watch transcript
+
+- Owner's requirement: original ready-to-narrate script preserving topic, important phrases and style cues, with editable product context and copy for external narration tools.
+- GitHub: https://github.com/idunnpeptide-lab/openreply/pull/101, https://github.com/idunnpeptide-lab/openreply/pull/102, https://github.com/idunnpeptide-lab/openreply/pull/103.
+- Backend: workspace-scoped completed-transcript rewrite, local CPU Ollama, test coverage, bounded generation and explicit two CPU threads. Core deployed commit `4b2bbb9634d7719a40563014fd1e1e1ad5570a51`.
+- Runtime evidence 2026-11-22 14:35:15 UTC: `SCRIPT_REWRITE_SELFTEST_OK provider=ollama model=qwen2.5:0.5b words=60`. Prior failed 180s probe is retained as truthful R&D evidence; mitigated via PRs #102/#103.
+- Nine Python tests passed, Next.js TypeScript build passed on initial new UI deploy, `replyhalo-mcp-staging` UI commit `934d87c4d2eb89c55418ec24d8d85bebe2c6b753`; subsequent Ukrainian translation commit `923ca829100d60417b91a0715f92d10c599d8dcd` pending final status check.
+- No edits to production Instagram automations. Final user QA of actual transcript rewrite and copy is still pending.
