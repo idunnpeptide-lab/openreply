@@ -719,3 +719,11 @@ PR #75 final head `793f9641700cbd29092aa3482ec4eca186e406c6`, CI `35581464612`, 
 PR #76 final head `10ad30cbd872104c61c0d27443bb71c5791debae`, CI `35583177511`, Security `35583177496`, merge `ab2dbb81741d6398ab9ef429dd1d866f3af04498`; Railway web deployment `a2676a8c-2e3f-40ed-9ba8-b0bc1f63f652` and worker deployment `d1ffebfe-f53b-447a-98b6-0ac2878a5448` succeeded.
 
 Human validation passed for fresh passwordless authentication and workspace/Dashboard entry. The next manual stage is the visible **Connect Instagram** action; no later fresh-provider success is claimed here.
+
+## 2026-11-22 — AI-assisted Trend Watch historical competitor ranking
+
+**Owner / human role:** Volodymyr Rudyi defined the requirement (older competitor Reels, most-viewed sort) and will evaluate real Reel coverage and usability.
+
+**ChatGPT (OpenAI) assistance:** Inspected GitHub source and Railway staging topology; identified 30-day UI default, top-300 server cap, and three-page collector cap; implemented SQL-paginated all-time ranking, competitor filter/navigation, individual history sync, safe deeper pagination, and regression tests. Scoped work to Trend Watch staging services and copied the three changed UI files into the MCP staging branch, without edits to production Instagram automations.
+
+**Evidence:** PR #97; merge `43954e850f0c49324b8f3dd05cb385f385c189d4`; history-sync `1a8665722a3aff5cf2243e8ebaecb2f4f1bf9bc9`; MCP UI port `e7e9cbc898c28c95b910ef5eda8fedd4c8905335`; five backend tests passed; staging API and web builds successful. No human acceptance or complete historic Instagram Reel coverage is claimed yet.

@@ -617,3 +617,13 @@ The code, current Railway deployment, verified Resend sending domain, DNS authen
 ## Current evidence checkpoint — after successful fresh authentication
 
 The fresh passwordless-authentication boundary is now manually validated after two staging-discovered launch blockers were fixed in PR #75 and PR #76. One-time token semantics remain intact, automatic link previews no longer consume the token, and explicit customer confirmation now reaches the Auth.js callback and authenticated Dashboard. The next fresh-customer step is the visible **Connect Instagram** action, followed by connection-health validation, Quick Automation activation, the approved live comment/DM/link/follow-up scenario, and final Dashboard/Logs/CTR verification. TikTok live-provider work remains out of scope and both source-controlled TikTok send gates remain false.
+
+## 2026-11-22 — Trend Watch all-time competitor Reels, top views
+
+- Product request: Volodymyr Rudyi requested removal of the 30-day competitor view bias and ranking Reels by total views across all available history.
+- GitHub PR: https://github.com/idunnpeptide-lab/openreply/pull/97 (merged to Trend Watch staging feature branch; SHA `43954e850f0c49324b8f3dd05cb385f385c189d4`).
+- Individual competitor history-sync UI commit: `1a8665722a3aff5cf2243e8ebaecb2f4f1bf9bc9`.
+- MCP staging UI-only port: `e7e9cbc898c28c95b910ef5eda8fedd4c8905335` (three Trend Watch UI files only).
+- Build evidence: Railway Trend Watch API and staging-web `SUCCESS` on commit `1a8665722a3aff5cf2243e8ebaecb2f4f1bf9bc9`; Python Docker unit tests: 5 passing; Next.js compiled and TypeScript passed. MCP staging new commit build had been initiated, final status tracked separately.
+- Scope: no production Instagram worker, webhook, campaigns, or tokens changed.
+- Limitations: collection is bounded by upstream Instagram data, cursors, and a configurable safe collector ceiling. Manual confirmation of deep old-Reel backfill and view ordering remains pending.
