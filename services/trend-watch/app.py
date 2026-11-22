@@ -19,6 +19,7 @@ from psycopg.rows import dict_row
 from pydantic import BaseModel
 
 from analyzer import ANALYSES_DIR, safe_workspace, analyze as analyze_video, transcribe_local
+from script_rewriter import rewrite_voiceover
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 INTERNAL_TOKEN = os.environ.get("TRENDWATCH_INTERNAL_TOKEN", "")
@@ -166,6 +167,12 @@ class SyncIn(BaseModel):
 
 class SavedIn(BaseModel):
     saved: bool = True
+
+class ScriptRewriteIn(BaseModel):
+    product: str = ""
+    language: str = "original"
+    keywords: str = ""
+
 
 
 def utcnow():
@@ -812,6 +819,33 @@ def retry_one_failed_video_analysis():
         )
 
 
+def rewrite_startup_probe():
+    """Probe actual internal model generation; logs only synthetic test content."""
+    try:
+        result = rewrite_voiceover(
+            "Everyday creators face a common problem: their voiceover sounds generic and flat. "
+            "A clearer opening helps the audience understand the topic and stay interested. "
+            "Present one useful idea, explain it simply, then close with a natural invitation.",
+            "A simple video script editor for short-form creators",
+            "en",
+            "short-form video, voiceover",
+        )
+        words = len(result["text"].split())
+        if words < 8:
+            raise RuntimeError("Model returned too few words")
+        print(
+            "SCRIPT_REWRITE_SELFTEST_OK provider=" + result["provider"] +
+            " model=" + result["model"] + " words=" + str(words),
+            flush=True,
+        )
+    except Exception as error:
+        print(
+            "SCRIPT_REWRITE_SELFTEST_FAILED type=" + type(error).__name__ +
+            " detail=" + str(error)[:150],
+            flush=True,
+        )
+
+
 def startup_smoke():
     if not SMOKE_USERNAME:
         return
@@ -874,6 +908,8 @@ def startup():
         threading.Thread(target=startup_smoke, daemon=True).start()
     if os.getenv("TW_TRANSCRIPTION_SELFTEST", "1") == "1":
         threading.Thread(target=transcription_startup_probe, daemon=True).start()
+    if os.getenv("TW_REWRITE_SELFTEST", "1") == "1":
+        threading.Thread(target=rewrite_startup_probe, daemon=True).start()
 
 
 @app.get("/health")
@@ -1257,6 +1293,41 @@ def start_analysis(
     )
     background.add_task(run_analysis_job, workspace_id, code)
     return {"status": "queued"}
+
+
+@app.post("/v1/analysis/{code}/rewrite")
+def rewrite_analysis_script(
+    code: str,
+    body: ScriptRewriteIn,
+    workspace_id: str = Depends(require_workspace),
+):
+    """Create a fresh voiceover only from an analysis owned by this workspace."""
+    row = query_one(
+        """
+        SELECT status, data FROM tw_analyses
+        WHERE workspace_id=%s AND code=%s
+        """,
+        (workspace_id, code),
+    )
+    if not row or row.get("status") != "done":
+        raise HTTPException(404, "Analyze this Reel before creating a script")
+
+    transcript = ((row.get("data") or {}).get("transcript") or {}).get("text") or ""
+    if len(transcript.strip()) < 20:
+        raise HTTPException(422, "This video has no usable transcript")
+
+    try:
+        return rewrite_voiceover(
+            transcript,
+            body.product,
+            body.language,
+            body.keywords,
+        )
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    except RuntimeError as error:
+        # Do not leak provider credentials or upstream network internals.
+        raise HTTPException(503, str(error)) from error
 
 
 @app.get("/v1/analysis/{code}")
