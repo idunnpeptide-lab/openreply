@@ -22,6 +22,8 @@ class ScriptRewriteTests(unittest.TestCase):
         self.assertTrue(result["text"].startswith("An original"))
         args, kwargs = post.call_args
         self.assertEqual(kwargs["json"]["stream"], False)
+        self.assertGreaterEqual(kwargs["json"]["options"]["num_predict"], 120)
+        self.assertLessEqual(kwargs["json"]["options"]["num_predict"], 450)
         self.assertIn("commuting, portable", kwargs["json"]["messages"][1]["content"])
         self.assertIn("fresh wording", kwargs["json"]["messages"][0]["content"])
 
