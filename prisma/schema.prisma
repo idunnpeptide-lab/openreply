@@ -90,8 +90,55 @@ model Workspace {
   webhookEvents           WebhookEvent[]
   operationalEvents       OperationalEvent[]
   socialEventReceipts     SocialEventReceipt[]
+  videoClipperTasks       VideoClipperTask[]
+  videoClipperUploads     VideoClipperUpload[]
 
   @@index([ownerId])
+}
+
+
+
+model VideoClipperUpload {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  createdByUserId String
+  sourcePath      String   @unique
+  filename        String
+  contentType     String?
+  sizeBytes       BigInt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([createdByUserId])
+  @@index([createdAt])
+}
+
+model VideoClipperTask {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  createdByUserId String
+  engineTaskId    String   @unique
+  sourceUrl       String
+  workflow        String   @default("highlights")
+  clipLength      String   @default("auto")
+  status          String   @default("queued")
+  progress        Int      @default(0)
+  progressMessage String?
+  errorCode       String?
+  title           String?
+  clipsCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([createdByUserId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model DmMagnetWorkspaceLicense {

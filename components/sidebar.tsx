@@ -19,6 +19,7 @@ const navItems = [
   { label: "Quick Automations", href: "/campaigns/quick" },
   { label: "Campaigns", href: "/campaigns", exact: true },
   { label: "TikTok staging", href: "/tiktok" },
+  { label: "Video Clipper", href: "/video-clipper" },
 ];
 
 const trendWatchItems = [
