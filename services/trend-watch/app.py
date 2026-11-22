@@ -21,7 +21,9 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 INTERNAL_TOKEN = os.environ.get("TRENDWATCH_INTERNAL_TOKEN", "")
 SCRAPER_URL = os.environ.get("SCRAPER_URL", "http://instagram-scraper:8000").rstrip("/")
 REFRESH_HOURS = float(os.environ.get("TW_REFRESH_HOURS", "6"))
-REEL_PAGES = int(os.environ.get("TW_REEL_PAGES", "3"))
+# Pagination stops at the last Instagram cursor. This generous configurable safety
+# ceiling prevents an endlessly repeating upstream cursor or account-wide scraping overload.
+REEL_PAGES = max(1, min(100, int(os.environ.get("TW_REEL_PAGES", "50"))))
 REQUEST_DELAY = float(os.environ.get("TW_REQUEST_DELAY", "1.5"))
 SMOKE_USERNAME = os.environ.get("TW_SMOKE_USERNAME", "").strip()
 
@@ -346,16 +348,25 @@ def normalized_reel(raw):
 
 
 def scraper_reels(username: str):
+    """Retrieve historical pages until exhausted or the configured safety ceiling."""
     output = []
     cursor = None
+    visited_cursors = set()
     user = None
-    for _ in range(max(1, REEL_PAGES)):
+    for _ in range(REEL_PAGES):
         payload = scraper_get("/users/reels", user=username, cursor=cursor)
         user = user or payload.get("user")
         output.extend(payload.get("reels") or [])
-        cursor = payload.get("next_cursor")
-        if not payload.get("has_more") or not cursor:
+        next_cursor = payload.get("next_cursor")
+        if (
+            not payload.get("has_more")
+            or not next_cursor
+            or next_cursor == cursor
+            or next_cursor in visited_cursors
+        ):
             break
+        visited_cursors.add(next_cursor)
+        cursor = next_cursor
     return user, output
 
 
@@ -995,32 +1006,60 @@ def sync(
 
 @app.get("/v1/outliers")
 def outliers(
-    period: str = "30d",
-    min_outlier: float = 3,
-    sort: str = "score",
+    period: str = "all",
+    min_outlier: float = 0,
+    sort: str = "plays",
+    username: str = "",
+    niche_id: Optional[int] = None,
+    search: str = "",
+    limit: int = 60,
+    offset: int = 0,
     workspace_id: str = Depends(require_workspace),
 ):
-    days_map = {"1d": 1, "3d": 3, "7d": 7, "30d": 30, "90d": 90, "all": None}
-    days = days_map.get(period, 30)
-    sort_map = {
-        "score": "score DESC NULLS LAST",
-        "outlier": "outlier DESC NULLS LAST",
-        "plays": "plays DESC NULLS LAST",
-        "velocity": "velocity DESC NULLS LAST",
-        "er": "er DESC NULLS LAST",
-        "new": "published_at DESC NULLS LAST",
-    }
-    order_by = sort_map.get(sort, sort_map["score"])
+    """Server-side filtering and pagination across the full collected Reel history.
 
-    where = [
-        "r.workspace_id=%s",
-        "r.is_pinned=FALSE",
-        "COALESCE(r.outlier, 0) >= %s",
-    ]
+    Previously the backend returned just the top 300 scored Reels, meaning
+    sorting those results by views hid older viral posts.
+    """
+    days_map = {"1d": 1, "3d": 3, "7d": 7, "30d": 30, "90d": 90, "all": None}
+    days = days_map.get(period, None)
+    sort_map = {
+        "score": "r.score DESC NULLS LAST",
+        "outlier": "r.outlier DESC NULLS LAST",
+        "plays": "r.plays DESC NULLS LAST",
+        "velocity": "r.velocity DESC NULLS LAST",
+        "er": "r.er DESC NULLS LAST",
+        "new": "r.published_at DESC NULLS LAST",
+    }
+    order_by = sort_map.get(sort, sort_map["plays"]) + ", r.code DESC"
+    page_limit = max(1, min(limit, 100))
+    page_offset = max(0, offset)
+
+    where = ["r.workspace_id=%s", "COALESCE(r.outlier, 0) >= %s"]
     params = [workspace_id, min_outlier]
+    if username.strip():
+        where.append("LOWER(r.username) = LOWER(%s)")
+        params.append(clean_username(username))
+    if niche_id is not None:
+        where.append("n.id=%s")
+        params.append(niche_id)
     if days is not None:
         where.append("r.published_at >= %s")
         params.append(utcnow() - timedelta(days=days))
+    if search.strip():
+        where.append("(r.caption ILIKE %s OR r.username ILIKE %s OR r.audio_title ILIKE %s OR n.name ILIKE %s)")
+        pattern = "%" + search.strip()[:120] + "%"
+        params.extend([pattern] * 4)
+
+    from_clause = """
+        FROM tw_reels r
+        LEFT JOIN tw_accounts a
+          ON a.workspace_id=r.workspace_id AND a.username=r.username
+        LEFT JOIN tw_niches n
+          ON n.workspace_id=a.workspace_id AND n.id=a.niche_id
+        WHERE """ + " AND ".join(where)
+    count = query_one("SELECT COUNT(*) AS total " + from_clause, tuple(params))
+    total = int((count or {}).get("total", 0))
 
     items = query_all(
         """
@@ -1032,18 +1071,16 @@ def outliers(
                n.id AS niche_id, n.name AS niche,
                (SELECT x.status FROM tw_analyses x
                  WHERE x.workspace_id=r.workspace_id AND x.code=r.code) AS analysis
-        FROM tw_reels r
-        LEFT JOIN tw_accounts a
-          ON a.workspace_id=r.workspace_id AND a.username=r.username
-        LEFT JOIN tw_niches n
-          ON n.workspace_id=a.workspace_id AND n.id=a.niche_id
-        WHERE """ + " AND ".join(where) + """
-        ORDER BY """ + order_by + """
-        LIMIT 300
-        """,
-        tuple(params),
+        """ + from_clause + " ORDER BY " + order_by + " LIMIT %s OFFSET %s",
+        tuple(params + [page_limit, page_offset]),
     )
-    return {"items": items}
+    return {
+        "items": items,
+        "total": total,
+        "limit": page_limit,
+        "offset": page_offset,
+        "has_more": page_offset + len(items) < total,
+    }
 
 
 @app.patch("/v1/reels/{code}/saved")
