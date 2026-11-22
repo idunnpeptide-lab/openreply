@@ -64,7 +64,13 @@ def rewrite_voiceover(
             json={
                 "model": OLLAMA_MODEL,
                 "stream": False,
-                "options": {"temperature": 0.75, "num_predict": max_output_tokens, "num_ctx": 2048},
+                "options": {
+                    "temperature": 0.75,
+                    "num_predict": max_output_tokens,
+                    "num_ctx": 2048,
+                    # Avoid 48-thread oversubscription on a small CPU Railway instance.
+                    "num_thread": 2,
+                },
                 "keep_alive": "10m",
                 "messages": [
                     {"role": "system", "content": instructions},
