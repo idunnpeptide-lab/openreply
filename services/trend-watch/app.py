@@ -19,6 +19,7 @@ from psycopg.rows import dict_row
 from pydantic import BaseModel
 
 from analyzer import ANALYSES_DIR, safe_workspace, analyze as analyze_video, transcribe_local
+from script_rewriter import rewrite_voiceover
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 INTERNAL_TOKEN = os.environ.get("TRENDWATCH_INTERNAL_TOKEN", "")
@@ -166,6 +167,12 @@ class SyncIn(BaseModel):
 
 class SavedIn(BaseModel):
     saved: bool = True
+
+class ScriptRewriteIn(BaseModel):
+    product: str = ""
+    language: str = "original"
+    keywords: str = ""
+
 
 
 def utcnow():
@@ -1257,6 +1264,41 @@ def start_analysis(
     )
     background.add_task(run_analysis_job, workspace_id, code)
     return {"status": "queued"}
+
+
+@app.post("/v1/analysis/{code}/rewrite")
+def rewrite_analysis_script(
+    code: str,
+    body: ScriptRewriteIn,
+    workspace_id: str = Depends(require_workspace),
+):
+    """Create a fresh voiceover only from an analysis owned by this workspace."""
+    row = query_one(
+        """
+        SELECT status, data FROM tw_analyses
+        WHERE workspace_id=%s AND code=%s
+        """,
+        (workspace_id, code),
+    )
+    if not row or row.get("status") != "done":
+        raise HTTPException(404, "Analyze this Reel before creating a script")
+
+    transcript = ((row.get("data") or {}).get("transcript") or {}).get("text") or ""
+    if len(transcript.strip()) < 20:
+        raise HTTPException(422, "This video has no usable transcript")
+
+    try:
+        return rewrite_voiceover(
+            transcript,
+            body.product,
+            body.language,
+            body.keywords,
+        )
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    except RuntimeError as error:
+        # Do not leak provider credentials or upstream network internals.
+        raise HTTPException(503, str(error)) from error
 
 
 @app.get("/v1/analysis/{code}")
