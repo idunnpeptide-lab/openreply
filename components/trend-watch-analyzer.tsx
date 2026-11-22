@@ -74,6 +74,14 @@ export default function TrendWatchAnalyzer() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pollKey, setPollKey] = useState(0);
+  const [rewriteProduct, setRewriteProduct] = useState("");
+  const [rewriteKeywords, setRewriteKeywords] = useState("");
+  const [rewriteLanguage, setRewriteLanguage] = useState("original");
+  const [rewriting, setRewriting] = useState(false);
+  const [rewriteText, setRewriteText] = useState("");
+  const [rewriteError, setRewriteError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
 
   useEffect(() => {
     if (!code) {
@@ -108,6 +116,46 @@ export default function TrendWatchAnalyzer() {
       if (timer) clearTimeout(timer);
     };
   }, [code, pollKey]);
+
+  async function createMyScript() {
+    if (!code || rewriting) return;
+    setRewriting(true);
+    setRewriteError(null);
+    setCopied(false);
+    try {
+      const response = await fetch(
+        "/api/trend-watch/analysis/" + encodeURIComponent(code) + "/rewrite",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            product: rewriteProduct,
+            keywords: rewriteKeywords,
+            language: rewriteLanguage,
+          }),
+        }
+      );
+      const payload = await response.json();
+      if (!response.ok || !payload.success || !payload.data?.text) {
+        throw new Error(payload.error || "Could not generate a script");
+      }
+      setRewriteText(payload.data.text);
+    } catch (err) {
+      setRewriteError(err instanceof Error ? err.message : "Could not generate script");
+    } finally {
+      setRewriting(false);
+    }
+  }
+
+  async function copyMyScript() {
+    if (!rewriteText) return;
+    try {
+      await navigator.clipboard.writeText(rewriteText);
+      setCopied(true);
+    } catch {
+      setRewriteError("Clipboard access denied. Select and copy the text manually.");
+    }
+  }
 
   async function startAnalysis() {
     if (!code) return;
@@ -285,6 +333,90 @@ export default function TrendWatchAnalyzer() {
                   ? "No spoken audio was detected in this video."
                   : "No transcript is available from this analysis. Run the analysis again to retry transcription.")}
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#262a35] bg-[#12141a] p-5">
+            <h3 className="text-base font-bold">
+              {t("Create my voiceover script")}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#8b91a1]">
+              {t("Keep the video's topic, keywords and energy, but create fresh wording for your own product. Ready for ElevenLabs, Captions or your own voice.")}
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm text-[#c9cdd6]">
+                {t("My product or offer (optional)")}
+                <textarea
+                  value={rewriteProduct}
+                  onChange={(event) => setRewriteProduct(event.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder={t("What do you promote? Add only verified benefits or details.")}
+                  className="mt-1 w-full rounded-xl border border-[#343846] bg-[#171a22] p-3 text-sm text-[#eceef3]"
+                />
+              </label>
+              <label className="block text-sm text-[#c9cdd6]">
+                {t("Keep these keywords (optional)")}
+                <textarea
+                  value={rewriteKeywords}
+                  onChange={(event) => setRewriteKeywords(event.target.value)}
+                  maxLength={350}
+                  rows={3}
+                  placeholder={t("Separate important keywords with commas")}
+                  className="mt-1 w-full rounded-xl border border-[#343846] bg-[#171a22] p-3 text-sm text-[#eceef3]"
+                />
+              </label>
+            </div>
+            <label className="mt-3 block max-w-xs text-sm text-[#c9cdd6]">
+              {t("Voiceover language")}
+              <select
+                value={rewriteLanguage}
+                onChange={(event) => setRewriteLanguage(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-[#343846] bg-[#171a22] p-3 text-sm text-[#eceef3]"
+              >
+                <option value="original">{t("Original video language")}</option>
+                <option value="uk">Українська</option>
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
+                <option value="it">Italiano</option>
+                <option value="pl">Polski</option>
+              </select>
+            </label>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void createMyScript()}
+                disabled={rewriting || !data.transcript?.text?.trim()}
+                className="rounded-xl bg-[#ff3d6e] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {rewriting ? t("Generating script…") : rewriteText ? t("Generate another version") : t("Create my script")}
+              </button>
+              {rewriteText && (
+                <button
+                  type="button"
+                  onClick={() => void copyMyScript()}
+                  className="rounded-xl border border-[#343846] bg-[#171a22] px-4 py-2.5 text-sm font-semibold text-[#eceef3]"
+                >
+                  {copied ? t("Copied!") : t("Copy script")}
+                </button>
+              )}
+            </div>
+            {rewriteError && (
+              <p role="alert" className="mt-3 text-sm text-[#ff6e83]">{rewriteError}</p>
+            )}
+            {rewriteText && (
+              <textarea
+                aria-label={t("My voiceover script")}
+                value={rewriteText}
+                onChange={(event) => {
+                  setRewriteText(event.target.value);
+                  setCopied(false);
+                }}
+                rows={12}
+                className="mt-4 w-full rounded-xl border border-[#343846] bg-[#171a22] p-4 text-sm leading-6 text-[#eceef3]"
+              />
+            )}
           </section>
 
           <section className="rounded-2xl border border-[#262a35] bg-[#12141a] p-5">
