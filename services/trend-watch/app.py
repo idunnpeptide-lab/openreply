@@ -2,6 +2,8 @@ import hmac
 import json
 import math
 import os
+import subprocess
+import tempfile
 import statistics
 import threading
 import time
@@ -15,7 +17,7 @@ from fastapi.responses import FileResponse
 from psycopg.rows import dict_row
 from pydantic import BaseModel
 
-from analyzer import ANALYSES_DIR, safe_workspace, analyze as analyze_video
+from analyzer import ANALYSES_DIR, safe_workspace, analyze as analyze_video, transcribe_local
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 INTERNAL_TOKEN = os.environ.get("TRENDWATCH_INTERNAL_TOKEN", "")
@@ -731,6 +733,42 @@ def run_analysis_job(workspace_id: str, code: str):
             _analyzing.discard(key)
 
 
+# Run a real speech-decoding + model-inference self-test on staging startup.
+# No user video, workspace data, remote API key or generated private media is used.
+_transcription_probe = {"status": "pending", "detail": None}
+
+
+def transcription_startup_probe():
+    _transcription_probe["status"] = "running"
+    try:
+        with tempfile.TemporaryDirectory(prefix="tw-whisper-probe-") as temp:
+            audio = os.path.join(temp, "speech.wav")
+            subprocess.run(
+                [
+                    "espeak-ng", "-v", "en-us", "-s", "125", "-w", audio,
+                    "The quick brown fox jumps over the lazy dog.",
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                timeout=20,
+            )
+            result = transcribe_local(__import__("pathlib").Path(audio))
+            text = (result.get("text") or "").strip()
+            if not result.get("enabled") or not text:
+                raise RuntimeError("Whisper returned no words for synthesized speech")
+            _transcription_probe["status"] = "ok"
+            _transcription_probe["detail"] = "local-whisper"
+            print("TRANSCRIPTION_SELFTEST_OK provider=local-whisper text=" + repr(text[:100]), flush=True)
+    except Exception as error:
+        _transcription_probe["status"] = "failed"
+        _transcription_probe["detail"] = type(error).__name__
+        print(
+            "TRANSCRIPTION_SELFTEST_FAILED " + type(error).__name__ + ": " + str(error)[:350],
+            flush=True,
+        )
+
+
 def startup_smoke():
     if not SMOKE_USERNAME:
         return
@@ -791,6 +829,8 @@ def startup():
     threading.Thread(target=scheduler, daemon=True).start()
     if SMOKE_USERNAME:
         threading.Thread(target=startup_smoke, daemon=True).start()
+    if os.getenv("TW_TRANSCRIPTION_SELFTEST", "1") == "1":
+        threading.Thread(target=transcription_startup_probe, daemon=True).start()
 
 
 @app.get("/health")
@@ -810,6 +850,8 @@ def health():
         "ok": database_ok,
         "database_ok": database_ok,
         "scraper_ok": scraper_ok,
+        "transcription": _transcription_probe["status"],
+        "transcription_detail": _transcription_probe["detail"],
     }
 
 
