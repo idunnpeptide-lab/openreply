@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
 
 export type TrendWatchOutlier = {
@@ -42,70 +42,97 @@ function fmtPercent(value: number | null | undefined) {
   return (value * 100).toFixed(value < 0.01 ? 2 : 1) + "%";
 }
 
-function periodCutoff(period: string) {
-  const map: Record<string, number | null> = {
-    "1d": 1,
-    "3d": 3,
-    "7d": 7,
-    "30d": 30,
-    "90d": 90,
-    all: null,
-  };
-  const days = map[period];
-  if (!days) return null;
-  return Date.now() - days * 24 * 60 * 60 * 1000;
-}
-
 export default function TrendWatchOutlierGrid({
   initialItems,
+  initialTotal,
+  initialAccount,
+  accounts,
   niches,
 }: {
   initialItems: TrendWatchOutlier[];
+  initialTotal: number;
+  initialAccount: string;
+  accounts: string[];
   niches: Niche[];
 }) {
   const { locale, t } = useLocale();
   const [items, setItems] = useState(initialItems);
-  const [period, setPeriod] = useState("30d");
+  const [total, setTotal] = useState(initialTotal);
+  const [period, setPeriod] = useState("all");
   const [minOutlier, setMinOutlier] = useState(0);
-  const [sortBy, setSortBy] = useState<"score" | "outlier" | "velocity" | "plays" | "er" | "new">("score");
+  const [sortBy, setSortBy] = useState<"score" | "outlier" | "velocity" | "plays" | "er" | "new">("plays");
+  const [account, setAccount] = useState(initialAccount);
   const [query, setQuery] = useState("");
   const [nicheId, setNicheId] = useState("");
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [selected, setSelected] = useState<TrendWatchOutlier | null>(null);
-  const [limit, setLimit] = useState(36);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const visible = useMemo(() => {
-    const cutoff = periodCutoff(period);
-    const q = query.trim().toLowerCase();
-    return [...items]
-      .filter((item) => {
-        if ((item.outlier ?? 0) < minOutlier) return false;
-        if (nicheId && String(item.niche_id ?? "") !== nicheId) return false;
-        if (cutoff && item.published_at) {
-          const ts = new Date(item.published_at).getTime();
-          if (!Number.isNaN(ts) && ts < cutoff) return false;
+  function requestParams(offset: number) {
+    const params = new URLSearchParams({
+      period,
+      min_outlier: String(minOutlier),
+      sort: sortBy,
+      username: account,
+      search: query.trim(),
+      limit: "60",
+      offset: String(offset),
+    });
+    if (nicheId) params.set("niche_id", nicheId);
+    return params;
+  }
+
+  // Apply filters before paging: the backend sorts the FULL collected history
+  // instead of sorting just the first 300 Trend Score results in the browser.
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      setFetchError(null);
+      try {
+        const response = await fetch(
+          "/api/trend-watch/outliers?" + requestParams(0),
+          { signal: controller.signal }
+        );
+        const body = await response.json();
+        if (!body.success) throw new Error(body.error || "Could not load Reels");
+        if (controller.signal.aborted) return;
+        setItems(body.data.items || []);
+        setTotal(Number(body.data.total ?? 0));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setFetchError(error instanceof Error ? error.message : "Could not load Reels");
         }
-        if (q) {
-          const haystack = [
-            item.caption,
-            item.username,
-            item.audio_title,
-            item.niche,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          if (!haystack.includes(q)) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === "new") {
-          return new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime();
-        }
-        return Number(b[sortBy] ?? 0) - Number(a[sortBy] ?? 0);
-      });
-  }, [items, minOutlier, nicheId, period, query, sortBy]);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [period, minOutlier, sortBy, account, query, nicheId]);
+
+  async function loadMore() {
+    if (loading || loadingMore || items.length >= total) return;
+    setLoadingMore(true);
+    setFetchError(null);
+    try {
+      const response = await fetch("/api/trend-watch/outliers?" + requestParams(items.length));
+      const body = await response.json();
+      if (!body.success) throw new Error(body.error || "Could not load more Reels");
+      setItems((current) => [...current, ...(body.data.items || [])]);
+      setTotal(Number(body.data.total ?? total));
+    } catch (error) {
+      setFetchError(error instanceof Error ? error.message : "Could not load more Reels");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const visible = items;
 
   async function toggleSaved(item: TrendWatchOutlier) {
     setBusyCode(item.code);
@@ -135,6 +162,20 @@ export default function TrendWatchOutlierGrid({
     <div className="space-y-4 text-[#eceef3]">
       <div className="rounded-2xl border border-[#262a35] bg-[#12141a] p-3">
         <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+            aria-label={locale === "uk" ? "Конкурент" : "Competitor"}
+            className="rounded-xl border border-[#262a35] bg-[#171a22] px-3 py-2 text-sm text-[#eceef3]"
+          >
+            <option value="">{locale === "uk" ? "Усі конкуренти" : "All competitors"}</option>
+            {accounts.map((username) => (
+              <option key={username} value={username}>@{username}</option>
+            ))}
+            {account && !accounts.includes(account) && (
+              <option value={account}>@{account}</option>
+            )}
+          </select>
           <select
             value={nicheId}
             onChange={(e) => setNicheId(e.target.value)}
@@ -203,9 +244,11 @@ export default function TrendWatchOutlierGrid({
       </div>
 
       <div className="flex items-center justify-between gap-3 text-sm text-[#8b91a1]">
-        <span>{visible.length} {t("Reels found")}</span>
+        <span>{loading ? (locale === "uk" ? "Завантаження…" : "Loading…") : total} {t("Reels found")} {account ? ("· @" + account) : ""}</span>
         <span>{t("Click a Reel to open full details")}</span>
       </div>
+      {fetchError && <p role="alert" className="rounded-xl border border-red-600/40 p-3 text-sm text-red-300">{fetchError}</p>}
+      {account && <p className="text-xs text-[#8b91a1]">{locale === "uk" ? "Відео за весь доступний період. Для отримання старих Reels запустіть Sync all на вкладці Конкуренти." : "All available history. Run Sync all under Competitors to collect older Reels."}</p>}
 
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#343846] bg-[#12141a] px-6 py-16 text-center">
@@ -227,7 +270,7 @@ export default function TrendWatchOutlierGrid({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {visible.slice(0, limit).map((item) => (
+            {visible.map((item) => (
               <article
                 key={item.code}
                 className="group cursor-pointer overflow-hidden rounded-2xl border border-[#262a35] bg-[#171a22] transition hover:-translate-y-0.5 hover:border-[#3a4050]"
@@ -285,14 +328,15 @@ export default function TrendWatchOutlierGrid({
             ))}
           </div>
 
-          {limit < visible.length && (
+          {items.length < total && (
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setLimit((value) => value + 36)}
-                className="rounded-xl border border-[#343846] bg-[#171a22] px-4 py-2 text-sm font-semibold text-[#eceef3]"
+                disabled={loading || loadingMore}
+                onClick={() => void loadMore()}
+                className="rounded-xl border border-[#343846] bg-[#171a22] px-4 py-2 text-sm font-semibold text-[#eceef3] disabled:opacity-50"
               >
-                {t("Show more")}
+                {loadingMore ? (locale === "uk" ? "Завантаження…" : "Loading…") : t("Show more")}
               </button>
             </div>
           )}
