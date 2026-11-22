@@ -2,6 +2,7 @@ import hmac
 import json
 import math
 import os
+import re
 import subprocess
 import tempfile
 import statistics
@@ -760,11 +761,53 @@ def transcription_startup_probe():
             _transcription_probe["status"] = "ok"
             _transcription_probe["detail"] = "local-whisper"
             print("TRANSCRIPTION_SELFTEST_OK provider=local-whisper text=" + repr(text[:100]), flush=True)
+            retry_one_failed_video_analysis()
     except Exception as error:
         _transcription_probe["status"] = "failed"
         _transcription_probe["detail"] = type(error).__name__
         print(
             "TRANSCRIPTION_SELFTEST_FAILED " + type(error).__name__ + ": " + str(error)[:350],
+            flush=True,
+        )
+
+
+def retry_one_failed_video_analysis():
+    """Optional, scoped recovery of one Reel with the known PyAV error."""
+    code = os.environ.get("TW_RETRY_FAILED_ANALYSIS_CODE", "").strip()
+    if not code or not re.fullmatch(r"[A-Za-z0-9_-]{6,30}", code):
+        return
+    try:
+        rows = query_all(
+            """
+            SELECT workspace_id, code FROM tw_analyses
+            WHERE code=%s AND status='error' AND error ILIKE %s
+            LIMIT 1
+            """,
+            (code, "%metadata_errors%"),
+        )
+        if not rows:
+            print("TRANSCRIPTION_RETEST_SKIP code=" + code + " reason=no_matching_error", flush=True)
+            return
+        item = rows[0]
+        run_analysis_job(item["workspace_id"], item["code"])
+        outcome = query_one(
+            "SELECT status, error, data FROM tw_analyses WHERE workspace_id=%s AND code=%s",
+            (item["workspace_id"], item["code"]),
+        ) or {}
+        transcript = (outcome.get("data") or {}).get("transcript") or {}
+        words = len((transcript.get("text") or "").split())
+        print(
+            "TRANSCRIPTION_RETEST_RESULT code=" + code +
+            " status=" + str(outcome.get("status")) +
+            " provider=" + str(transcript.get("provider")) +
+            " words=" + str(words) +
+            " error_type=" + ("yes" if outcome.get("error") else "no"),
+            flush=True,
+        )
+    except Exception as exc:
+        print(
+            "TRANSCRIPTION_RETEST_EXCEPTION code=" + code + " type=" + type(exc).__name__ +
+            " detail=" + str(exc)[:220],
             flush=True,
         )
 
