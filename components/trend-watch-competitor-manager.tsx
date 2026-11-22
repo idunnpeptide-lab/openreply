@@ -224,6 +224,28 @@ export default function TrendWatchCompetitorManager({
       setBusy(false);
     }
   }
+  async function syncAccountHistory(username: string) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const data = await api("sync", {
+        method: "POST",
+        body: JSON.stringify({ usernames: [username] }),
+      });
+      setMessage(
+        data.started
+          ? (locale === "uk"
+              ? "Завантаження історії @" + username + " запущено. Оновіть сторінку після завершення."
+              : "History sync started for @" + username + ". Refresh after it finishes.")
+          : (locale === "uk" ? "Синхронізація вже триває." : "Sync is already running.")
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not sync competitor");
+    } finally {
+      setBusy(false);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -362,6 +384,14 @@ export default function TrendWatchCompetitorManager({
                   >
                     {locale === "uk" ? "Усі Reels / Топ переглядів" : "All Reels / Top views"}
                   </Link>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void syncAccountHistory(account.username)}
+                    className="rounded border border-border px-2.5 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
+                  >
+                    {locale === "uk" ? "Оновити історію" : "Sync history"}
+                  </button>
                   <span className="text-sm font-medium text-accent">
                     {account.best_outlier
                       ? "best ×" + account.best_outlier.toFixed(1)
