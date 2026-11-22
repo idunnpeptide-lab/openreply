@@ -1,5 +1,6 @@
 """Tests for Trend Watch transcription provider selection and local fallback."""
 import sys
+import wave
 import tempfile
 import types
 import unittest
@@ -10,6 +11,21 @@ import analyzer
 
 
 class TranscriptionFallbackTests(unittest.TestCase):
+    def test_installed_pyav_can_decode_real_wav(self):
+        """No mocked audio decoder: catches PyAV metadata_errors API regression."""
+        from faster_whisper.audio import decode_audio
+
+        with tempfile.TemporaryDirectory() as temp:
+            audio_path = Path(temp) / "sample.wav"
+            with wave.open(str(audio_path), "wb") as wav:
+                wav.setnchannels(1)
+                wav.setsampwidth(2)
+                wav.setframerate(16000)
+                wav.writeframes(b"\\x00\\x00" * 16000)
+
+            samples = decode_audio(str(audio_path))
+            self.assertGreater(len(samples), 0)
+
     def test_local_whisper_when_no_api_credentials(self):
         class FakeSegment:
             def __init__(self, start, end, text):
