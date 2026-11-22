@@ -68,6 +68,7 @@ function consentHtml(input: AuthInput, clientName: string, scopes: string[]) {
 
   const labels: Record<string, string> = {
     "mcp:trendwatch:read": "Read Trend Watch data, outliers, trends and saved ideas",
+    "mcp:trendwatch:write": "Start video analysis, rewrite scripts and sync competitor Reels in your workspace",
     "mcp:instagram:read": "Read connected Instagram account metadata",
     "mcp:campaigns:read": "Read ReplyHalo campaign configuration",
     "mcp:inbox:read": "Read Instagram inbox conversation summaries",
@@ -96,7 +97,7 @@ button{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:poin
 </head>
 <body><main><div class="card">
 <h1>Connect ${escapeHtml(clientName)} to ReplyHalo?</h1>
-<p>This AI client is requesting read-only access to your ReplyHalo workspace:</p>
+<p>This AI client is requesting the following access to your ReplyHalo workspace:</p>
 <ul>${scopeList}</ul>
 <form id="consent-form" method="post" action="/api/mcp/oauth/authorize">${fields}
 <div class="actions">

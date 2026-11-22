@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         version: "0.1.0",
       },
       instructions:
-        "ReplyHalo MCP exposes read-only workspace tools. Never reveal access tokens, secrets, license keys or internal credentials.",
+        "ReplyHalo MCP exposes workspace-scoped read tools and explicitly authorized Trend Watch actions. Never reveal access tokens, secrets, license keys or internal credentials.",
     });
   }
 
