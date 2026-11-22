@@ -160,7 +160,7 @@ export default function TrendWatchAnalyzer() {
             <h2 className="text-lg font-bold">{t("Video Analyzer")}</h2>
             <p className="mt-1 text-sm text-[#8b91a1]">{t("Reel code")}: {code}</p>
           </div>
-          {(!item || item.status === "error") && (
+          {(!item || item.status === "error" || item.status === "done") && (
             <button
               type="button"
               disabled={starting}
@@ -280,7 +280,10 @@ export default function TrendWatchAnalyzer() {
               )}
             </div>
             <div className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl bg-[#171a22] p-4 font-mono text-xs leading-6 text-[#c9cdd6]">
-              {data.transcript?.text || t("Whisper is not configured for this environment.")}
+              {data.transcript?.text ||
+                (data.transcript?.enabled
+                  ? "No spoken audio was detected in this video."
+                  : "No transcript is available from this analysis. Run the analysis again to retry transcription.")}
             </div>
           </section>
 

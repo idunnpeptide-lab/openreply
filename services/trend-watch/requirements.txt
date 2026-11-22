@@ -4,3 +4,6 @@ httpx==0.28.1
 psycopg[binary]==3.2.3
 pydantic==2.10.4
 faster-whisper==1.2.1
+# faster-whisper 1.2.1 still calls av.open(metadata_errors=...), removed in PyAV >=18.
+# Pin a verified compatible wheel until faster-whisper releases its upstream fix.
+av==17.1.0
