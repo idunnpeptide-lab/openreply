@@ -11,9 +11,9 @@ type ToolDefinition = {
   description: string;
   inputSchema: Record<string, unknown>;
   annotations: {
-    readOnlyHint: true;
+    readOnlyHint: boolean;
     destructiveHint: false;
-    idempotentHint: true;
+    idempotentHint: boolean;
     openWorldHint: boolean;
   };
 };
@@ -131,6 +131,66 @@ export const MCP_TOOLS: ToolDefinition[] = [
     },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
+  {
+    name: "replyhalo_analyze_video",
+    title: "Analyze and transcribe a Reel",
+    description: "Start a background Trend Watch analysis of a Reel already collected in the authorized workspace, including Whisper transcription. Returns queued/running status; use replyhalo_get_video_analysis to check completion. The 'code' must identify a workspace Reel, not an arbitrary URL.",
+    inputSchema: {
+      type: "object",
+      properties: { code: { type: "string", minLength: 6, maxLength: 30, description: "Instagram Reel shortcode (e.g. DbOQEKCuQHc)" } },
+      required: ["code"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  {
+    name: "replyhalo_rewrite_script",
+    title: "Create original voiceover from transcript",
+    description: "Generate a fresh editable voiceover script from a previously completed Trend Watch Reel analysis, preserving broad theme and relevant keywords, optionally tailored to the creator's product. This runs AI generation; it never publishes content.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        code: { type: "string", minLength: 6, maxLength: 30 },
+        product: { type: "string", maxLength: 1000, description: "Optional factual description of your product or offer" },
+        keywords: { type: "string", maxLength: 350 },
+        language: { type: "string", enum: ["original", "uk", "en", "fr", "de", "es", "it", "pl"], default: "original" },
+      },
+      required: ["code"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  {
+    name: "replyhalo_sync_competitor",
+    title: "Sync competitor Reel history",
+    description: "Start a background refresh of previously tracked Instagram competitor Reel history in this workspace. Does not create or modify Instagram posting/DM automations. Re-run get_top_reels later to inspect collected videos.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        username: { type: "string", minLength: 1, maxLength: 100, description: "Tracked competitor Instagram username" },
+      },
+      required: ["username"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+  {
+    name: "replyhalo_get_top_reels",
+    title: "Get a competitor's most-viewed Reels",
+    description: "Return the most-viewed collected Reels for a tracked Instagram competitor, ranked by play count across all available history. Pagination and sorting happen on the Trend Watch server; historical coverage depends on scraper availability.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        username: { type: "string", minLength: 1, maxLength: 100 },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+        offset: { type: "integer", minimum: 0, default: 0 },
+        period: { type: "string", enum: ["1d", "3d", "7d", "30d", "90d", "all"], default: "all" },
+      },
+      required: ["username"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
 ];
 
 const TOOL_SCOPES: Record<string, McpScope> = {
@@ -142,6 +202,10 @@ const TOOL_SCOPES: Record<string, McpScope> = {
   replyhalo_get_instagram_trends: "mcp:trendwatch:read",
   replyhalo_get_saved_ideas: "mcp:trendwatch:read",
   replyhalo_get_video_analysis: "mcp:trendwatch:read",
+  replyhalo_analyze_video: "mcp:trendwatch:write",
+  replyhalo_rewrite_script: "mcp:trendwatch:write",
+  replyhalo_sync_competitor: "mcp:trendwatch:write",
+  replyhalo_get_top_reels: "mcp:trendwatch:read",
   replyhalo_get_inbox_summary: "mcp:inbox:read",
 };
 
@@ -161,7 +225,7 @@ async function audit(claims: McpAccessClaims, tool: string, ok: boolean, details
       source: "SYSTEM",
       level: ok ? "INFO" : "WARNING",
       workspaceId: claims.workspaceId,
-      message: ok ? "MCP read tool completed" : "MCP read tool failed",
+      message: ok ? "MCP tool completed" : "MCP tool failed",
       payload: {
         userId: claims.userId,
         clientId: claims.clientId.slice(0, 24),
@@ -188,6 +252,23 @@ export async function assertMcpMembership(claims: McpAccessClaims) {
 function requireToolScope(claims: McpAccessClaims, tool: string) {
   const required = TOOL_SCOPES[tool];
   return required ? claims.scopes.includes(required) : false;
+}
+
+function reelCode(value: unknown) {
+  const raw = str(value).trim();
+  // Accept Reel shortcodes only; video must already exist in the workspace.
+  if (!/^[A-Za-z0-9_-]{6,30}$/.test(raw)) {
+    throw new Error("A valid tracked Instagram Reel shortcode is required");
+  }
+  return raw;
+}
+
+function competitorUsername(value: unknown) {
+  const name = str(value).trim().replace(/^@/, "");
+  if (!/^[A-Za-z0-9._]{1,30}$/.test(name)) {
+    throw new Error("A valid tracked Instagram competitor username is required");
+  }
+  return name.toLowerCase();
 }
 
 async function scraperSearch(query: string) {
@@ -318,6 +399,73 @@ export async function callMcpTool(
       const code = str(args.code).trim();
       if (!code) throw new Error("Reel code is required");
       result = await trend(claims.workspaceId, "/v1/analysis/" + encodeURIComponent(code));
+    } else if (name === "replyhalo_analyze_video") {
+      const code = reelCode(args.code);
+      // Starting analysis only queues a job; poll the read tool for transcript.
+      const response = await trendWatchRequest<{ status: string }>(
+        claims.workspaceId,
+        "/v1/analysis/" + encodeURIComponent(code),
+        { method: "POST" }
+      );
+      result = { code, status: response.status, next_tool: "replyhalo_get_video_analysis" };
+    } else if (name === "replyhalo_rewrite_script") {
+      const code = reelCode(args.code);
+      const product = str(args.product).trim();
+      const keywords = str(args.keywords).trim();
+      const language = str(args.language, "original");
+      if (product.length > 1000 || keywords.length > 350) {
+        throw new Error("Product description or keywords exceed the allowed length");
+      }
+      const supported = ["original", "uk", "en", "fr", "de", "es", "it", "pl"];
+      if (!supported.includes(language)) throw new Error("Unsupported voiceover language");
+      const response = await trendWatchRequest<{ text: string; provider: string; model: string }>(
+        claims.workspaceId,
+        "/v1/analysis/" + encodeURIComponent(code) + "/rewrite",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product, keywords, language }),
+        }
+      );
+      result = { code, ...response };
+    } else if (name === "replyhalo_sync_competitor") {
+      const username = competitorUsername(args.username);
+      // Do not start a broad workspace sync through MCP: restrict the action
+      // to an account that is already tracked in the authenticated workspace.
+      const accounts = await trend<{ items: Array<{ username: string }> }>(
+        claims.workspaceId, "/v1/accounts"
+      );
+      if (!(accounts.items || []).some((account) => account.username.toLowerCase() === username)) {
+        throw new Error("Track this competitor in your Trend Watch workspace before syncing");
+      }
+      const response = await trendWatchRequest<{ started: boolean; reason?: string }>(
+        claims.workspaceId,
+        "/v1/sync",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usernames: [username] }),
+        }
+      );
+      result = { username, ...response, next_tool: "replyhalo_get_top_reels" };
+    } else if (name === "replyhalo_get_top_reels") {
+      const username = competitorUsername(args.username);
+      const limit = num(args.limit, 20, 1, 100);
+      const offset = num(args.offset, 0, 0, 100000);
+      const period = ["1d", "3d", "7d", "30d", "90d", "all"].includes(str(args.period))
+        ? str(args.period) : "all";
+      const params = new URLSearchParams({
+        username, period, sort: "plays", min_outlier: "0",
+        limit: String(limit), offset: String(offset),
+      });
+      const response = await trend<{ items?: unknown[]; total?: number; has_more?: boolean }>(
+        claims.workspaceId, "/v1/outliers?" + params.toString()
+      );
+      result = {
+        username, period, sort: "plays", items: response.items || [],
+        total: response.total ?? 0, offset,
+        has_more: Boolean(response.has_more),
+      };
     } else if (name === "replyhalo_get_inbox_summary") {
       const account = await getWorkspaceInstagramAccount(
         claims.workspaceId,
