@@ -14,4 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Verify the no-API-key transcription fallback during each image build.
+RUN python -m unittest -q test_analyzer_transcription
+
 CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8080}"]

@@ -4,6 +4,8 @@ import os
 import re
 import shutil
 import subprocess
+from functools import lru_cache
+from threading import Lock
 from pathlib import Path
 
 import httpx
@@ -20,6 +22,7 @@ AI_LANGUAGE = os.environ.get("TW_AI_LANGUAGE", "English")
 MY_NICHE = os.environ.get("TW_MY_NICHE", "")
 
 PTS_RE = re.compile(r"pts_time:([0-9.]+)")
+_LOCAL_WHISPER_LOCK = Lock()
 
 
 def safe_workspace(workspace_id: str):
@@ -230,12 +233,60 @@ def extract_audio(video: Path, audio: Path):
     )
 
 
-def transcribe(video: Path, out: Path):
-    if not GROQ_API_KEY and not OPENAI_API_KEY:
-        return {"enabled": False, "text": None, "segments": [], "provider": None}
+@lru_cache(maxsize=1)
+def _load_local_whisper(model_name: str, cache_path: str):
+    from faster_whisper import WhisperModel
 
+    return WhisperModel(
+        model_name,
+        device="cpu",
+        compute_type="int8",
+        cpu_threads=2,
+        download_root=cache_path,
+    )
+
+
+def transcribe_local(audio: Path):
+    """CPU-only Whisper fallback. Model weights are cached on the /data volume.
+
+    This allows Trend Watch to transcribe without requiring customers to
+    configure paid API credentials. Hosted providers are still preferred when
+    configured, as they are faster and avoid CPU inference on the web service.
+    """
+    model_name = os.environ.get("TW_LOCAL_WHISPER_MODEL", "base").strip() or "base"
+    cache_dir = DATA_DIR / "whisper-models"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # Serialise CPU inference so concurrent Reel analyses cannot exhaust RAM.
+    # Loading is cached for subsequent clips in this process.
+    with _LOCAL_WHISPER_LOCK:
+        model = _load_local_whisper(model_name, str(cache_dir))
+        segments_iter, info = model.transcribe(
+            str(audio), beam_size=3, vad_filter=True
+        )
+        segments = [
+            {
+                "start": round(segment.start, 3),
+                "end": round(segment.end, 3),
+                "text": segment.text.strip(),
+            }
+            for segment in segments_iter
+        ]
+    return {
+        "enabled": True,
+        "text": " ".join(segment["text"] for segment in segments).strip(),
+        "segments": segments,
+        "provider": "local-whisper",
+        "language": info.language,
+    }
+
+
+def transcribe(video: Path, out: Path):
     audio = out / "audio.mp3"
     extract_audio(video, audio)
+
+    if not GROQ_API_KEY and not OPENAI_API_KEY:
+        return transcribe_local(audio)
 
     if GROQ_API_KEY:
         endpoint = "https://api.groq.com/openai/v1/audio/transcriptions"
