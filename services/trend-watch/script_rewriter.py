@@ -54,13 +54,17 @@ def rewrite_voiceover(
         "IMPORTANT KEYWORDS (optional):\n<keywords>\n" + keywords + "\n</keywords>\n\n"
         "Return one original, ready-to-record script only."
     )
+    # A small CPU-only Ollama model cannot efficiently emit 1,000+ tokens.
+    # Keep generation proportional to voiceover length and bounded for SaaS.
+    max_output_tokens = min(450, max(120, int(len(source.split()) * 1.8)))
+
     try:
         response = httpx.post(
             OLLAMA_URL + "/api/chat",
             json={
                 "model": OLLAMA_MODEL,
                 "stream": False,
-                "options": {"temperature": 0.8, "num_predict": 1150},
+                "options": {"temperature": 0.75, "num_predict": max_output_tokens, "num_ctx": 2048},
                 "keep_alive": "10m",
                 "messages": [
                     {"role": "system", "content": instructions},
