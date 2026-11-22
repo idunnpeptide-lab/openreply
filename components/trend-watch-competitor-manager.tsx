@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useLocale } from "@/components/locale-provider";
 
 type Niche = {
@@ -355,6 +356,12 @@ export default function TrendWatchCompetitorManager({
                   )}
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Link
+                    href={"/trend-watch/outliers?account=" + encodeURIComponent(account.username)}
+                    className="rounded border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:text-accent"
+                  >
+                    {locale === "uk" ? "Усі Reels / Топ переглядів" : "All Reels / Top views"}
+                  </Link>
                   <span className="text-sm font-medium text-accent">
                     {account.best_outlier
                       ? "best ×" + account.best_outlier.toFixed(1)
