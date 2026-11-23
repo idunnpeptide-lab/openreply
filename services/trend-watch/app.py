@@ -890,6 +890,29 @@ def public_video_extractor_smoke():
             print("LINK_EXTRACTOR_SMOKE_ERROR type=" + type(error).__name__, flush=True)
 
 
+def link_full_transcription_smoke():
+    """Opt-in single-link test of actual download, audio extraction and Whisper."""
+    link = os.getenv("TW_LINK_FULL_SMOKE_URL", "").strip()
+    if not link:
+        return
+    try:
+        platform, verified = validate_social_url(link)
+        result = transcribe_public_video(verified)
+        transcript = (result.get("transcript") or {}).get("text") or ""
+        print(
+            "LINK_FULL_TRANSCRIPTION_SMOKE_OK platform=" + platform +
+            " provider=" + str((result.get("transcript") or {}).get("provider")) +
+            " words=" + str(len(transcript.split())),
+            flush=True,
+        )
+    except Exception as exc:
+        print(
+            "LINK_FULL_TRANSCRIPTION_SMOKE_FAILED type=" + type(exc).__name__ +
+            " detail=" + str(exc)[:220],
+            flush=True,
+        )
+
+
 def startup_smoke():
     if not SMOKE_USERNAME:
         return
@@ -956,6 +979,8 @@ def startup():
         threading.Thread(target=rewrite_startup_probe, daemon=True).start()
     if os.getenv("TW_LINK_EXTRACTOR_SMOKE_URLS", ""):
         threading.Thread(target=public_video_extractor_smoke, daemon=True).start()
+    if os.getenv("TW_LINK_FULL_SMOKE_URL", ""):
+        threading.Thread(target=link_full_transcription_smoke, daemon=True).start()
 
 
 @app.get("/health")
