@@ -6,7 +6,6 @@ operator-provided downloader options.
 """
 import os
 import re
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -52,7 +51,7 @@ def transcribe_public_video(source_url: str) -> dict:
         target = directory / "source.%(ext)s"
         command = [
             "yt-dlp", "--no-config", "--no-playlist", "--no-progress",
-            "--no-warnings", "--no-check-certificates",  # yt-dlp must use validated HTTPS hosts
+            "--no-warnings",
             "--socket-timeout", "20", "--retries", "2",
             "--fragment-retries", "2", "--max-filesize", "150M",
             "--output", str(target),
