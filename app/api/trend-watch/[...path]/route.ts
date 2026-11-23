@@ -15,6 +15,7 @@ const ALLOWED_ROOTS = new Set([
   "saved",
   "sync",
   "analysis",
+  "transcriptions",
   "reels",
   "similar",
   "events",
