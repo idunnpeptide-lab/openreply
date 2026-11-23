@@ -10,6 +10,7 @@ const items = [
   { href: "/trend-watch/trends", label: "Instagram Trends" },
   { href: "/trend-watch/saved", label: "Saved Ideas" },
   { href: "/trend-watch/analyzer", label: "Video Analyzer" },
+  { href: "/trend-watch/transcription", label: "Transcription" },
   { href: "/trend-watch/journal", label: "Journal" },
 ];
 
