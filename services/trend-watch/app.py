@@ -867,6 +867,29 @@ def rewrite_startup_probe():
         )
 
 
+def public_video_extractor_smoke():
+    """Optional staging-only public-link extractor verification (no media download)."""
+    urls = [value.strip() for value in os.getenv("TW_LINK_EXTRACTOR_SMOKE_URLS", "").split(",") if value.strip()]
+    for link in urls[:2]:
+        try:
+            platform, verified = validate_social_url(link)
+            proc = subprocess.run(
+                [
+                    "yt-dlp", "--no-config", "--no-playlist", "--skip-download",
+                    "--no-progress", "--socket-timeout", "15", "--retries", "1",
+                    "--print", "id", verified
+                ],
+                capture_output=True, text=True, timeout=65,
+            )
+            print(
+                "LINK_EXTRACTOR_SMOKE_" + ("OK" if proc.returncode == 0 else "FAILED") +
+                " platform=" + platform + " has_id=" + str(bool(proc.stdout.strip())),
+                flush=True,
+            )
+        except Exception as error:
+            print("LINK_EXTRACTOR_SMOKE_ERROR type=" + type(error).__name__, flush=True)
+
+
 def startup_smoke():
     if not SMOKE_USERNAME:
         return
@@ -931,6 +954,8 @@ def startup():
         threading.Thread(target=transcription_startup_probe, daemon=True).start()
     if os.getenv("TW_REWRITE_SELFTEST", "1") == "1":
         threading.Thread(target=rewrite_startup_probe, daemon=True).start()
+    if os.getenv("TW_LINK_EXTRACTOR_SMOKE_URLS", ""):
+        threading.Thread(target=public_video_extractor_smoke, daemon=True).start()
 
 
 @app.get("/health")
