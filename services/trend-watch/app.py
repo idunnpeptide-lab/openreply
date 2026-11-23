@@ -8,6 +8,7 @@ import tempfile
 import statistics
 import threading
 import time
+from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -20,6 +21,7 @@ from pydantic import BaseModel
 
 from analyzer import ANALYSES_DIR, safe_workspace, analyze as analyze_video, transcribe_local
 from script_rewriter import rewrite_voiceover
+from link_transcription import validate_social_url, transcribe_public_video
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 INTERNAL_TOKEN = os.environ.get("TRENDWATCH_INTERNAL_TOKEN", "")
@@ -134,6 +136,21 @@ CREATE TABLE IF NOT EXISTS tw_analyses (
   PRIMARY KEY (workspace_id, code)
 );
 
+CREATE TABLE IF NOT EXISTS tw_link_transcriptions (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  source_url TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'queued',
+  step TEXT,
+  error TEXT,
+  data JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS tw_link_transcriptions_workspace_created
+  ON tw_link_transcriptions(workspace_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS tw_events (
   id BIGSERIAL PRIMARY KEY,
   workspace_id TEXT NOT NULL,
@@ -167,6 +184,10 @@ class SyncIn(BaseModel):
 
 class SavedIn(BaseModel):
     saved: bool = True
+
+class LinkTranscriptionIn(BaseModel):
+    url: str
+
 
 class ScriptRewriteIn(BaseModel):
     product: str = ""
@@ -1260,6 +1281,95 @@ def trends(workspace_id: str = Depends(require_workspace)):
         (workspace_id,),
     )
     return {"items": items}
+
+
+def run_link_transcription(workspace_id: str, task_id: str, source_url: str):
+    try:
+        execute(
+            """UPDATE tw_link_transcriptions
+               SET status='running', step='Downloading video', updated_at=NOW()
+               WHERE workspace_id=%s AND id=%s""",
+            (workspace_id, task_id),
+        )
+        result = transcribe_public_video(source_url)
+        execute(
+            """UPDATE tw_link_transcriptions
+               SET status='done', step='Ready', data=%s::jsonb, error=NULL, updated_at=NOW()
+               WHERE workspace_id=%s AND id=%s""",
+            (json.dumps(result, ensure_ascii=False), workspace_id, task_id),
+        )
+        print("LINK_TRANSCRIPTION_DONE platform=" + result["platform"] +
+              " words=" + str(len((result.get("transcript", {}).get("text") or "").split())), flush=True)
+    except Exception as exc:
+        # User-visible errors must not expose command arguments or temporary files.
+        reason = str(exc)
+        if not isinstance(exc, RuntimeError):
+            reason = "Could not transcribe this video. Check that it is public and try again."
+        execute(
+            """UPDATE tw_link_transcriptions
+               SET status='error', step='Failed', error=%s, updated_at=NOW()
+               WHERE workspace_id=%s AND id=%s""",
+            (reason[:300], workspace_id, task_id),
+        )
+        print("LINK_TRANSCRIPTION_FAILED type=" + type(exc).__name__, flush=True)
+
+
+@app.post("/v1/transcriptions")
+def create_link_transcription(
+    body: LinkTranscriptionIn,
+    background: BackgroundTasks,
+    workspace_id: str = Depends(require_workspace),
+):
+    try:
+        platform, source_url = validate_social_url(body.url)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+
+    recent = query_one(
+        """SELECT COUNT(*) AS count FROM tw_link_transcriptions
+           WHERE workspace_id=%s
+             AND created_at > NOW() - INTERVAL '1 hour'""",
+        (workspace_id,),
+    )
+    if int((recent or {}).get("count") or 0) >= 20:
+        raise HTTPException(429, "Hourly transcription limit reached (20 videos).")
+    active = query_one(
+        """SELECT COUNT(*) AS count FROM tw_link_transcriptions
+           WHERE workspace_id=%s AND status IN ('queued', 'running')
+             AND created_at > NOW() - INTERVAL '15 minutes'""",
+        (workspace_id,),
+    )
+    if int((active or {}).get("count") or 0) >= 2:
+        raise HTTPException(429, "Two transcriptions are already processing. Try again after they finish.")
+
+    task_id = str(uuid4())
+    execute(
+        """INSERT INTO tw_link_transcriptions
+           (id, workspace_id, platform, source_url, status, step)
+           VALUES (%s, %s, %s, %s, 'queued', 'Queued')""",
+        (task_id, workspace_id, platform, source_url),
+    )
+    background.add_task(run_link_transcription, workspace_id, task_id, source_url)
+    return {"id": task_id, "status": "queued", "platform": platform}
+
+
+@app.get("/v1/transcriptions/{task_id}")
+def get_link_transcription(task_id: str, workspace_id: str = Depends(require_workspace)):
+    try:
+        from uuid import UUID
+        UUID(task_id)
+    except ValueError as error:
+        raise HTTPException(400, "Invalid task ID") from error
+    row = query_one(
+        """SELECT id, platform, source_url, status, step, error, data,
+                  created_at, updated_at
+           FROM tw_link_transcriptions
+           WHERE workspace_id=%s AND id=%s""",
+        (workspace_id, task_id),
+    )
+    if not row:
+        raise HTTPException(404, "Transcription not found")
+    return {"item": row}
 
 
 @app.post("/v1/analysis/{code}")
