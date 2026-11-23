@@ -931,3 +931,24 @@ Human retest by Volodymyr Rudyi then recorded the expected sequence in Railway: 
 
 **Result**
 Fresh passwordless sign-in and workspace/Dashboard entry are now manually validated after the two staging-discovered fixes. This does not yet validate Instagram OAuth, automation activation, live comment/DM/link/follow-up delivery, or final Dashboard/Logs/CTR behavior for the fresh workspace. Next step: continue the fresh-customer walkthrough from **Connect Instagram**. TikTok work remains out of scope and both source-controlled TikTok send gates remain false.
+
+## 2026-11-22 — Trend Watch competitor Reel archive and ranking
+
+**Task / product decision:** Volodymyr Rudyi requested full available competitor Reel history rather than a 30-day-only presentation, plus most-viewed sorting.
+
+**Root cause:** The React grid defaulted to `30d`; the backend supplied only 300 Reels sorted by Trend Score, and browser sorting operated on that truncated subset. Scraper synced only three cursor pages by default.
+
+**Implementation:** Added backend filtering and SQL sorting before paginated results with total count; default all-time/top-views; competitor filter and per-account deep sync; larger safe cursor walk with repeated-cursor guard. UI now has competitor navigation and paginated results rather than truncating at 300. Historical media retrieval is still subject to Instagram's actual API responses and availability; the 50-page default / 100-page safety ceiling is deliberate.
+
+**Tests and evidence:** PR #97, merge `43954e850f0c49324b8f3dd05cb385f385c189d4`; individual history-sync commit `1a8665722a3aff5cf2243e8ebaecb2f4f1bf9bc9`; five Python tests passed during Trend Watch Docker build. Next.js staging-web compiled/TypeScript passed; Railway staged Trend Watch API and staging-web succeeded. MCP staging UI-only port `e7e9cbc898c28c95b910ef5eda8fedd4c8905335`, deployment pending confirmation at documentation checkpoint. No manual full-history visual validation yet. Production Instagram automations untouched.
+
+
+## 2026-11-22 — Trend Watch voiceover generator
+
+**Requirement:** Convert completed Reel transcript to a newly worded, editable voiceover with same subject and relevant keywords, tailored to a creator's product; one-click copy for ElevenLabs/Captions/personal narration.
+
+**Implementation:** New `services/trend-watch/script_rewriter.py` uses internal Ollama qwen2.5:0.5b; user inputs are bounded; prompt discourages invented claims and line-by-line copying. New workspace-authenticated `POST /v1/analysis/{code}/rewrite` reads a completed transcript by `workspace_id` and never changes original analysis. React analyzer adds optional product and keyword fields, language selection, regenerate and copy editable script. Both Trend Watch staging and MCP staging UI updated; existing Instagram automations untouched.
+
+**Observed issue and fix:** First real Ollama startup probe timed out at 180s with output budget of 1150 tokens and default 48 CPU threads. PR #102 reduced response budget based on transcript word count (120–450 output tokens); PR #103 set `num_thread=2` in Ollama options. Railway then emitted `SCRIPT_REWRITE_SELFTEST_OK provider=ollama model=qwen2.5:0.5b words=60` at 14:35:15 UTC on the targeted synthetic script with a supplied product context. Nine unit tests OK. External user-specific transcript and multilingual rewriting quality still require human QA.
+
+**GitHub evidence:** PR #101, #102, #103; runtime-tested code commit `4b2bbb9634d7719a40563014fd1e1e1ad5570a51`; UI MCP commit `934d87c4d2eb89c55418ec24d8d85bebe2c6b753`. No shared Meta App, Instagram worker or production campaign settings were changed.

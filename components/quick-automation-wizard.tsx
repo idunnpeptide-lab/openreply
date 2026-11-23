@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
+import { useLocale } from "@/components/locale-provider";
 import PostPicker from "@/components/post-picker";
 import {
   buildQuickAutomationPayload,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/quick-automation-templates";
 
 export default function QuickAutomationWizard() {
+  const { t } = useLocale();
   const router = useRouter();
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
@@ -239,27 +241,27 @@ export default function QuickAutomationWizard() {
     return (
       <div className="mx-auto max-w-3xl space-y-5">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Quick Automations</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("Quick Automations")}</h1>
           <p className="mt-1 text-sm text-muted">
-            ReplyHalo needs to confirm your connected Instagram account before creating an automation.
+            {t("ReplyHalo needs to confirm your connected Instagram account before creating an automation.")}
           </p>
         </div>
         <div className="panel rounded-xl p-6">
-          <p className="text-sm font-medium text-foreground">Could not load connected accounts</p>
-          <p className="mt-1 text-sm text-muted">{accountsError}</p>
+          <p className="text-sm font-medium text-foreground">{t("Could not load connected accounts")}</p>
+          <p className="mt-1 text-sm text-muted">{t(accountsError)}</p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => void retryAccounts()}
               className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
             >
-              Try again
+              {t("Try again")}
             </button>
             <Link
               href="/settings"
               className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-hover"
             >
-              Check Instagram connection
+              {t("Check Instagram connection")}
             </Link>
           </div>
         </div>
@@ -273,18 +275,18 @@ export default function QuickAutomationWizard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Quick Automations</h1>
           <p className="mt-1 text-sm text-muted">
-            Connect Instagram first, then ReplyHalo can create your first automation in a few steps.
+            {t("Connect Instagram first, then ReplyHalo can create your first automation in a few steps.")}
           </p>
         </div>
         <div className="panel rounded-xl p-6">
           <p className="text-sm text-muted">
-            You need a connected Instagram Business or Creator account before creating an automation.
+            {t("You need a connected Instagram Business or Creator account before creating an automation.")}
           </p>
           <a
             href="/api/instagram/connect"
             className="mt-4 inline-flex rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
           >
-            Connect Instagram
+            {t("Connect Instagram")}
           </a>
         </div>
       </div>
@@ -297,14 +299,14 @@ export default function QuickAutomationWizard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Quick Automations</h1>
           <p className="mt-1 text-sm text-muted">
-            Start from a ready-made flow, choose the Reel/post, review the text, and activate.
+            {t("Start from a ready-made flow, choose the Reel/post, review the text, and activate.")}
           </p>
         </div>
         <Link
           href="/campaigns/new"
           className="text-sm font-medium text-accent hover:underline"
         >
-          Open full builder
+          {t("Open full builder")}
         </Link>
       </div>
 
@@ -323,12 +325,12 @@ export default function QuickAutomationWizard() {
               }`}
             >
               <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">
-                {item.badge}
+                {t(item.badge)}
               </span>
               <p className="mt-2 text-sm font-semibold text-foreground">
-                {item.title}
+                {t(item.title)}
               </p>
-              <p className="mt-1 text-xs leading-5 text-muted">{item.description}</p>
+              <p className="mt-1 text-xs leading-5 text-muted">{t(item.description)}</p>
             </button>
           );
         })}
@@ -336,7 +338,7 @@ export default function QuickAutomationWizard() {
 
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="panel rounded-xl p-4 sm:p-6">
-          <h2 className="text-base font-semibold text-foreground">1. Automation details</h2>
+          <h2 className="text-base font-semibold text-foreground">1. {t("Automation details")}</h2>
           <div className="mt-5 space-y-4">
             <AccountSelect
               accounts={accounts}
@@ -347,7 +349,7 @@ export default function QuickAutomationWizard() {
 
             <label className="block text-sm">
               <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Campaign name
+                {t("Campaign name")}
               </span>
               <input
                 value={campaignName}
@@ -359,7 +361,7 @@ export default function QuickAutomationWizard() {
 
             <label className="block text-sm">
               <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Comment keyword
+                {t("Comment keyword")}
               </span>
               <input
                 value={keyword}
@@ -371,7 +373,7 @@ export default function QuickAutomationWizard() {
 
             <label className="block text-sm">
               <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Public reply
+                {t("Public reply")}
               </span>
               <textarea
                 value={publicReplyMessage}
@@ -384,7 +386,7 @@ export default function QuickAutomationWizard() {
 
             <label className="block text-sm">
               <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Private message
+                {t("Private message")}
               </span>
               <textarea
                 value={dmMessage}
@@ -403,7 +405,7 @@ export default function QuickAutomationWizard() {
             {template.trackedLinkRequired && (
               <label className="block text-sm">
                 <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Destination URL
+                  {t("Destination URL")}
                 </span>
                 <input
                   type="url"
@@ -417,7 +419,7 @@ export default function QuickAutomationWizard() {
 
             {template.requireFollow && (
               <div className="rounded-lg border border-border bg-surface/70 p-3">
-                <p className="text-xs font-semibold text-foreground">Follow Gate included</p>
+                <p className="text-xs font-semibold text-foreground">{t("Follow Gate included")}</p>
                 <p className="mt-1 text-xs text-muted">{template.followPromptMessage}</p>
               </div>
             )}
@@ -434,7 +436,7 @@ export default function QuickAutomationWizard() {
         </section>
 
         <section className="panel rounded-xl p-4 sm:p-6">
-          <h2 className="text-base font-semibold text-foreground">2. Choose the Reel or post</h2>
+          <h2 className="text-base font-semibold text-foreground">2. {t("Choose the Reel or post")}</h2>
           <p className="mt-1 text-xs text-muted">
             The automation will listen for the keyword on this content.
           </p>
@@ -454,7 +456,7 @@ export default function QuickAutomationWizard() {
 
       {error && (
         <div className="rounded-lg border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
-          {error}
+          {t(error)}
         </div>
       )}
 
@@ -471,7 +473,7 @@ export default function QuickAutomationWizard() {
           disabled={saving}
           className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
         >
-          {saving ? "Activating…" : "Activate automation"}
+          {saving ? t("Creating…") : t("Create automation")}
         </button>
       </div>
     </div>

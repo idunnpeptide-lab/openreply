@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/locale-provider";
+
 /* eslint-disable @next/next/no-img-element */
 
 /**
@@ -475,12 +477,13 @@ function DmScreen({
 
 export default function CampaignPreview(props: CampaignPreviewProps) {
   const { tab, onTabChange } = props;
+  const { t } = useLocale();
   const tabs: { key: PreviewTab; label: string }[] = [
-    { key: "post", label: "Post" },
-    { key: "comments", label: "Comments" },
+    { key: "post", label: t("Post") },
+    { key: "comments", label: t("Comments") },
     { key: "dm", label: "DM" },
     ...(props.dmTriggerEnabled
-      ? [{ key: "dmTrigger" as const, label: "DM trigger" }]
+      ? [{ key: "dmTrigger" as const, label: t("DM trigger") }]
       : []),
   ];
 

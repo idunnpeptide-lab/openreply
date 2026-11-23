@@ -7,16 +7,21 @@
  */
 
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/components/locale-provider";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
+  "/overview": "Overview",
+  "/inbox": "Inbox",
   "/campaigns": "Campaigns",
+  "/campaigns/quick": "Quick Automations",
   "/campaigns/new": "New Campaign",
   "/automations": "Campaigns",
   "/automations/new": "New Campaign",
   "/logs": "DM Logs",
   "/settings": "Settings",
   "/diagnostics": "Diagnostics",
+  "/tiktok": "TikTok staging",
 };
 
 interface TopBarProps {
@@ -33,7 +38,10 @@ export default function TopBar({
   instagramAccountCount,
 }: TopBarProps) {
   const pathname = usePathname();
-  const title = pageTitles[pathname] ?? "Dashboard";
+  const { locale, t } = useLocale();
+  const titleKey = pathname.startsWith("/trend-watch")
+    ? "Trend Watch"
+    : pageTitles[pathname] ?? (pathname.startsWith("/campaigns/") ? "Campaigns" : "Dashboard");
 
   return (
     <header
@@ -52,20 +60,22 @@ export default function TopBar({
           type="button"
           onClick={onMenuClick}
           className="lg:hidden shrink-0 px-2.5 py-1.5 rounded border border-border text-sm text-muted hover:text-foreground"
-          aria-label="Open navigation"
+          aria-label={t("Open navigation")}
           aria-expanded={sidebarOpen}
           aria-controls="dashboard-sidebar"
         >
-          Menu
+          {t("Menu")}
         </button>
-        <h1 className="truncate text-base font-semibold sm:text-lg">{title}</h1>
+        <h1 className="truncate text-base font-semibold sm:text-lg">{t(titleKey)}</h1>
       </div>
 
       {instagramAccountCount > 0 ? (
         <p className="shrink-0 truncate text-sm text-muted">
           {instagramAccountCount > 1
-            ? `${instagramAccountCount} accounts`
-            : `@${instagramUsername}`}
+            ? locale === "uk"
+              ? instagramAccountCount + " акаунти"
+              : instagramAccountCount + " accounts"
+            : "@" + instagramUsername}
         </p>
       ) : (
         <a
@@ -73,8 +83,8 @@ export default function TopBar({
           className="shrink-0 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded bg-accent text-white hover:bg-accent-hover"
         >
           {/* Full label needs more room than a 360px header has to spare. */}
-          <span className="sm:hidden">Connect</span>
-          <span className="hidden sm:inline">Connect Instagram</span>
+          <span className="sm:hidden">{t("Connect")}</span>
+          <span className="hidden sm:inline">{t("Connect Instagram")}</span>
         </a>
       )}
     </header>

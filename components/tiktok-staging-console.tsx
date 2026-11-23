@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale } from "@/components/locale-provider";
 import {
   getTikTokStagingReadiness,
   type TikTokCapabilitySnapshot,
@@ -104,10 +105,14 @@ function accountLabel(account: TikTokAccountView) {
   return account.displayName || account.openId;
 }
 
-function formatDate(value: string | null) {
-  if (!value) return "Not available";
+function formatDate(value: string | null, locale: "en" | "uk") {
+  if (!value) return locale === "uk" ? "Недоступно" : "Not available";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Not available" : date.toLocaleString();
+  return Number.isNaN(date.getTime())
+    ? locale === "uk"
+      ? "Недоступно"
+      : "Not available"
+    : date.toLocaleString(locale === "uk" ? "uk-UA" : "en-US");
 }
 
 function capabilityClass(enabled: boolean) {
@@ -142,6 +147,7 @@ export default function TikTokStagingConsole({
   initialCampaigns,
   initialProviderError = null,
 }: Props) {
+  const { t, locale } = useLocale();
   const [accounts] = useState(initialAccounts);
   const [selectedAccountId, setSelectedAccountId] = useState(
     initialAccounts[0]?.id ?? ""
@@ -383,13 +389,13 @@ export default function TikTokStagingConsole({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-foreground">TikTok staging</h1>
+            <h1 className="text-xl font-semibold text-foreground">{t("TikTok staging")}</h1>
             <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
-              Provider QA
+              {t("Provider QA")}
             </span>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            Configure and inspect the additive TikTok provider without changing the proven Instagram automation path.
+            {t("Configure and inspect the additive TikTok provider without changing the proven Instagram automation path.")}
           </p>
         </div>
         <button
@@ -397,16 +403,16 @@ export default function TikTokStagingConsole({
           onClick={() => window.location.reload()}
           className="rounded border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-foreground"
         >
-          Refresh status
+          {t("Refresh status")}
         </button>
       </div>
 
       <section className="panel rounded p-4 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold">Provider readiness</h2>
+            <h2 className="text-base font-semibold">{t("Provider readiness")}</h2>
             <p className="mt-1 text-xs text-muted">
-              OAuth/account capabilities are real provider state. Live TikTok send execution remains intentionally locked until staging E2E is approved.
+              {t("OAuth/account capabilities are real provider state. Live TikTok send execution remains intentionally locked until staging E2E is approved.")}
             </p>
           </div>
           <span
@@ -417,51 +423,51 @@ export default function TikTokStagingConsole({
             }`}
           >
             {initialStatus.liveExecutionEnabled
-              ? "Live execution enabled"
-              : "Execution locked"}
+              ? t("Live execution enabled")
+              : t("Execution locked")}
           </span>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <div className="rounded border border-border bg-surface/70 p-3">
-            <p className="text-xs text-muted">Developer app OAuth</p>
+            <p className="text-xs text-muted">{t("Developer app OAuth")}</p>
             <p className="mt-1 text-sm font-semibold">
-              {initialStatus.oauthConfigured ? "Configured" : "Not configured"}
+              {initialStatus.oauthConfigured ? t("Configured") : t("Not configured")}
             </p>
           </div>
           <div className="rounded border border-border bg-surface/70 p-3">
-            <p className="text-xs text-muted">Connected TikTok accounts</p>
+            <p className="text-xs text-muted">{t("Connected TikTok accounts")}</p>
             <p className="mt-1 text-sm font-semibold">{accounts.length}</p>
           </div>
           <div className="rounded border border-border bg-surface/70 p-3">
-            <p className="text-xs text-muted">Rollout phase</p>
-            <p className="mt-1 text-sm font-semibold">Staging foundation</p>
+            <p className="text-xs text-muted">{t("Rollout phase")}</p>
+            <p className="mt-1 text-sm font-semibold">{t("Staging foundation")}</p>
           </div>
         </div>
 
         {accounts.length === 0 ? (
           <div className="mt-5 rounded border border-border bg-surface/70 p-4">
-            <p className="text-sm font-medium">No TikTok Business Account connected yet.</p>
+            <p className="text-sm font-medium">{t("No TikTok Business Account connected yet.")}</p>
             <p className="mt-1 text-xs text-muted">
-              The UI and backend foundation are ready. A real developer app/account is required before live provider E2E can begin.
+              {t("The UI and backend foundation are ready. A real developer app/account is required before live provider E2E can begin.")}
             </p>
             {initialStatus.oauthConfigured && initialStatus.canManage ? (
               <a
                 href="/api/tiktok/connect"
                 className="mt-4 inline-flex rounded bg-foreground px-4 py-2 text-sm font-medium text-background"
               >
-                Connect TikTok Business Account
+                {t("Connect TikTok Business Account")}
               </a>
             ) : (
               <p className="mt-3 text-xs text-warning">
-                TikTok developer-app OAuth must be configured before the connect flow can start.
+                {t("TikTok developer-app OAuth must be configured before the connect flow can start.")}
               </p>
             )}
           </div>
         ) : (
           <div className="mt-5">
             <label className="text-xs font-medium text-muted" htmlFor="tiktok-account">
-              TikTok account
+              {t("TikTok account")}
             </label>
             <select
               id="tiktok-account"
@@ -482,37 +488,37 @@ export default function TikTokStagingConsole({
           <div className="mt-5 space-y-4">
             <div className="flex flex-wrap gap-2">
               <span className={`rounded-full border px-2.5 py-1 text-xs ${capabilityClass(selectedAccount.commentsEnabled)}`}>
-                Comments {selectedAccount.commentsEnabled ? "ready" : "blocked"}
+                {t("Comments")} {selectedAccount.commentsEnabled ? t("ready") : t("blocked")}
               </span>
               <span className={`rounded-full border px-2.5 py-1 text-xs ${capabilityClass(selectedAccount.publicReplyEnabled)}`}>
-                Public reply {selectedAccount.publicReplyEnabled ? "ready" : "blocked"}
+                {t("Public reply")} {selectedAccount.publicReplyEnabled ? t("ready") : t("blocked")}
               </span>
               <span className={`rounded-full border px-2.5 py-1 text-xs ${capabilityClass(selectedAccount.messagingEnabled)}`}>
-                Business Messaging {selectedAccount.messagingEnabled ? "ready" : "blocked"}
+                {t("Business Messaging")} {selectedAccount.messagingEnabled ? t("ready") : t("blocked")}
               </span>
               <span className={`rounded-full border px-2.5 py-1 text-xs ${capabilityClass(selectedAccount.commentToMessageEnabled)}`}>
-                Comment-to-Message {selectedAccount.commentToMessageEnabled ? "eligible" : "not eligible"}
+                {t("Comment-to-Message")} {selectedAccount.commentToMessageEnabled ? t("eligible") : t("not eligible")}
               </span>
               <span className={`rounded-full border px-2.5 py-1 text-xs ${capabilityClass(selectedAccount.webhookConfigured)}`}>
-                Webhook {selectedAccount.webhookConfigured ? "configured" : "not confirmed"}
+                {t("Webhook")} {selectedAccount.webhookConfigured ? t("configured") : t("not confirmed")}
               </span>
             </div>
 
             <div className="grid gap-3 text-xs text-muted sm:grid-cols-3">
               <div>
-                <span className="block">Access token expires</span>
+                <span className="block">{t("Access token expires")}</span>
                 <span className="mt-1 block text-foreground">
-                  {formatDate(selectedAccount.tokenExpiresAt)}
+                  {formatDate(selectedAccount.tokenExpiresAt, locale)}
                 </span>
               </div>
               <div>
-                <span className="block">Refresh token expires</span>
+                <span className="block">{t("Refresh token expires")}</span>
                 <span className="mt-1 block text-foreground">
-                  {formatDate(selectedAccount.refreshTokenExpiresAt)}
+                  {formatDate(selectedAccount.refreshTokenExpiresAt, locale)}
                 </span>
               </div>
               <div>
-                <span className="block">Granted scopes</span>
+                <span className="block">{t("Granted scopes")}</span>
                 <span className="mt-1 block text-foreground">
                   {selectedAccount.grantedScopes.length}
                 </span>
@@ -533,7 +539,7 @@ export default function TikTokStagingConsole({
             )}
 
             <div className="rounded border border-warning/30 bg-warning/5 p-3 text-xs text-muted">
-              <strong className="text-warning">Safety gate:</strong> campaigns created here can match verified provider events and persist routing plans, but ReplyHalo does not execute TikTok public replies or campaign DMs yet.
+              <strong className="text-warning">{t("Safety gate")}:</strong> {t("campaigns created here can match verified provider events and persist routing plans, but ReplyHalo does not execute TikTok public replies or campaign DMs yet.")}
             </div>
           </div>
         )}
@@ -541,12 +547,12 @@ export default function TikTokStagingConsole({
 
       {error && (
         <div className="rounded border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-          {error}
+          {t(error)}
         </div>
       )}
       {notice && (
         <div className="rounded border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
-          {notice}
+          {t(notice)}
         </div>
       )}
 
@@ -555,21 +561,21 @@ export default function TikTokStagingConsole({
           <section className="panel rounded p-4 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-semibold">Owned videos</h2>
+                <h2 className="text-base font-semibold">{t("Owned videos")}</h2>
                 <p className="mt-1 text-xs text-muted">
-                  Loaded from the official TikTok Business API for video-scoped comment campaigns.
+                  {t("Loaded from the official TikTok Business API for video-scoped comment campaigns.")}
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted">
-                  {providerLoading ? "Loading…" : `${videos.length} loaded`}
+                  {providerLoading ? t("Loading…") : `${videos.length} ${t("loaded")}`}
                 </span>
                 <button
                   type="button"
                   onClick={() => void refreshProviderData(selectedAccountId)}
                   className="rounded border border-border px-2.5 py-1.5 text-xs text-muted hover:text-foreground"
                 >
-                  Reload
+                  {t("Reload")}
                 </button>
               </div>
             </div>
@@ -577,8 +583,8 @@ export default function TikTokStagingConsole({
             {videos.length === 0 ? (
               <p className="mt-4 text-sm text-muted">
                 {providerLoading
-                  ? "Loading owned videos…"
-                  : "No videos are available from the provider yet. You can still configure an any-video campaign when comment capability is granted."}
+                  ? t("Loading owned videos…")
+                  : t("No videos are available from the provider yet. You can still configure an any-video campaign when comment capability is granted.")}
               </p>
             ) : (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -597,15 +603,15 @@ export default function TikTokStagingConsole({
                     className="rounded border border-border p-3 text-left hover:bg-surface-hover"
                   >
                     <p className="line-clamp-2 text-sm text-foreground">
-                      {video.caption?.trim() || "Untitled TikTok video"}
+                      {video.caption?.trim() || t("Untitled TikTok video")}
                     </p>
                     <p className="mt-2 break-all text-[11px] text-muted">
                       {video.item_id}
                     </p>
                     <div className="mt-2 flex gap-3 text-[11px] text-muted">
-                      <span>{video.video_views ?? 0} views</span>
-                      <span>{video.comments ?? 0} comments</span>
-                      <span>{video.likes ?? 0} likes</span>
+                      <span>{video.video_views ?? 0} {t("views")}</span>
+                      <span>{video.comments ?? 0} {t("comments")}</span>
+                      <span>{video.likes ?? 0} {t("likes")}</span>
                     </div>
                   </button>
                 ))}
@@ -618,11 +624,11 @@ export default function TikTokStagingConsole({
               <div>
                 <h2 className="text-base font-semibold">
                   {editingId
-                    ? "Edit TikTok staging campaign"
-                    : "New TikTok staging campaign"}
+                    ? t("Edit TikTok staging campaign")
+                    : t("New TikTok staging campaign")}
                 </h2>
                 <p className="mt-1 text-xs text-muted">
-                  Comment and inbound-DM routing can be configured now; live provider sends remain locked.
+                  {t("Comment and inbound-DM routing can be configured now; live provider sends remain locked.")}
                 </p>
               </div>
               {editingId && (
@@ -631,7 +637,7 @@ export default function TikTokStagingConsole({
                   onClick={resetForm}
                   className="text-xs text-muted hover:text-foreground"
                 >
-                  Cancel edit
+                  {t("Cancel edit")}
                 </button>
               )}
             </div>
@@ -639,7 +645,7 @@ export default function TikTokStagingConsole({
             <form onSubmit={saveCampaign} className="mt-5 space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="text-sm">
-                  <span className="text-xs font-medium text-muted">Campaign name</span>
+                  <span className="text-xs font-medium text-muted">{t("Campaign name")}</span>
                   <input
                     value={form.name}
                     onChange={(event) =>
@@ -654,7 +660,7 @@ export default function TikTokStagingConsole({
                   />
                 </label>
                 <label className="text-sm">
-                  <span className="text-xs font-medium text-muted">Goal (optional)</span>
+                  <span className="text-xs font-medium text-muted">{t("Goal (optional)")}</span>
                   <input
                     value={form.goal}
                     onChange={(event) =>
@@ -671,7 +677,7 @@ export default function TikTokStagingConsole({
               </div>
 
               <div className="rounded border border-border p-4">
-                <p className="text-sm font-medium">Triggers</p>
+                <p className="text-sm font-medium">{t("Triggers")}</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className={`flex items-start gap-3 rounded border p-3 ${readiness.commentCampaignReady ? "border-border" : "border-border opacity-60"}`}>
                     <input
@@ -687,9 +693,9 @@ export default function TikTokStagingConsole({
                       className="mt-1"
                     />
                     <span>
-                      <span className="block text-sm font-medium">Comment keyword</span>
+                      <span className="block text-sm font-medium">{t("Comment keyword")}</span>
                       <span className="mt-1 block text-xs text-muted">
-                        Requires comment access + public-reply capability.
+                        {t("Requires comment access + public-reply capability.")}
                       </span>
                     </span>
                   </label>
@@ -707,9 +713,9 @@ export default function TikTokStagingConsole({
                       className="mt-1"
                     />
                     <span>
-                      <span className="block text-sm font-medium">Inbound DM keyword</span>
+                      <span className="block text-sm font-medium">{t("Inbound DM keyword")}</span>
                       <span className="mt-1 block text-xs text-muted">
-                        Replies only inside an existing user-started Business Messaging conversation.
+                        {t("Replies only inside an existing user-started Business Messaging conversation.")}
                       </span>
                     </span>
                   </label>
@@ -719,9 +725,9 @@ export default function TikTokStagingConsole({
               <div className="rounded border border-border p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium">Keyword match</p>
+                    <p className="text-sm font-medium">{t("Keyword match")}</p>
                     <p className="mt-1 text-xs text-muted">
-                      Up to 10 comma-separated keywords.
+                      {t("Up to 10 comma-separated keywords.")}
                     </p>
                   </div>
                   <label className="flex items-center gap-2 text-xs text-muted">
@@ -735,7 +741,7 @@ export default function TikTokStagingConsole({
                         }))
                       }
                     />
-                    Match any text
+                    {t("Match any text")}
                   </label>
                 </div>
                 {!form.matchAnyWord && (
@@ -762,16 +768,16 @@ export default function TikTokStagingConsole({
                       }))
                     }
                   />
-                  Whole-word matching
+                  {t("Whole-word matching")}
                 </label>
               </div>
 
               {form.commentTriggerEnabled && (
                 <div className="rounded border border-border p-4 space-y-4">
                   <div>
-                    <p className="text-sm font-medium">Comment campaign</p>
+                    <p className="text-sm font-medium">{t("Comment campaign")}</p>
                     <p className="mt-1 text-xs text-muted">
-                      A verified matching comment creates an inert PUBLIC_REPLY action plan during staging.
+                      {t("A verified matching comment creates an inert PUBLIC_REPLY action plan during staging.")}
                     </p>
                   </div>
                   <label className="flex items-center gap-2 text-xs text-muted">
@@ -786,11 +792,11 @@ export default function TikTokStagingConsole({
                         }))
                       }
                     />
-                    Match any owned video
+                    {t("Match any owned video")}
                   </label>
                   {!form.matchAnyVideo && (
                     <label className="block text-sm">
-                      <span className="text-xs font-medium text-muted">Owned video</span>
+                      <span className="text-xs font-medium text-muted">{t("Owned video")}</span>
                       <select
                         value={form.videoId}
                         onChange={(event) =>
@@ -801,10 +807,10 @@ export default function TikTokStagingConsole({
                         }
                         className="mt-2 w-full rounded border border-border bg-background px-3 py-2 text-sm"
                       >
-                        <option value="">Choose a video</option>
+                        <option value="">{t("Choose a video")}</option>
                         {videos.map((video) => (
                           <option key={video.item_id} value={video.item_id}>
-                            {(video.caption?.trim() || "Untitled video").slice(0, 70)} — {video.item_id}
+                            {(video.caption?.trim() || t("Untitled video")).slice(0, 70)} — {video.item_id}
                           </option>
                         ))}
                       </select>
@@ -812,7 +818,7 @@ export default function TikTokStagingConsole({
                   )}
                   <label className="block text-sm">
                     <span className="flex items-center justify-between text-xs font-medium text-muted">
-                      <span>Public reply text</span>
+                      <span>{t("Public reply text")}</span>
                       <span>{form.publicReplyMessage.length}/150</span>
                     </span>
                     <textarea
@@ -834,14 +840,14 @@ export default function TikTokStagingConsole({
               {form.messageTriggerEnabled && (
                 <div className="rounded border border-border p-4 space-y-4">
                   <div>
-                    <p className="text-sm font-medium">Inbound DM campaign</p>
+                    <p className="text-sm font-medium">{t("Inbound DM campaign")}</p>
                     <p className="mt-1 text-xs text-muted">
-                      This path never starts a cold conversation; it only plans a reply after a real inbound user message.
+                      {t("This path never starts a cold conversation; it only plans a reply after a real inbound user message.")}
                     </p>
                   </div>
                   <label className="block text-sm">
                     <span className="flex items-center justify-between text-xs font-medium text-muted">
-                      <span>DM reply text</span>
+                      <span>{t("DM reply text")}</span>
                       <span>{form.dmMessage.length}/6000</span>
                     </span>
                     <textarea
@@ -872,7 +878,7 @@ export default function TikTokStagingConsole({
                       }))
                     }
                   />
-                  Enable provider-event matching
+                  {t("Enable provider-event matching")}
                 </label>
                 <button
                   type="submit"
@@ -880,10 +886,10 @@ export default function TikTokStagingConsole({
                   className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busy === "save"
-                    ? "Saving…"
+                    ? t("Saving…")
                     : editingId
-                      ? "Update staging campaign"
-                      : "Create staging campaign"}
+                      ? t("Update staging campaign")
+                      : t("Create staging campaign")}
                 </button>
               </div>
             </form>
@@ -892,16 +898,16 @@ export default function TikTokStagingConsole({
           <section className="panel rounded p-4 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-base font-semibold">TikTok campaigns</h2>
+                <h2 className="text-base font-semibold">{t("TikTok campaigns")}</h2>
                 <p className="mt-1 text-xs text-muted">
-                  Match counts are durable routing evidence; they do not mean a TikTok message was sent.
+                  {t("Match counts are durable routing evidence; they do not mean a TikTok message was sent.")}
                 </p>
               </div>
-              <span className="text-xs text-muted">{campaigns.length} campaigns</span>
+              <span className="text-xs text-muted">{campaigns.length} {t("campaigns")}</span>
             </div>
 
             {campaigns.length === 0 ? (
-              <p className="mt-4 text-sm text-muted">No TikTok staging campaigns yet.</p>
+              <p className="mt-4 text-sm text-muted">{t("No TikTok staging campaigns yet.")}</p>
             ) : (
               <div className="mt-4 space-y-3">
                 {campaigns.map((campaign) => (
@@ -911,11 +917,11 @@ export default function TikTokStagingConsole({
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-sm font-semibold">{campaign.name}</h3>
                           <span className={`rounded-full px-2 py-0.5 text-[11px] ${campaign.isActive ? "bg-success/10 text-success" : "bg-zinc-500/10 text-muted"}`}>
-                            {campaign.isActive ? "Matching on" : "Paused"}
+                            {campaign.isActive ? t("Matching on") : t("Paused")}
                           </span>
                           {!initialStatus.liveExecutionEnabled && (
                             <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[11px] text-warning">
-                              Send locked
+                              {t("Send locked")}
                             </span>
                           )}
                         </div>
@@ -925,21 +931,21 @@ export default function TikTokStagingConsole({
                         <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
                           {campaign.commentTriggerEnabled && (
                             <span className="rounded bg-surface-hover px-2 py-1">
-                              Comment trigger
+                              {t("Comment trigger")}
                             </span>
                           )}
                           {campaign.messageTriggerEnabled && (
                             <span className="rounded bg-surface-hover px-2 py-1">
-                              Inbound DM trigger
+                              {t("Inbound DM trigger")}
                             </span>
                           )}
                           <span className="rounded bg-surface-hover px-2 py-1">
                             {campaign.matchAnyWord
-                              ? "Any text"
+                              ? t("Any text")
                               : campaign.keywords.join(", ")}
                           </span>
                           <span className="rounded bg-surface-hover px-2 py-1">
-                            {campaign._count.matches} durable matches
+                            {campaign._count.matches} {t("durable matches")}
                           </span>
                         </div>
                       </div>
@@ -950,7 +956,7 @@ export default function TikTokStagingConsole({
                           disabled={!initialStatus.canManage}
                           className="rounded border border-border px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
                         >
-                          Edit
+                          {t("Edit")}
                         </button>
                         <button
                           type="button"
@@ -962,8 +968,8 @@ export default function TikTokStagingConsole({
                           className="rounded border border-error/30 px-3 py-1.5 text-xs text-error disabled:opacity-50"
                         >
                           {busy === `delete:${campaign.id}`
-                            ? "Deleting…"
-                            : "Delete"}
+                            ? t("Deleting…")
+                            : t("Delete")}
                         </button>
                       </div>
                     </div>

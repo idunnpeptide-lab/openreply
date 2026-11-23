@@ -1,3 +1,7 @@
+"use client";
+
+import { useLocale } from "@/components/locale-provider";
+
 type MatchDiagnostic = {
   id: string;
   automationId: string;
@@ -45,21 +49,23 @@ function levelClass(level: string) {
   return "text-muted";
 }
 
-function formatDate(value: string) {
+function formatDate(value: string, locale: "en" | "uk") {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(locale === "uk" ? "uk-UA" : "en-US");
 }
 
-function actionLabel(match: MatchDiagnostic) {
+function actionLabel(match: MatchDiagnostic, t: (key: string) => string) {
   if (match.plan.actionTypes.length > 0) {
     return match.plan.actionTypes.join(", ");
   }
   if (match.plan.blocked.length > 0) {
-    return `Blocked: ${match.plan.blocked
+    return `${t("Blocked")}: ${match.plan.blocked
       .map((item) => `${item.type} (${item.reason})`)
       .join(", ")}`;
   }
-  return "No executable action";
+  return t("No executable action");
 }
 
 export default function TikTokExecutionDiagnostics({
@@ -67,43 +73,43 @@ export default function TikTokExecutionDiagnostics({
 }: {
   data: TikTokExecutionDiagnosticsData;
 }) {
+  const { t, locale } = useLocale();
+
   return (
     <section className="panel rounded p-4 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold">Routing & execution diagnostics</h2>
+          <h2 className="text-base font-semibold">{t("Routing & execution diagnostics")}</h2>
           <p className="mt-1 max-w-3xl text-xs text-muted">
-            Sanitized staging evidence only. Comment/DM text, action-message text,
-            actor identifiers, conversation IDs, provider tokens, and credentials
-            are deliberately excluded from this view.
+            {t("Sanitized staging evidence only. Comment/DM text, action-message text, actor identifiers, conversation IDs, provider tokens, and credentials are deliberately excluded from this view.")}
           </p>
         </div>
         <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
-          Live sends locked
+          {t("Live sends locked")}
         </span>
       </div>
 
       <div className="mt-6">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-sm font-medium">Recent durable matches</h3>
-          <span className="text-xs text-muted">{data.matches.length} shown</span>
+          <h3 className="text-sm font-medium">{t("Recent durable matches")}</h3>
+          <span className="text-xs text-muted">{data.matches.length} {t("shown")}</span>
         </div>
 
         {data.matches.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
-            No TikTok automation matches have been recorded yet.
+            {t("No TikTok automation matches have been recorded yet.")}
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto rounded border border-border">
             <table className="w-full min-w-[760px] text-left text-xs">
               <thead className="bg-surface-hover text-muted">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Campaign</th>
-                  <th className="px-3 py-2 font-medium">Trigger</th>
-                  <th className="px-3 py-2 font-medium">Action plan</th>
-                  <th className="px-3 py-2 font-medium">Keyword</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Recorded</th>
+                  <th className="px-3 py-2 font-medium">{t("Campaign")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Trigger")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Action plan")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Keyword")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Status")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Recorded")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,9 +121,9 @@ export default function TikTokExecutionDiagnostics({
                     <td className="px-3 py-2 text-muted">
                       {match.plan.trigger ?? match.eventType}
                     </td>
-                    <td className="px-3 py-2 text-muted">{actionLabel(match)}</td>
+                    <td className="px-3 py-2 text-muted">{actionLabel(match, t)}</td>
                     <td className="px-3 py-2 text-muted">
-                      {match.matchedKeyword ?? "Any text"}
+                      {match.matchedKeyword ?? t("Any text")}
                     </td>
                     <td className="px-3 py-2">
                       <span
@@ -127,7 +133,7 @@ export default function TikTokExecutionDiagnostics({
                       </span>
                     </td>
                     <td className="px-3 py-2 text-muted">
-                      {formatDate(match.createdAt)}
+                      {formatDate(match.createdAt, locale)}
                     </td>
                   </tr>
                 ))}
@@ -139,15 +145,15 @@ export default function TikTokExecutionDiagnostics({
 
       <div className="mt-7">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-sm font-medium">Recent TikTok worker diagnostics</h3>
+          <h3 className="text-sm font-medium">{t("Recent TikTok worker diagnostics")}</h3>
           <span className="text-xs text-muted">
-            {data.operationalEvents.length} shown
+            {data.operationalEvents.length} {t("shown")}
           </span>
         </div>
 
         {data.operationalEvents.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
-            No TikTok execution diagnostics have been recorded yet.
+            {t("No TikTok execution diagnostics have been recorded yet.")}
           </p>
         ) : (
           <div className="mt-3 space-y-2">
@@ -158,7 +164,7 @@ export default function TikTokExecutionDiagnostics({
                     {event.message}
                   </p>
                   <span className="text-[11px] text-muted">
-                    {formatDate(event.createdAt)}
+                    {formatDate(event.createdAt, locale)}
                   </span>
                 </div>
                 {event.payload && (
