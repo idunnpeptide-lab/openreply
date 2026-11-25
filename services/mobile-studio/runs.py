@@ -12,7 +12,7 @@ import uuid
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-DB_PATH = os.getenv("MOBILE_STUDIO_RUNS_DB", "/tmp/mobile-studio-runs.sqlite3")
+DB_PATH = os.getenv("MOBILE_STUDIO_RUNS_DB", "/srv/replyhalo-content/runs.sqlite3")
 LOCK = threading.RLock()
 MAX_ACTIONS = 180
 MAX_RUN_SECONDS = 6 * 3600
