@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from agent_ui import TapInput, SwipeInput, TypeInput, ui_snapshot, ui_tap, ui_swipe, ui_type, ui_back
 from runs import RunApproval, approve_run, check_run, close_run
+from content_queue import list_content, import_content
 
 app = FastAPI(title="ReplyHalo Mobile Studio", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -175,3 +176,15 @@ def agent_ui_go_back(run_id: str):
     return ui_back(docker_exec)
 
 
+
+@app.get("/v1/content", dependencies=[Depends(require_token)])
+def get_prepared_content():
+    return list_content()
+
+
+@app.post("/v1/runs/{run_id}/content/{content_id}/import", dependencies=[Depends(require_token)])
+def import_approved_content(run_id: str, content_id: str):
+    run = check_run(run_id)
+    if content_id not in run["content_ids"]:
+        raise HTTPException(403, "Content item is not included in this approved batch")
+    return import_content(content_id, CONTAINER, ADB_SERIAL)
