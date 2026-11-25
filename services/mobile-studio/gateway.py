@@ -26,6 +26,7 @@ APP_PACKAGES = {
     "instagram": "com.instagram.android",
     "tiktok": "com.zhiliaoapp.musically",
     "youtube": "com.google.android.youtube",
+    "x": "com.twitter.android",
 }
 if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,100}", CONTAINER):
     raise RuntimeError("Invalid Android container name")
