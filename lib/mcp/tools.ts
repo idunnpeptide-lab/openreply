@@ -411,11 +411,19 @@ async function mobileStudioGateway(
   if (!/^(device|content|apps\/(instagram|tiktok|youtube|x)\/open|runs\/[a-f0-9]{32}(?:\/screenshot|\/ui(?:\/(tap|swipe|type|back))?|\/content\/[A-Za-z0-9_-]{1,80}\/import)?)$/.test(path)) {
     throw new Error("Invalid Mobile Studio action");
   }
+  const cfId = process.env.MOBILE_STUDIO_CF_ACCESS_CLIENT_ID;
+  const cfSecret = process.env.MOBILE_STUDIO_CF_ACCESS_CLIENT_SECRET;
   const response = await fetch(
     url.origin + url.pathname.replace(/\/$/, "") + "/v1/" + path,
     {
       method,
-      headers: { Authorization: "Bearer " + token, Accept: "application/json", "Content-Type": "application/json", "X-ReplyHalo-Workspace-Id": claims.workspaceId },
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-ReplyHalo-Workspace-Id": claims.workspaceId,
+        ...(cfId && cfSecret ? { "CF-Access-Client-Id": cfId, "CF-Access-Client-Secret": cfSecret } : {}),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
       signal: AbortSignal.timeout(20000),
