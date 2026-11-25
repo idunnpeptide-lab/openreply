@@ -64,6 +64,12 @@ async function forward(
     Accept: "application/json",
     "X-ReplyHalo-Workspace-Id": workspace.workspaceId,
   });
+  const cfClientId = process.env.MOBILE_STUDIO_CF_ACCESS_CLIENT_ID;
+  const cfClientSecret = process.env.MOBILE_STUDIO_CF_ACCESS_CLIENT_SECRET;
+  if (cfClientId && cfClientSecret) {
+    headers.set("CF-Access-Client-Id", cfClientId);
+    headers.set("CF-Access-Client-Secret", cfClientSecret);
+  }
   let body: FormData | string | undefined;
   if (request.method === "POST" && action !== "media") {
     body = await request.text();
