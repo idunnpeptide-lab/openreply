@@ -31,11 +31,12 @@ async function forward(
   const approvedImport = /^runs\/[a-f0-9]{32}\/content\/[A-Za-z0-9_-]{1,80}\/import$/.test(action);
   const approvedUi = /^runs\/[a-f0-9]{32}\/ui$/.test(action);
   const approvedScreenshot = /^runs\/[a-f0-9]{32}\/screenshot$/.test(action);
+  const previewScreenshot = action === "preview/screenshot";
   const approvedClose = /^runs\/[a-f0-9]{32}\/close$/.test(action);
   const allowed =
-    (request.method === "GET" && (action === "device" || action === "content" || approvedRun || approvedUi || approvedScreenshot)) ||
+    (request.method === "GET" && (action === "device" || action === "content" || approvedRun || approvedUi || approvedScreenshot || previewScreenshot)) ||
     (request.method === "POST" && (action === "media" ||
-       action === "runs/approve" || approvedAction || approvedImport || approvedClose ||
+       action === "runs/approve" || approvedAction || approvedImport || approvedClose || action === "preview/tap" || action === "preview/back" ||
        /^apps\/(instagram|tiktok|youtube|x)\/open$/.test(action)));
   if (!allowed) return NextResponse.json({ error: "Unsupported Mobile Studio action" }, { status: 404 });
 
@@ -96,7 +97,7 @@ async function forward(
       cache: "no-store",
       signal: AbortSignal.timeout(action === "media" ? 180000 : 20000),
     });
-    if (approvedScreenshot) {
+    if (approvedScreenshot || previewScreenshot) {
       if (!result.ok) {
         return NextResponse.json({ error: "Could not capture Android screen" }, { status: result.status });
       }
