@@ -270,7 +270,7 @@ export const MCP_TOOLS: ToolDefinition[] = [
     inputSchema: {
       type: "object",
       properties: {
-        app: { type: "string", enum: ["instagram", "tiktok", "youtube"] },
+        app: { type: "string", enum: ["instagram", "tiktok", "youtube", "x"] },
       },
       required: ["app"],
       additionalProperties: false,
@@ -396,7 +396,7 @@ async function mobileStudioGateway(
   } catch {
     throw new Error("Invalid Mobile Studio gateway configuration");
   }
-  if (!/^(device|content|apps\/(instagram|tiktok|youtube)\/open|runs\/[a-f0-9]{32}(?:\/ui(?:\/(tap|swipe|type|back))?|\/content\/[A-Za-z0-9_-]{1,80}\/import)?)$/.test(path)) {
+  if (!/^(device|content|apps\/(instagram|tiktok|youtube|x)\/open|runs\/[a-f0-9]{32}(?:\/ui(?:\/(tap|swipe|type|back))?|\/content\/[A-Za-z0-9_-]{1,80}\/import)?)$/.test(path)) {
     throw new Error("Invalid Mobile Studio action");
   }
   const response = await fetch(
@@ -660,11 +660,11 @@ export async function callMcpTool(
       result = await mobileStudioGateway(claims, "device", "GET");
     } else if (name === "replyhalo_mobile_open_app") {
       const app = str(args.app);
-      if (!["instagram", "tiktok", "youtube"].includes(app)) {
+      if (!["instagram", "tiktok", "youtube", "x"].includes(app)) {
         throw new Error("Choose instagram, tiktok or youtube");
       }
       const allowedPath = ("apps/" + app + "/open") as
-        "apps/instagram/open" | "apps/tiktok/open" | "apps/youtube/open";
+        "apps/instagram/open" | "apps/tiktok/open" | "apps/youtube/open" | "apps/x/open";
       result = await mobileStudioGateway(claims, allowedPath, "POST");
     } else if (name === "replyhalo_get_inbox_summary") {
       const account = await getWorkspaceInstagramAccount(
