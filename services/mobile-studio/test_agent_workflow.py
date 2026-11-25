@@ -3,6 +3,10 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+os.environ.setdefault("MOBILE_STUDIO_TOKEN", "test-" + "x" * 44)
+os.environ.setdefault("MOBILE_STUDIO_WORKSPACE_ID", "test-workspace")
+os.environ.setdefault("MOBILE_STUDIO_RUNS_DB", "/tmp/mobile-studio-tests-" + str(os.getpid()) + ".sqlite3")
+
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
