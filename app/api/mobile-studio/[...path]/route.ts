@@ -35,7 +35,7 @@ async function forward(
     (request.method === "GET" && (action === "device" || action === "content" || approvedRun || approvedUi)) ||
     (request.method === "POST" && (action === "media" ||
        action === "runs/approve" || approvedAction || approvedImport || approvedClose ||
-       /^apps\/(instagram|tiktok|youtube)\/open$/.test(action)));
+       /^apps\/(instagram|tiktok|youtube|x)\/open$/.test(action)));
   if (!allowed) return NextResponse.json({ error: "Unsupported Mobile Studio action" }, { status: 404 });
 
   const base = process.env.MOBILE_STUDIO_API_URL?.replace(/\/$/, "");
