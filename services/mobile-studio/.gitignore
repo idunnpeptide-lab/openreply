@@ -1,0 +1,10 @@
+# Never commit locally generated media, database or secrets.
+.env
+.env.*
+!.env.example
+.venv/
+Content/
+*.sqlite3
+*.sqlite3-*
+__pycache__/
+*.pyc
