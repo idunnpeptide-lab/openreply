@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi.responses import Response
 from agent_ui import TapInput, SwipeInput, TypeInput, ui_snapshot, ui_tap, ui_swipe, ui_type, ui_back
 from runs import RunApproval, approve_run, check_run, close_run
 from content_queue import list_content, import_content
@@ -182,6 +183,28 @@ def agent_ui_go_back(run_id: str):
     check_run(run_id)
     return ui_back(docker_exec)
 
+
+
+@app.get("/v1/runs/{run_id}/screenshot", dependencies=[Depends(require_token)])
+def agent_screenshot(run_id: str):
+    """Real screenshot from the authorized Android; not exposed publicly."""
+    check_run(run_id, count_action=False)
+    try:
+        screenshot = subprocess.run(
+            ["docker", "exec", CONTAINER, "adb", "-s", ADB_SERIAL,
+             "exec-out", "screencap", "-p"],
+            capture_output=True, timeout=15, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise HTTPException(503, "Could not capture Android screen")
+    if screenshot.returncode != 0 or not screenshot.stdout.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+        raise HTTPException(503, "Android screenshot is unavailable")
+    if len(screenshot.stdout) > 8 * 1024 * 1024:
+        raise HTTPException(413, "Android screen image is too large")
+    return Response(
+        content=screenshot.stdout, media_type="image/png",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/v1/content", dependencies=[Depends(require_token)])
