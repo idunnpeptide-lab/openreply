@@ -57,7 +57,11 @@ async function forward(
     return NextResponse.json({ error: "Invalid Mobile Studio host configuration" }, { status: 503 });
   }
 
-  const headers = new Headers({ Authorization: "Bearer " + token, Accept: "application/json" });
+  const headers = new Headers({
+    Authorization: "Bearer " + token,
+    Accept: "application/json",
+    "X-ReplyHalo-Workspace-Id": workspace.workspaceId,
+  });
   let body: FormData | string | undefined;
   if (request.method === "POST" && action !== "media") {
     body = await request.text();
