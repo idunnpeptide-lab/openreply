@@ -59,6 +59,20 @@ MOBILE_STUDIO_API_TOKEN=<same random token from host>
 
 Route HTTPS privately with access controls and TLS (a gateway/Tailscale-access arrangement reachable from the hosting service). A loopback-only gateway cannot be reached from Railway without a secure tunnel, and an unauthenticated public tunnel is **not** acceptable. The token stays on the ReplyHalo server, never in browser JS. Only workspace ADMIN/OWNER may use the proxy. Do not set these variables until a real KVM host has been provisioned and secured.
 
+## Autonomous publishing agent: Content → approved batch → Android UI
+
+Prepare `/srv/replyhalo-content/Content/` on the **Android host**. Use plain IDs such as `reel_001.mp4` plus an optional `reel_001.json` sidecar. A sample manifest is in `Content.example.json`. This is a server-side directory; ChatGPT/Claude may populate it through an **explicitly connected file source** in a later stage. The current prototype does not read arbitrary local folders from the user's PC.
+
+The new Mobile Studio tab lists ready MP4s and lets the workspace ADMIN/OWNER select up to 20 videos, choose account/platform/post mode and explicitly approve publication of the selected batch. The approval returns a `run_id`; a connected ChatGPT/Claude agent may then call these MCP tools to inspect the Content manifest, import selected videos and operate the Android UI. The agent cannot approve its own run.
+
+MCP tools include `replyhalo_mobile_list_content`, `replyhalo_mobile_run_status`, `replyhalo_mobile_ui_snapshot`, `replyhalo_mobile_import_content` and `replyhalo_mobile_ui_action` (tap/swipe/type/back). All actions require a valid approved run, are rate-bounded and run only against the configured workspace's device. No arbitrary ADB shell and no stealth functions.
+
+**Limitations of this stage:** The Android host is NOT provisioned, Instagram/TikTok/YouTube/X apps have NOT been installed/tested, a real publish has NOT happened, and mobile UI flows have not been validated. The XML UI tree cannot always expose interactive music cards, editors or special controls. ADB typing in this prototype is ASCII only; multilingual captions need Appium/Unicode IME before release. Account login/2FA, licensed track selection and rights declarations must be handled with due care. Mobile Studio does not automatically generate artificial likes or follows to imitate a human, and does not circumvent anti-automation controls.
+
+Important: the Android gateway **must** set `MOBILE_STUDIO_WORKSPACE_ID` to exactly one authorized ReplyHalo workspace; ReplyHalo passes that ID server-to-server. Run storage defaults to `/srv/replyhalo-content/runs.sqlite3`, so create this directory with write permissions for the gateway process. Both remote gateway access and noVNC must remain private. Agent publication is permitted only for the user's specifically approved batch; the agent stops on unfamiliar UI, rights or login challenges. Real posting is verified from the live profile, not an assumed click.
+
+Google Play is **not** guaranteed in the stock Docker-Android image; choose a licensed Google Play-enabled Android system image or a real Android device if necessary. iOS device models displayed by remote tools do not turn an Android VM into an App Store iPhone.
+
 ## Acceptance checklist
 
 1. /dev/kvm works; container `adb devices` returns an emulator.
