@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
+import MobileStudioAgentQueue from "@/components/mobile-studio-agent-queue";
 
 type Device = {
   ready: boolean;
@@ -114,6 +115,8 @@ export default function MobileStudioClient() {
         {error && <p role="alert" className="mt-4 rounded-xl border border-amber-900 bg-amber-950/30 p-3 text-sm text-amber-300">{error}</p>}
         {message && <p role="status" className="mt-4 text-sm text-emerald-300">{message}</p>}
       </section>
+
+      <MobileStudioAgentQueue />
 
       <div className="grid gap-4 md:grid-cols-2">
         <section className="rounded-2xl border border-[#262a35] bg-[#12141a] p-5">
