@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
 import MobileStudioAgentQueue from "@/components/mobile-studio-agent-queue";
+import PhysicalAndroidPreview from "@/components/mobile-studio-physical-preview";
 
 type Device = {
   ready: boolean;
@@ -115,6 +116,8 @@ export default function MobileStudioClient() {
         {error && <p role="alert" className="mt-4 rounded-xl border border-amber-900 bg-amber-950/30 p-3 text-sm text-amber-300">{error}</p>}
         {message && <p role="status" className="mt-4 text-sm text-emerald-300">{message}</p>}
       </section>
+
+      <PhysicalAndroidPreview />
 
       <MobileStudioAgentQueue />
 
