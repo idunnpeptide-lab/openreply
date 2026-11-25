@@ -12,6 +12,8 @@ import uuid
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
+from agent_ui import TapInput, SwipeInput, TypeInput, ui_snapshot, ui_tap, ui_swipe, ui_type, ui_back
+from runs import RunApproval, approve_run, check_run, close_run
 
 app = FastAPI(title="ReplyHalo Mobile Studio", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -125,3 +127,51 @@ async def upload_media(file: UploadFile = File(...)):
         "media_id": media_id, "bytes": size, "android_path": remote_media,
         "published": False, "next_step": "Review video in the mobile app and publish manually",
     }
+
+# AI device operations are enabled only for a user-approved batch.
+# An MCP client is deliberately unable to create/approve a run.
+@app.post("/v1/runs/approve", dependencies=[Depends(require_token)])
+def approve_batch(body: RunApproval):
+    return approve_run(body)
+
+
+@app.get("/v1/runs/{run_id}", dependencies=[Depends(require_token)])
+def get_run(run_id: str):
+    return check_run(run_id, count_action=False)
+
+
+@app.post("/v1/runs/{run_id}/close", dependencies=[Depends(require_token)])
+def finish_run(run_id: str):
+    return close_run(run_id)
+
+
+@app.get("/v1/runs/{run_id}/ui", dependencies=[Depends(require_token)])
+def agent_ui_snapshot(run_id: str):
+    run = check_run(run_id, count_action=False)
+    return {"run": run, "ui": ui_snapshot(docker_exec)}
+
+
+@app.post("/v1/runs/{run_id}/ui/tap", dependencies=[Depends(require_token)])
+def agent_ui_tap(run_id: str, body: TapInput):
+    check_run(run_id)
+    return ui_tap(docker_exec, body)
+
+
+@app.post("/v1/runs/{run_id}/ui/swipe", dependencies=[Depends(require_token)])
+def agent_ui_swipe(run_id: str, body: SwipeInput):
+    check_run(run_id)
+    return ui_swipe(docker_exec, body)
+
+
+@app.post("/v1/runs/{run_id}/ui/type", dependencies=[Depends(require_token)])
+def agent_ui_type(run_id: str, body: TypeInput):
+    check_run(run_id)
+    return ui_type(docker_exec, body)
+
+
+@app.post("/v1/runs/{run_id}/ui/back", dependencies=[Depends(require_token)])
+def agent_ui_go_back(run_id: str):
+    check_run(run_id)
+    return ui_back(docker_exec)
+
+
