@@ -32,7 +32,8 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 if ($LASTEXITCODE -ne 0) { throw "Could not install Python dependencies" }
 if (-not (Test-Path ".env")) {
     $tokenBytes = New-Object byte[] 48
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($tokenBytes)
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($tokenBytes) } finally { $rng.Dispose() }
     $token = [Convert]::ToBase64String($tokenBytes).TrimEnd('=').Replace('+','-').Replace('/','_')
     @"
 MOBILE_STUDIO_TOKEN=$token
