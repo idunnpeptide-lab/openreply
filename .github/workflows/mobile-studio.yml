@@ -9,6 +9,8 @@ on:
       - "app/api/mobile-studio/**"
       - "app/(dashboard)/trend-watch/mobile-studio/**"
       - "components/mobile-studio-client.tsx"
+      - "components/mobile-studio-agent-queue.tsx"
+      - "__tests__/mcp-trendwatch-write-tools.test.ts"
       - "components/trend-watch-subnav.tsx"
       - "lib/mcp/**"
       - ".github/workflows/mobile-studio.yml"
