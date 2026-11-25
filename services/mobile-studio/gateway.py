@@ -38,7 +38,7 @@ def require_token(authorization: str | None = Header(default=None)):
         raise HTTPException(401, "Unauthorized")
 
 
-def docker_exec(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
+def docker_exec(*args: str, timeout: int = 30, allow_failure: bool = False) -> subprocess.CompletedProcess:
     try:
         result = subprocess.run(
             ["docker", "exec", CONTAINER, "adb", "-s", ADB_SERIAL, *args],
@@ -46,7 +46,7 @@ def docker_exec(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
         )
     except (OSError, subprocess.TimeoutExpired):
         raise HTTPException(503, "Android device is not responding")
-    if result.returncode:
+    if result.returncode and not allow_failure:
         raise HTTPException(503, "Android command failed; check emulator readiness")
     return result
 
@@ -62,7 +62,7 @@ def device():
     apps = {}
     if state == "device":
         for app_name, package in APP_PACKAGES.items():
-            found = docker_exec("shell", "pm", "path", package, timeout=15).stdout.strip()
+            found = docker_exec("shell", "pm", "path", package, timeout=15, allow_failure=True).stdout.strip()
             apps[app_name] = bool(found)
     return {"ready": state == "device", "platform": "android", "serial": ADB_SERIAL, "apps": apps}
 
