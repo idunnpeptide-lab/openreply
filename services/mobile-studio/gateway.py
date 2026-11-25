@@ -202,24 +202,24 @@ def agent_ui_go_back(run_id: str):
 @app.get("/v1/preview/screenshot", dependencies=[Depends(require_token)])
 def preview_android_screen():
     """Admin diagnostic preview, safe without an AI publishing run."""
-        try:
-            screenshot = subprocess.run(
-                ([ADB_PATH, "-s", ADB_SERIAL, "exec-out", "screencap", "-p"]
-                 if MODE == "physical" else
-                 ["docker", "exec", CONTAINER, "adb", "-s", ADB_SERIAL,
-                  "exec-out", "screencap", "-p"]),
-                capture_output=True, timeout=15, check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            raise HTTPException(503, "Could not capture Android screen")
-        if screenshot.returncode != 0 or not screenshot.stdout.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
-            raise HTTPException(503, "Android screenshot is unavailable")
-        if len(screenshot.stdout) > 8 * 1024 * 1024:
-            raise HTTPException(413, "Android screen image is too large")
-        return Response(
-            content=screenshot.stdout, media_type="image/png",
-            headers={"Cache-Control": "no-store"},
+    try:
+        screenshot = subprocess.run(
+            ([ADB_PATH, "-s", ADB_SERIAL, "exec-out", "screencap", "-p"]
+             if MODE == "physical" else
+             ["docker", "exec", CONTAINER, "adb", "-s", ADB_SERIAL,
+              "exec-out", "screencap", "-p"]),
+            capture_output=True, timeout=15, check=False,
         )
+    except (OSError, subprocess.TimeoutExpired):
+        raise HTTPException(503, "Could not capture Android screen")
+    if screenshot.returncode != 0 or not screenshot.stdout.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+        raise HTTPException(503, "Android screenshot is unavailable")
+    if len(screenshot.stdout) > 8 * 1024 * 1024:
+        raise HTTPException(413, "Android screen image is too large")
+    return Response(
+        content=screenshot.stdout, media_type="image/png",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.post("/v1/preview/tap", dependencies=[Depends(require_token)])
