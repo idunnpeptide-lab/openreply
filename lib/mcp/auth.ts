@@ -6,6 +6,8 @@ import { requireEnv } from "@/lib/env";
 export const MCP_ALLOWED_SCOPES = [
   "mcp:trendwatch:read",
   "mcp:trendwatch:write",
+  "mcp:mobile:read",
+  "mcp:mobile:write",
   "mcp:instagram:read",
   "mcp:campaigns:read",
   "mcp:inbox:read",
