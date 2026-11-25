@@ -212,7 +212,7 @@ def preview_android_screen():
         )
     except (OSError, subprocess.TimeoutExpired):
         raise HTTPException(503, "Could not capture Android screen")
-    if screenshot.returncode != 0 or not screenshot.stdout.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+    if screenshot.returncode != 0 or not screenshot.stdout.startswith(b"\x89PNG\r\n\x1a\n"):
         raise HTTPException(503, "Android screenshot is unavailable")
     if len(screenshot.stdout) > 8 * 1024 * 1024:
         raise HTTPException(413, "Android screen image is too large")
@@ -247,7 +247,7 @@ def agent_screenshot(run_id: str):
         )
     except (OSError, subprocess.TimeoutExpired):
         raise HTTPException(503, "Could not capture Android screen")
-    if screenshot.returncode != 0 or not screenshot.stdout.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+    if screenshot.returncode != 0 or not screenshot.stdout.startswith(b"\x89PNG\r\n\x1a\n"):
         raise HTTPException(503, "Android screenshot is unavailable")
     if len(screenshot.stdout) > 8 * 1024 * 1024:
         raise HTTPException(413, "Android screen image is too large")
