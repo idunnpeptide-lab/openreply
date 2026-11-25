@@ -11,6 +11,7 @@ const items = [
   { href: "/trend-watch/saved", label: "Saved Ideas" },
   { href: "/trend-watch/analyzer", label: "Video Analyzer" },
   { href: "/trend-watch/transcription", label: "Transcription" },
+  { href: "/trend-watch/mobile-studio", label: "Mobile Studio" },
   { href: "/trend-watch/journal", label: "Journal" },
 ];
 
