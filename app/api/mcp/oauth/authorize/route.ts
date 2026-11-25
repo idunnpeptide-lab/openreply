@@ -69,6 +69,8 @@ function consentHtml(input: AuthInput, clientName: string, scopes: string[]) {
   const labels: Record<string, string> = {
     "mcp:trendwatch:read": "Read Trend Watch data, outliers, trends and saved ideas",
     "mcp:trendwatch:write": "Start video analysis, rewrite scripts and sync competitor Reels in your workspace",
+    "mcp:mobile:read": "Read the connection status of your Mobile Studio test device",
+    "mcp:mobile:write": "Open an installed mobile app on your test Android (publishing remains manual)",
     "mcp:instagram:read": "Read connected Instagram account metadata",
     "mcp:campaigns:read": "Read ReplyHalo campaign configuration",
     "mcp:inbox:read": "Read Instagram inbox conversation summaries",

@@ -191,6 +191,27 @@ export const MCP_TOOLS: ToolDefinition[] = [
     },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
+  {
+    name: "replyhalo_mobile_device_status",
+    title: "Check Mobile Studio test Android status",
+    description: "Read whether your isolated Android test device is connected and which official apps are installed. Requires Mobile Studio host setup and workspace admin rights. Does not publish anything.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "replyhalo_mobile_open_app",
+    title: "Open a social app on the test Android",
+    description: "Open an installed Instagram, TikTok or YouTube app on the authorized test Android. This does NOT upload, post or publish. The human controls the screen and confirms publication manually.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", enum: ["instagram", "tiktok", "youtube"] },
+      },
+      required: ["app"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
 ];
 
 const TOOL_SCOPES: Record<string, McpScope> = {
@@ -207,6 +228,8 @@ const TOOL_SCOPES: Record<string, McpScope> = {
   replyhalo_sync_competitor: "mcp:trendwatch:write",
   replyhalo_get_top_reels: "mcp:trendwatch:read",
   replyhalo_get_inbox_summary: "mcp:inbox:read",
+  replyhalo_mobile_device_status: "mcp:mobile:read",
+  replyhalo_mobile_open_app: "mcp:mobile:write",
 };
 
 function num(value: unknown, fallback: number, min: number, max: number) {
@@ -269,6 +292,55 @@ function competitorUsername(value: unknown) {
     throw new Error("A valid tracked Instagram competitor username is required");
   }
   return name.toLowerCase();
+}
+
+async function mobileStudioGateway(
+  claims: McpAccessClaims,
+  path: "device" | "apps/instagram/open" | "apps/tiktok/open" | "apps/youtube/open",
+  method: "GET" | "POST"
+) {
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: {
+        workspaceId: claims.workspaceId,
+        userId: claims.userId,
+      },
+    },
+    select: { role: true },
+  });
+  if (!membership || (membership.role !== "OWNER" && membership.role !== "ADMIN")) {
+    throw new Error("Workspace admin permission is required for Mobile Studio");
+  }
+  const host = process.env.MOBILE_STUDIO_API_URL;
+  const token = process.env.MOBILE_STUDIO_API_TOKEN;
+  if (!host || !token || token.length < 32) {
+    throw new Error("Mobile Studio Android host has not been provisioned yet");
+  }
+  let url: URL;
+  try {
+    url = new URL(host);
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+      throw new Error("HTTPS host is required");
+    }
+  } catch {
+    throw new Error("Invalid Mobile Studio gateway configuration");
+  }
+  const response = await fetch(
+    url.origin + url.pathname.replace(/\/$/, "") + "/v1/" + path,
+    {
+      method,
+      headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
+    }
+  );
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(
+      data && typeof data.error === "string" ? data.error : "Test Android unavailable"
+    );
+  }
+  return data;
 }
 
 async function scraperSearch(query: string) {
@@ -466,6 +538,16 @@ export async function callMcpTool(
         total: response.total ?? 0, offset,
         has_more: Boolean(response.has_more),
       };
+    } else if (name === "replyhalo_mobile_device_status") {
+      result = await mobileStudioGateway(claims, "device", "GET");
+    } else if (name === "replyhalo_mobile_open_app") {
+      const app = str(args.app);
+      if (!["instagram", "tiktok", "youtube"].includes(app)) {
+        throw new Error("Choose instagram, tiktok or youtube");
+      }
+      const allowedPath = ("apps/" + app + "/open") as
+        "apps/instagram/open" | "apps/tiktok/open" | "apps/youtube/open";
+      result = await mobileStudioGateway(claims, allowedPath, "POST");
     } else if (name === "replyhalo_get_inbox_summary") {
       const account = await getWorkspaceInstagramAccount(
         claims.workspaceId,

@@ -1,0 +1,19 @@
+# Run on a dedicated Ubuntu x86_64 host with KVM; do NOT deploy on Railway.
+# noVNC is localhost-only; reach it via authenticated SSH/Tailscale tunnel.
+services:
+  android:
+    image: budtmo/docker-android:emulator_14.0
+    container_name: replyhalo-mobile-android
+    restart: unless-stopped
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "true"
+    ports:
+      - "127.0.0.1:6080:6080"
+    shm_size: "2gb"
+    mem_limit: "6g"
+    cpus: 4
+    security_opt:
+      - no-new-privileges:true
