@@ -199,6 +199,71 @@ export const MCP_TOOLS: ToolDefinition[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   {
+    name: "replyhalo_mobile_list_content",
+    title: "List prepared video files in Mobile Studio Content folder",
+    description: "Show ready MP4 assets and approved captions from the owner's Content folder; does not upload or publish.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "replyhalo_mobile_run_status",
+    title: "Check the status and authorization of an AI publication run",
+    description: "Read a previously approved batch. The human authorizes runs in ReplyHalo Mobile Studio; the AI cannot approve itself.",
+    inputSchema: {
+      type: "object",
+      properties: { run_id: { type: "string", pattern: "^[a-f0-9]{32}$" } },
+      required: ["run_id"], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "replyhalo_mobile_ui_snapshot",
+    title: "Inspect current Android application controls",
+    description: "Return labeled, accessible Android UI elements with coordinates. Operates only within a previously human-approved publication run.",
+    inputSchema: {
+      type: "object",
+      properties: { run_id: { type: "string", pattern: "^[a-f0-9]{32}$" } },
+      required: ["run_id"], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "replyhalo_mobile_import_content",
+    title: "Import approved video into Android gallery",
+    description: "Copy one explicitly authorized Content MP4 into the Android media gallery. This does not post it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        run_id: { type: "string", pattern: "^[a-f0-9]{32}$" },
+        content_id: { type: "string", pattern: "^[A-Za-z0-9_-]{1,80}$" },
+      },
+      required: ["run_id", "content_id"], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  {
+    name: "replyhalo_mobile_ui_action",
+    title: "Perform an Android UI action for an approved publication",
+    description: "Tap, swipe, type ASCII text or go back on the active test Android. Only for a human-approved content batch. Observe the UI before acting, stop if uncertain, respect app/copyright rules. Publishing may be performed within the explicitly approved batch; do not generate engagement/likes as a warm-up or bypass platform protections.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        run_id: { type: "string", pattern: "^[a-f0-9]{32}$" },
+        action: { type: "string", enum: ["tap", "swipe", "type", "back"] },
+        x: { type: "integer", minimum: 0, maximum: 3000 },
+        y: { type: "integer", minimum: 0, maximum: 4000 },
+        x1: { type: "integer", minimum: 0, maximum: 3000 },
+        y1: { type: "integer", minimum: 0, maximum: 4000 },
+        x2: { type: "integer", minimum: 0, maximum: 3000 },
+        y2: { type: "integer", minimum: 0, maximum: 4000 },
+        duration_ms: { type: "integer", minimum: 100, maximum: 1500, default: 400 },
+        text: { type: "string", minLength: 1, maxLength: 2000 },
+      },
+      required: ["run_id", "action"], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  {
     name: "replyhalo_mobile_open_app",
     title: "Open a social app on the test Android",
     description: "Open an installed Instagram, TikTok or YouTube app on the authorized test Android. This does NOT upload, post or publish. The human controls the screen and confirms publication manually.",
@@ -230,6 +295,11 @@ const TOOL_SCOPES: Record<string, McpScope> = {
   replyhalo_get_inbox_summary: "mcp:inbox:read",
   replyhalo_mobile_device_status: "mcp:mobile:read",
   replyhalo_mobile_open_app: "mcp:mobile:write",
+  replyhalo_mobile_list_content: "mcp:mobile:read",
+  replyhalo_mobile_run_status: "mcp:mobile:read",
+  replyhalo_mobile_ui_snapshot: "mcp:mobile:read",
+  replyhalo_mobile_import_content: "mcp:mobile:write",
+  replyhalo_mobile_ui_action: "mcp:mobile:write",
 };
 
 function num(value: unknown, fallback: number, min: number, max: number) {
@@ -296,8 +366,9 @@ function competitorUsername(value: unknown) {
 
 async function mobileStudioGateway(
   claims: McpAccessClaims,
-  path: "device" | "apps/instagram/open" | "apps/tiktok/open" | "apps/youtube/open",
-  method: "GET" | "POST"
+  path: string,
+  method: "GET" | "POST",
+  body?: unknown
 ) {
   const membership = await prisma.workspaceMember.findUnique({
     where: {
@@ -325,11 +396,15 @@ async function mobileStudioGateway(
   } catch {
     throw new Error("Invalid Mobile Studio gateway configuration");
   }
+  if (!/^(device|content|apps\/(instagram|tiktok|youtube)\/open|runs\/[a-f0-9]{32}(?:\/ui(?:\/(tap|swipe|type|back))?|\/content\/[A-Za-z0-9_-]{1,80}\/import)?)$/.test(path)) {
+    throw new Error("Invalid Mobile Studio action");
+  }
   const response = await fetch(
     url.origin + url.pathname.replace(/\/$/, "") + "/v1/" + path,
     {
       method,
-      headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+      headers: { Authorization: "Bearer " + token, Accept: "application/json", "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
       signal: AbortSignal.timeout(20000),
     }
@@ -538,6 +613,49 @@ export async function callMcpTool(
         total: response.total ?? 0, offset,
         has_more: Boolean(response.has_more),
       };
+    } else if (name === "replyhalo_mobile_list_content") {
+      result = await mobileStudioGateway(claims, "content", "GET");
+    } else if (name === "replyhalo_mobile_run_status") {
+      const runId = str(args.run_id);
+      if (!/^[a-f0-9]{32}$/.test(runId)) throw new Error("Invalid approved run ID");
+      result = await mobileStudioGateway(claims, "runs/" + runId, "GET");
+    } else if (name === "replyhalo_mobile_ui_snapshot") {
+      const runId = str(args.run_id);
+      if (!/^[a-f0-9]{32}$/.test(runId)) throw new Error("Invalid approved run ID");
+      result = await mobileStudioGateway(claims, "runs/" + runId + "/ui", "GET");
+    } else if (name === "replyhalo_mobile_import_content") {
+      const runId = str(args.run_id), contentId = str(args.content_id);
+      if (!/^[a-f0-9]{32}$/.test(runId) || !/^[A-Za-z0-9_-]{1,80}$/.test(contentId)) {
+        throw new Error("Invalid batch run or content ID");
+      }
+      result = await mobileStudioGateway(claims, "runs/" + runId + "/content/" + contentId + "/import", "POST");
+    } else if (name === "replyhalo_mobile_ui_action") {
+      const runId = str(args.run_id), action = str(args.action);
+      if (!/^[a-f0-9]{32}$/.test(runId) || !["tap", "swipe", "type", "back"].includes(action)) {
+        throw new Error("Invalid approved run or UI action");
+      }
+      const numeric = (key: string, low: number, high: number): number => {
+        const value = args[key];
+        if (typeof value !== "number" || !Number.isInteger(value) || value < low || value > high) {
+          throw new Error("Invalid Android UI coordinate: " + key);
+        }
+        return value;
+      };
+      let body: Record<string, unknown> = {};
+      if (action === "tap") body = { x: numeric("x", 0, 3000), y: numeric("y", 0, 4000) };
+      if (action === "swipe") {
+        body = {
+          x1: numeric("x1", 0, 3000), y1: numeric("y1", 0, 4000),
+          x2: numeric("x2", 0, 3000), y2: numeric("y2", 0, 4000),
+          duration_ms: args.duration_ms === undefined ? 400 : numeric("duration_ms", 100, 1500),
+        };
+      }
+      if (action === "type") {
+        const value = str(args.text);
+        if (value.length < 1 || value.length > 2000) throw new Error("Invalid Android text length");
+        body = { text: value };
+      }
+      result = await mobileStudioGateway(claims, "runs/" + runId + "/ui/" + action, "POST", body);
     } else if (name === "replyhalo_mobile_device_status") {
       result = await mobileStudioGateway(claims, "device", "GET");
     } else if (name === "replyhalo_mobile_open_app") {
