@@ -403,7 +403,7 @@ async function mobileStudioGateway(
     url.origin + url.pathname.replace(/\/$/, "") + "/v1/" + path,
     {
       method,
-      headers: { Authorization: "Bearer " + token, Accept: "application/json", "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer " + token, Accept: "application/json", "Content-Type": "application/json", "X-ReplyHalo-Workspace-Id": claims.workspaceId },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
       signal: AbortSignal.timeout(20000),
