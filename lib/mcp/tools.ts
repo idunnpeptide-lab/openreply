@@ -217,6 +217,17 @@ export const MCP_TOOLS: ToolDefinition[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   {
+    name: "replyhalo_mobile_screenshot",
+    title: "See the Android screen in an approved Mobile Studio run",
+    description: "Return a current screenshot of the test Android device for the AI to visually inspect, within a human-approved publication run. Does not post, click or modify anything.",
+    inputSchema: {
+      type: "object",
+      properties: { run_id: { type: "string", pattern: "^[a-f0-9]{32}$" } },
+      required: ["run_id"], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
     name: "replyhalo_mobile_ui_snapshot",
     title: "Inspect current Android application controls",
     description: "Return labeled, accessible Android UI elements with coordinates. Operates only within a previously human-approved publication run.",
@@ -298,6 +309,7 @@ const TOOL_SCOPES: Record<string, McpScope> = {
   replyhalo_mobile_list_content: "mcp:mobile:read",
   replyhalo_mobile_run_status: "mcp:mobile:read",
   replyhalo_mobile_ui_snapshot: "mcp:mobile:read",
+  replyhalo_mobile_screenshot: "mcp:mobile:read",
   replyhalo_mobile_import_content: "mcp:mobile:write",
   replyhalo_mobile_ui_action: "mcp:mobile:write",
 };
@@ -396,7 +408,7 @@ async function mobileStudioGateway(
   } catch {
     throw new Error("Invalid Mobile Studio gateway configuration");
   }
-  if (!/^(device|content|apps\/(instagram|tiktok|youtube|x)\/open|runs\/[a-f0-9]{32}(?:\/ui(?:\/(tap|swipe|type|back))?|\/content\/[A-Za-z0-9_-]{1,80}\/import)?)$/.test(path)) {
+  if (!/^(device|content|apps\/(instagram|tiktok|youtube|x)\/open|runs\/[a-f0-9]{32}(?:\/screenshot|\/ui(?:\/(tap|swipe|type|back))?|\/content\/[A-Za-z0-9_-]{1,80}\/import)?)$/.test(path)) {
     throw new Error("Invalid Mobile Studio action");
   }
   const response = await fetch(
@@ -409,6 +421,17 @@ async function mobileStudioGateway(
       signal: AbortSignal.timeout(20000),
     }
   );
+  if (path.endsWith("/screenshot")) {
+    if (!response.ok) throw new Error("Android screenshot failed");
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength > 8 * 1024 * 1024) throw new Error("Android screenshot too large");
+    return {
+      __mcpImage: {
+        data: Buffer.from(bytes).toString("base64"),
+        mimeType: "image/png",
+      },
+    };
+  }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     throw new Error(
@@ -619,6 +642,10 @@ export async function callMcpTool(
       const runId = str(args.run_id);
       if (!/^[a-f0-9]{32}$/.test(runId)) throw new Error("Invalid approved run ID");
       result = await mobileStudioGateway(claims, "runs/" + runId, "GET");
+    } else if (name === "replyhalo_mobile_screenshot") {
+      const runId = str(args.run_id);
+      if (!/^[a-f0-9]{32}$/.test(runId)) throw new Error("Invalid approved run ID");
+      result = await mobileStudioGateway(claims, "runs/" + runId + "/screenshot", "GET");
     } else if (name === "replyhalo_mobile_ui_snapshot") {
       const runId = str(args.run_id);
       if (!/^[a-f0-9]{32}$/.test(runId)) throw new Error("Invalid approved run ID");
