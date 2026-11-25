@@ -34,12 +34,18 @@ if not re.fullmatch(r"[a-zA-Z0-9_.:-]{3,80}", ADB_SERIAL):
     raise RuntimeError("Invalid ADB serial")
 
 
-def require_token(authorization: str | None = Header(default=None)):
-    if not TOKEN or len(TOKEN) < 32:
+def require_token(
+    authorization: str | None = Header(default=None),
+    x_replyhalo_workspace_id: str | None = Header(default=None),
+):
+    workspace_id = os.getenv("MOBILE_STUDIO_WORKSPACE_ID", "")
+    if not TOKEN or len(TOKEN) < 32 or not workspace_id:
         raise HTTPException(503, "Mobile Studio is not configured")
     supplied = (authorization or "").removeprefix("Bearer ")
     if not hmac.compare_digest(supplied, TOKEN):
         raise HTTPException(401, "Unauthorized")
+    if not hmac.compare_digest(x_replyhalo_workspace_id or "", workspace_id):
+        raise HTTPException(403, "Device is not assigned to this workspace")
 
 
 def docker_exec(*args: str, timeout: int = 30, allow_failure: bool = False) -> subprocess.CompletedProcess:
