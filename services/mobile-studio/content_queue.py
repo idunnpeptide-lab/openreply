@@ -55,19 +55,24 @@ def list_content():
 
 
 def import_content(identifier: str, container: str, serial: str, runner=subprocess.run):
+    mode = os.getenv("MOBILE_STUDIO_DEVICE_MODE", "docker")
+    adb = os.getenv("MOBILE_STUDIO_ADB_PATH", "adb")
     source = get_asset(identifier)
     tmp_path = "/tmp/replyhalo-content-" + identifier + ".mp4"
     dest_path = "/sdcard/Movies/ReplyHalo/" + identifier + ".mp4"
     try:
-        runner(["docker", "cp", str(source), container + ":" + tmp_path], capture_output=True, timeout=60, check=True)
-        runner(["docker", "exec", container, "adb", "-s", serial, "shell", "mkdir", "-p", "/sdcard/Movies/ReplyHalo"], capture_output=True, timeout=15, check=True)
-        runner(["docker", "exec", container, "adb", "-s", serial, "push", tmp_path, dest_path], capture_output=True, timeout=120, check=True)
-        runner(["docker", "exec", container, "adb", "-s", serial, "shell", "am", "broadcast", "-a", "android.intent.action.MEDIA_SCANNER_SCAN_FILE", "-d", "file://" + dest_path], capture_output=True, timeout=15, check=True)
+        prefix = [adb, "-s", serial] if mode == "physical" else ["docker", "exec", container, "adb", "-s", serial]
+        if mode != "physical":
+            runner(["docker", "cp", str(source), container + ":" + tmp_path], capture_output=True, timeout=60, check=True)
+        runner(prefix + ["shell", "mkdir", "-p", "/sdcard/Movies/ReplyHalo"], capture_output=True, timeout=15, check=True)
+        runner(prefix + ["push", str(source) if mode == "physical" else tmp_path, dest_path], capture_output=True, timeout=120, check=True)
+        runner(prefix + ["shell", "am", "broadcast", "-a", "android.intent.action.MEDIA_SCANNER_SCAN_FILE", "-d", "file://" + dest_path], capture_output=True, timeout=15, check=True)
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         raise HTTPException(503, "Could not import this video into Android")
     finally:
-        try:
-            runner(["docker", "exec", container, "rm", "-f", tmp_path], capture_output=True, timeout=15, check=False)
-        except (OSError, subprocess.TimeoutExpired):
-            pass
+        if mode != "physical":
+            try:
+                runner(["docker", "exec", container, "rm", "-f", tmp_path], capture_output=True, timeout=15, check=False)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
     return {"content_id": identifier, "android_path": dest_path, "ready": True}
