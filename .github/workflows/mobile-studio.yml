@@ -9,6 +9,8 @@ on:
       - "app/api/mobile-studio/**"
       - "app/(dashboard)/trend-watch/mobile-studio/**"
       - "components/mobile-studio-client.tsx"
+      - "components/mobile-studio-agent-queue.tsx"
+      - "__tests__/mcp-trendwatch-write-tools.test.ts"
       - "components/trend-watch-subnav.tsx"
       - "lib/mcp/**"
       - ".github/workflows/mobile-studio.yml"
@@ -47,5 +49,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install -r services/mobile-studio/requirements.txt httpx==0.28.1 pytest==8.3.5
-      - run: python -m pytest -q test_gateway.py
+      - run: python -m pytest -q test_gateway.py test_agent_workflow.py
         working-directory: services/mobile-studio

@@ -182,6 +182,17 @@ export async function POST(request: NextRequest) {
 
     try {
       const data = await callMcpTool(claims, name, args);
+      if (
+        data && typeof data === "object" && "__mcpImage" in data &&
+        typeof (data as { __mcpImage?: { data?: unknown } }).__mcpImage?.data === "string"
+      ) {
+        const picture = (data as { __mcpImage: { data: string; mimeType: string } }).__mcpImage;
+        return rpcResult(body.id, {
+          content: [{ type: "image", data: picture.data, mimeType: "image/png" }],
+          structuredContent: { kind: "mobile_studio_android_screen", ok: true },
+          isError: false,
+        });
+      }
       return rpcResult(body.id, {
         content: [
           {

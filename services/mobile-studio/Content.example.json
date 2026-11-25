@@ -1,0 +1,30 @@
+{
+  "caption": "Example caption for the authorized account. Replace with your own content.",
+  "platforms": ["instagram", "tiktok", "youtube", "x"],
+  "publish_mode": "now",
+  "scheduled_at": "",
+  "instagram": {
+    "music": "Choose a properly licensed in-app track, if available",
+    "music_volume_percent": 2,
+    "share_to_facebook": false,
+    "share_to_story": true,
+    "poll": {
+      "question": "",
+      "options": []
+    }
+  },
+  "tiktok": {
+    "commercial_content": false,
+    "use_commercial_music_library": true,
+    "music": "Choose an allowed commercial track if needed"
+  },
+  "youtube": {
+    "title": "",
+    "visibility": "public"
+  },
+  "x": {
+    "post_text": ""
+  },
+  "copyright_ownership_verified": false,
+  "notes_for_agent": "Check the preview, edit in-app, verify rights and confirm a published URL."
+}

@@ -7,9 +7,14 @@ from subprocess import CompletedProcess
 from fastapi.testclient import TestClient
 
 os.environ["MOBILE_STUDIO_TOKEN"] = "test-" + "x" * 44
+os.environ["MOBILE_STUDIO_WORKSPACE_ID"] = "test-workspace"
+os.environ["MOBILE_STUDIO_RUNS_DB"] = "/tmp/mobile-studio-tests-" + str(os.getpid()) + ".sqlite3"
 gateway = importlib.import_module("gateway")
 client = TestClient(gateway.app)
-AUTH = {"Authorization": "Bearer " + os.environ["MOBILE_STUDIO_TOKEN"]}
+AUTH = {
+    "Authorization": "Bearer " + os.environ["MOBILE_STUDIO_TOKEN"],
+    "X-ReplyHalo-Workspace-Id": os.environ["MOBILE_STUDIO_WORKSPACE_ID"],
+}
 
 
 def fake_docker(command, **kwargs):
@@ -18,6 +23,14 @@ def fake_docker(command, **kwargs):
     if "pm" in command and "path" in command:
         return CompletedProcess(command, 1, stdout="", stderr="not installed")
     return CompletedProcess(command, 0, stdout="ok\n", stderr="")
+
+
+def test_wrong_workspace_cannot_operate_android():
+    response = client.get("/v1/device", headers={
+        "Authorization": "Bearer " + os.environ["MOBILE_STUDIO_TOKEN"],
+        "X-ReplyHalo-Workspace-Id": "other-workspace",
+    })
+    assert response.status_code == 403
 
 
 def test_health_has_no_secrets():

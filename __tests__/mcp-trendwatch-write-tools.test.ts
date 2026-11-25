@@ -31,7 +31,13 @@ describe("MCP Trend Watch write tools", () => {
   });
 
   it("keeps existing nine MCP tools available", () => {
-    expect(MCP_TOOLS).toHaveLength(13);
+    expect(MCP_TOOLS).toHaveLength(21);
+    expect(definitions.has("replyhalo_mobile_list_content")).toBe(true);
+    expect(definitions.has("replyhalo_mobile_run_status")).toBe(true);
+    expect(definitions.has("replyhalo_mobile_ui_snapshot")).toBe(true);
+    expect(definitions.has("replyhalo_mobile_screenshot")).toBe(true);
+    expect(definitions.has("replyhalo_mobile_import_content")).toBe(true);
+    expect(definitions.has("replyhalo_mobile_ui_action")).toBe(true);
     expect(definitions.has("replyhalo_get_video_analysis")).toBe(true);
     expect(definitions.has("replyhalo_get_outliers")).toBe(true);
   });

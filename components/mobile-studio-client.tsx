@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
+import MobileStudioAgentQueue from "@/components/mobile-studio-agent-queue";
 
 type Device = {
   ready: boolean;
@@ -115,6 +116,8 @@ export default function MobileStudioClient() {
         {message && <p role="status" className="mt-4 text-sm text-emerald-300">{message}</p>}
       </section>
 
+      <MobileStudioAgentQueue />
+
       <div className="grid gap-4 md:grid-cols-2">
         <section className="rounded-2xl border border-[#262a35] bg-[#12141a] p-5">
           <h2 className="text-lg font-semibold">{uk ? "Імпортувати відео" : "Import video"}</h2>
@@ -144,7 +147,7 @@ export default function MobileStudioClient() {
               "Log in and install apps on the Android device yourself. These buttons only launch installed apps."}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            {(["instagram", "tiktok", "youtube"] as const).map((app) => (
+            {(["instagram", "tiktok", "youtube", "x"] as const).map((app) => (
               <button key={app} type="button" disabled={!device?.ready || !device.apps[app] || pending}
                 onClick={() => void openApp(app)}
                 className="rounded-lg border border-[#343846] px-3 py-2 text-sm font-medium capitalize disabled:opacity-40">

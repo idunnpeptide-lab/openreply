@@ -26,10 +26,17 @@ async function forward(
 
   const { path } = await context.params;
   const action = (path || []).join("/");
+  const approvedRun = /^runs\/[a-f0-9]{32}$/.test(action);
+  const approvedAction = /^runs\/[a-f0-9]{32}\/ui\/(tap|swipe|type|back)$/.test(action);
+  const approvedImport = /^runs\/[a-f0-9]{32}\/content\/[A-Za-z0-9_-]{1,80}\/import$/.test(action);
+  const approvedUi = /^runs\/[a-f0-9]{32}\/ui$/.test(action);
+  const approvedScreenshot = /^runs\/[a-f0-9]{32}\/screenshot$/.test(action);
+  const approvedClose = /^runs\/[a-f0-9]{32}\/close$/.test(action);
   const allowed =
-    (request.method === "GET" && action === "device") ||
-    (request.method === "POST" && action === "media") ||
-    (request.method === "POST" && /^apps\/(instagram|tiktok|youtube)\/open$/.test(action));
+    (request.method === "GET" && (action === "device" || action === "content" || approvedRun || approvedUi || approvedScreenshot)) ||
+    (request.method === "POST" && (action === "media" ||
+       action === "runs/approve" || approvedAction || approvedImport || approvedClose ||
+       /^apps\/(instagram|tiktok|youtube|x)\/open$/.test(action)));
   if (!allowed) return NextResponse.json({ error: "Unsupported Mobile Studio action" }, { status: 404 });
 
   const base = process.env.MOBILE_STUDIO_API_URL?.replace(/\/$/, "");
@@ -51,8 +58,19 @@ async function forward(
     return NextResponse.json({ error: "Invalid Mobile Studio host configuration" }, { status: 503 });
   }
 
-  const headers = new Headers({ Authorization: "Bearer " + token, Accept: "application/json" });
-  let body: FormData | undefined;
+  const headers = new Headers({
+    Authorization: "Bearer " + token,
+    Accept: "application/json",
+    "X-ReplyHalo-Workspace-Id": workspace.workspaceId,
+  });
+  let body: FormData | string | undefined;
+  if (request.method === "POST" && action !== "media") {
+    body = await request.text();
+    if (body.length > 12000) {
+      return NextResponse.json({ error: "Request too large" }, { status: 413 });
+    }
+    headers.set("Content-Type", "application/json");
+  }
   if (action === "media") {
     const len = Number(request.headers.get("content-length") || 0);
     if (len > MAX_UPLOAD_BYTES + 65536) {
@@ -78,6 +96,19 @@ async function forward(
       cache: "no-store",
       signal: AbortSignal.timeout(action === "media" ? 180000 : 20000),
     });
+    if (approvedScreenshot) {
+      if (!result.ok) {
+        return NextResponse.json({ error: "Could not capture Android screen" }, { status: result.status });
+      }
+      const bytes = await result.arrayBuffer();
+      if (bytes.byteLength > 8 * 1024 * 1024) {
+        return NextResponse.json({ error: "Android screenshot too large" }, { status: 413 });
+      }
+      return new NextResponse(bytes, {
+        status: 200,
+        headers: { "Content-Type": "image/png", "Cache-Control": "no-store" },
+      });
+    }
     const response = await result.text();
     let payload: unknown;
     try { payload = JSON.parse(response); } catch { payload = { error: "Device gateway response was invalid" }; }
