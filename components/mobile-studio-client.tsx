@@ -147,7 +147,7 @@ export default function MobileStudioClient() {
               "Log in and install apps on the Android device yourself. These buttons only launch installed apps."}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            {(["instagram", "tiktok", "youtube"] as const).map((app) => (
+            {(["instagram", "tiktok", "youtube", "x"] as const).map((app) => (
               <button key={app} type="button" disabled={!device?.ready || !device.apps[app] || pending}
                 onClick={() => void openApp(app)}
                 className="rounded-lg border border-[#343846] px-3 py-2 text-sm font-medium capitalize disabled:opacity-40">
