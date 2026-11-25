@@ -30,9 +30,10 @@ async function forward(
   const approvedAction = /^runs\/[a-f0-9]{32}\/ui\/(tap|swipe|type|back)$/.test(action);
   const approvedImport = /^runs\/[a-f0-9]{32}\/content\/[A-Za-z0-9_-]{1,80}\/import$/.test(action);
   const approvedUi = /^runs\/[a-f0-9]{32}\/ui$/.test(action);
+  const approvedScreenshot = /^runs\/[a-f0-9]{32}\/screenshot$/.test(action);
   const approvedClose = /^runs\/[a-f0-9]{32}\/close$/.test(action);
   const allowed =
-    (request.method === "GET" && (action === "device" || action === "content" || approvedRun || approvedUi)) ||
+    (request.method === "GET" && (action === "device" || action === "content" || approvedRun || approvedUi || approvedScreenshot)) ||
     (request.method === "POST" && (action === "media" ||
        action === "runs/approve" || approvedAction || approvedImport || approvedClose ||
        /^apps\/(instagram|tiktok|youtube|x)\/open$/.test(action)));
@@ -95,6 +96,19 @@ async function forward(
       cache: "no-store",
       signal: AbortSignal.timeout(action === "media" ? 180000 : 20000),
     });
+    if (approvedScreenshot) {
+      if (!result.ok) {
+        return NextResponse.json({ error: "Could not capture Android screen" }, { status: result.status });
+      }
+      const bytes = await result.arrayBuffer();
+      if (bytes.byteLength > 8 * 1024 * 1024) {
+        return NextResponse.json({ error: "Android screenshot too large" }, { status: 413 });
+      }
+      return new NextResponse(bytes, {
+        status: 200,
+        headers: { "Content-Type": "image/png", "Cache-Control": "no-store" },
+      });
+    }
     const response = await result.text();
     let payload: unknown;
     try { payload = JSON.parse(response); } catch { payload = { error: "Device gateway response was invalid" }; }
