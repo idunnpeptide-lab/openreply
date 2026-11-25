@@ -31,7 +31,7 @@ describe("MCP Trend Watch write tools", () => {
   });
 
   it("keeps existing nine MCP tools available", () => {
-    expect(MCP_TOOLS).toHaveLength(13);
+    expect(MCP_TOOLS).toHaveLength(20);
     expect(definitions.has("replyhalo_get_video_analysis")).toBe(true);
     expect(definitions.has("replyhalo_get_outliers")).toBe(true);
   });
